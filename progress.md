@@ -5,6 +5,8 @@
 **技术栈**：Python + PySide6 + aiohttp + Pydantic v2
 **目标平台**：Windows
 **架构**：Common / Domain / Infrastructure / Application / Presentation（五层）
+**界面方案**：PySide6 `QWebEngineView` 承载 React 前端，Python↔JS 通过通信桥交互；
+Node.js 仍作为独立的插件宿主（双向 RPC）。
 
 > 开发纪律：只实现需求与架构中明确写出的内容；分片开发，一次只写一个文件；
 > 跨层通信只走 event_bus；路径统一 pathlib。
@@ -53,13 +55,20 @@
 
   实测：拉取 Mojang 版本清单成功（921 个版本）。
 
+- ✅ `network/api_client.py`（2026-10-29）
+  - `fetch_version_list()` / `fetch_latest()` / `fetch_version(id)` / `fetch_assets_index(url)`
+  - 版本清单内存缓存一次
+
+  实测：1.20.4 版本 JSON 获取成功（88 个库，assets 索引 3811 个对象）。
+
 ---
 
 ## 下一步
 
-1. `network/api_client.py` —— Mojang API 客户端（版本清单 / 版本 JSON / assets 索引）
-2. `download/downloader.py` —— 断点续传下载
-3. 再按架构顺序推进 application / presentation
+1. `download/downloader.py` —— 断点续传下载（对应架构 download/）
+2. `process/java_detector.py`、`process/game_process.py`
+3. 下载完成后进入 Application 层服务
+4. 最后做桥接与 React 前端（Presentation）
 
 ---
 
