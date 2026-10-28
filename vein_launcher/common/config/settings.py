@@ -38,6 +38,10 @@ class DownloadConfig(BaseModel):
     mirror_base: str = "https://bmclapi2.bangbang93.com"  # 镜像根地址（可自定义）
     target_dir: Optional[str] = None    # 下载目标目录（None=默认 APPDATA）
 
+    # 社区资源来源
+    market_source: str = "modrinth"     # modrinth / curseforge
+    curseforge_api_key: Optional[str] = None
+
 
 class NetworkConfig(BaseModel):
     """网络配置"""

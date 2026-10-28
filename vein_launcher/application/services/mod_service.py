@@ -1,8 +1,7 @@
-"""应用层 - 资源下载服务（模组 / 资源包 / 光影 / 数据包 / 整合包）
+"""应用层 - 资源下载服务（Modrinth / CurseForge + 整合包）
 
-统一入口：
-    search(query, project_type="mod", ...)    搜索
-    install(slug, instance_id, project_type)  下载并按类型放入实例目录
+支持五类资源：mod / resourcepack / shader / datapack / modpack
+支持两个来源：modrinth（默认）/ curseforge（需 API Key）
 """
 
 from __future__ import annotations
@@ -11,6 +10,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from vein_launcher.common.config.settings import settings_manager
 from vein_launcher.common.events.event_bus import event_bus
 from vein_launcher.common.events.events import EventNames
 from vein_launcher.common.exceptions import DownloadError
@@ -19,8 +19,13 @@ from vein_launcher.infrastructure.download.downloader import (
     AsyncDownloader,
     DownloadTask,
 )
+from vein_launcher.infrastructure.network.curseforge_api import (
+    CLASS_IDS,
+    CurseForgeAPI,
+)
 from vein_launcher.infrastructure.network.modrinth_api import PROJECT_TYPES, ModrinthAPI
 from vein_launcher.infrastructure.storage.file_storage import FileStorage
+from vein_launcher.application.services.modpack_service import ModpackService
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +38,6 @@ TYPE_DIRS = {
     "modpack": "modpacks",
 }
 
-# 需要加载器过滤的类型
 LOADER_TYPES = {"mod", "modpack"}
 
 
@@ -45,13 +49,34 @@ class ModService:
         api: Optional[ModrinthAPI] = None,
         storage: Optional[FileStorage] = None,
         downloader: Optional[AsyncDownloader] = None,
+        curseforge: Optional[CurseForgeAPI] = None,
+        modpack: Optional[ModpackService] = None,
     ):
         self._api = api or ModrinthAPI()
         self._storage = storage or FileStorage()
         self._downloader = downloader
+        self._cf = curseforge or CurseForgeAPI()
+        self._modpack = modpack or ModpackService(downloader)
 
     async def close(self) -> None:
         await self._api.close()
+        await self._cf.close()
+
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _cf_key() -> str:
+        return (settings_manager.get().download.curseforge_api_key or "").strip()
+
+    def curseforge_ready(self) -> bool:
+        """是否已配置 CurseForge API Key"""
+        return bool(self._cf_key())
+
+    def sources(self) -> List[Dict[str, Any]]:
+        """供 UI 展示的可用来源"""
+        return [
+            {"id": "modrinth", "name": "Modrinth", "available": True},
+            {"id": "curseforge", "name": "CurseForge", "available": self.curseforge_ready()},
+        ]
 
     # ------------------------------------------------------------------
     # 搜索
@@ -63,8 +88,11 @@ class ModService:
         mc_version: Optional[str] = None,
         loader: Optional[str] = "fabric",
         limit: int = 20,
+        source: str = "modrinth",
     ) -> List[Dict[str, Any]]:
-        """按类型搜索；资源包/光影不传加载器"""
+        if source == "curseforge":
+            return await self._search_cf(query, project_type, mc_version, loader, limit)
+
         tags = [loader] if (loader and project_type in LOADER_TYPES) else None
         hits = await self._api.search_mods(
             query,
@@ -75,13 +103,47 @@ class ModService:
         )
         return [ModrinthAPI.to_mod_summary(hit) for hit in hits]
 
+    async def _search_cf(
+        self,
+        query: str,
+        project_type: str,
+        mc_version: Optional[str],
+        loader: Optional[str],
+        limit: int,
+    ) -> List[Dict[str, Any]]:
+        if not CurseForgeAPI.project_type_supported(project_type):
+            raise DownloadError(f"CurseForge 不支持该类型：{project_type}")
+        items = await self._cf.search_projects(
+            query,
+            api_key=self._cf_key(),
+            limit=limit,
+            game_version=mc_version,
+            project_type=project_type,
+            loader=loader if project_type in LOADER_TYPES else None,
+        )
+        return [CurseForgeAPI.to_mod_summary(item, project_type) for item in items]
+
+    # ------------------------------------------------------------------
+    # 版本列表
+    # ------------------------------------------------------------------
     async def versions(
         self,
         slug: str,
         project_type: str = "mod",
         mc_version: Optional[str] = None,
         loader: Optional[str] = "fabric",
+        source: str = "modrinth",
     ) -> List[Dict[str, Any]]:
+        if source == "curseforge":
+            files = await self._cf.get_files(
+                int(slug),
+                api_key=self._cf_key(),
+                game_version=mc_version,
+                loader=loader if project_type in LOADER_TYPES else None,
+            )
+            mapped = [CurseForgeAPI.to_mod_file(f) for f in files]
+            return [m for m in mapped if m.get("url")]
+
         loaders = [loader] if (loader and project_type in LOADER_TYPES) else None
         raw = await self._api.get_mod_versions(
             slug, game_version=mc_version, loaders=loaders
@@ -93,7 +155,6 @@ class ModService:
     # 安装
     # ------------------------------------------------------------------
     def target_dir(self, instance_id: str, project_type: str) -> Path:
-        """资源在实例中的目标目录"""
         sub = TYPE_DIRS.get(project_type)
         if not sub:
             raise DownloadError(f"不支持的资源类型：{project_type}")
@@ -107,12 +168,12 @@ class ModService:
         mc_version: Optional[str] = None,
         loader: str = "fabric",
         with_dependencies: bool = True,
+        source: str = "modrinth",
     ) -> Dict[str, Any]:
-        """下载项目主文件（模组自动补 required 依赖）到实例目录"""
         if project_type not in PROJECT_TYPES:
             raise DownloadError(f"不支持的资源类型：{project_type}")
 
-        files = await self.versions(slug, project_type, mc_version or None, loader)
+        files = await self.versions(slug, project_type, mc_version, loader, source)
         if not files:
             raise DownloadError(
                 f"未找到 {slug} 适配 {mc_version or '任意版本'}/{loader} 的文件"
@@ -122,26 +183,7 @@ class ModService:
         targets: List[Dict[str, Any]] = [primary]
 
         if with_dependencies and project_type == "mod":
-            required = [
-                dep
-                for dep in primary.get("dependencies", [])
-                if dep.get("dependency_type") == "required"
-            ]
-            for dep in required[:10]:
-                project_id = dep.get("project_id")
-                if not project_id:
-                    continue
-                try:
-                    dep_versions = await self._api.get_mod_versions(
-                        project_id, game_version=mc_version, loaders=[loader]
-                    )
-                except Exception as exc:
-                    logger.warning("依赖解析失败 %s: %s", project_id, exc)
-                    continue
-                if dep_versions:
-                    mapped = ModrinthAPI.to_mod_file(dep_versions[0])
-                    if mapped:
-                        targets.append(mapped)
+            targets.extend(await self._resolve_required(primary, mc_version, loader, source, slug))
 
         dest_dir = ensure_dir(self.target_dir(instance_id, project_type))
         tasks = [
@@ -174,16 +216,48 @@ class ModService:
         event_bus.publish(
             EventNames.MODS_UPDATED, version_id=instance_id, project_type=project_type
         )
-        logger.info(
-            "已安装 %s（%s）到 %s：%d/%d 成功",
-            slug, project_type, dest_dir, sum(r["ok"] for r in results), len(results),
-        )
         return {
             "primary": primary.get("name"),
             "type": PROJECT_TYPES[project_type],
+            "source": source,
             "dir": str(dest_dir),
             "files": results,
         }
+
+    async def _resolve_required(
+        self, primary: Dict[str, Any], mc_version: Optional[str], loader: str,
+        source: str, slug: str,
+    ) -> List[Dict[str, Any]]:
+        """解析 required 依赖并返回对应文件（最多 10 个）"""
+        required = [
+            dep for dep in primary.get("dependencies", [])
+            if dep.get("dependency_type") == "required"
+        ]
+        resolved: List[Dict[str, Any]] = []
+        for dep in required[:10]:
+            dep_id = dep.get("project_id")
+            if not dep_id:
+                continue
+            try:
+                dep_files = await self.versions(str(dep_id), "mod", mc_version, loader, source)
+            except Exception as exc:
+                logger.warning("依赖解析失败 %s: %s", dep_id, exc)
+                continue
+            if dep_files:
+                resolved.append(dep_files[0])
+        return resolved
+
+    # ------------------------------------------------------------------
+    # 整合包
+    # ------------------------------------------------------------------
+    async def install_modpack(
+        self,
+        archive: Path,
+        instance_id: str,
+        progress=None,
+    ) -> Dict[str, Any]:
+        """安装 .mrpack 到指定实例"""
+        return await self._modpack.install(archive, instance_id, progress)
 
     # ------------------------------------------------------------------
     # 本地已安装资源
@@ -210,10 +284,9 @@ class ModService:
         return items
 
     async def toggle(self, instance_id: str, file_name: str, enable: bool) -> bool:
-        """启停模组（重命名 .disabled.jar）"""
         if enable:
             return await self._storage.enable_mod(instance_id, file_name)
         return await self._storage.disable_mod(instance_id, file_name)
 
 
-__all__ = ["ModService", "TYPE_DIRS"]
+__all__ = ["ModService", "TYPE_DIRS", "CLASS_IDS"]

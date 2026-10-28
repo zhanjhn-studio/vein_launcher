@@ -130,6 +130,27 @@ fabulously optimized→Fabulously Optimized、terralith→Terralith。
 
 测试：`tests/test_download_sources.py` 13 项；全套 33 项通过。
 
+### 整合包与 CurseForge（2026-10-29）
+
+**整合包安装** `application/services/modpack_service.py`
+- 解析 `.mrpack` 内 `modrinth.index.json`（formatVersion / dependencies / files）
+- 过滤 `env.client == unsupported` 与服务端专用文件
+- 解压 `overrides/` 与 `client-overrides/` 到实例根目录，忽略 `server-overrides/`
+- 按 `files[].path` 下载并校验 SHA-1，含路径穿越防护
+- 返回统计：文件数 / 成功 / 失败 / 覆盖文件数 / MC 版本 / 加载器
+
+**CurseForge 客户端** `infrastructure/network/curseforge_api.py`
+- classId 映射：mod=6 / modpack=4471 / resourcepack=12 / shader=6552
+- modLoaderType：forge=1 / fabric=4 / quilt=5 / neoforge=6
+- 下载地址：优先 `downloadUrl`，为空时按 `edge.forgecdn.net/files/{id/1000}/{id%1000}/{file}` 回退
+- API Key 来源：设置 → 下载 → CurseForge（`DownloadConfig.curseforge_api_key`）
+
+**统一入口** `ModService` 新增 `source="modrinth" | "curseforge"`：
+`search / versions / install` 全部支持双来源；
+新增 `install_modpack(archive, instance_id)` 与 `curseforge_ready()`、`sources()`。
+
+测试：新增 `tests/test_modpack.py`（4 项）与 `tests/test_curseforge.py`（10 项），全套 **47 项通过**。
+
 ---
 
 ## ⏳ 已知限制 / 下一步
