@@ -42,16 +42,6 @@ class EventNames:
     # ========== 模组事件 ==========
     MODS_UPDATED = "mods.updated"                        # 模组列表更新
     MOD_TOGGLE = "mod.toggle"                             # 模组启用/禁用
-
-    # ========== 插件事件（Node.js 插件宿主）==========
-    PLUGIN_HOST_STARTED = "plugin.host.started"           # 插件宿主进程就绪
-    PLUGIN_HOST_STOPPED = "plugin.host.stopped"           # 插件宿主进程退出
-    PLUGIN_LOADED = "plugin.loaded"                       # 插件激活成功
-    PLUGIN_UNLOADED = "plugin.unloaded"                   # 插件停用
-    PLUGIN_ERROR = "plugin.error"                         # 插件运行异常
-    PLUGIN_LOG = "plugin.log"                             # 插件日志转发
-    PLUGIN_PERMISSION_DENIED = "plugin.permission.denied"  # 插件越权调用被拦截
-    PLUGIN_LIST_UPDATED = "plugin.list.updated"           # 插件列表变更
     
     # ========== 设置事件 ==========
     THEME_CHANGED = "theme.changed"                      # 主题切换（深色/浅色）
@@ -62,7 +52,6 @@ class EventNames:
     PAGE_CHANGED = "page.changed"                        # 页面切换
     SHOW_LOG_PANEL = "ui.show.log_panel"                 # 显示日志面板
     HIDE_LOG_PANEL = "ui.hide.log_panel"                 # 隐藏日志面板
-    UI_NOTIFY = "ui.notify"                              # 全局通知（插件/后台任务）
     
     # ========== 系统事件 ==========
     APP_STARTUP = "app.startup"                          # 应用启动完成

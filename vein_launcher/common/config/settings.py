@@ -27,20 +27,9 @@ class LaunchConfig(BaseModel):
 
 class DownloadConfig(BaseModel):
     """下载配置"""
-
     max_speed_mbps: int = 0     # 限速 (0=不限速)
-    max_concurrent: int = 4     # 最大并发数（线程数）
+    max_concurrent: int = 4     # 最大并发数
     retry_count: int = 3        # 失败重试次数
-
-    # 下载源策略：auto=优先官方失败切镜像 / official=仅官方 / bmclapi=仅镜像
-    source: str = "auto"
-    version_list_source: str = "auto"   # 版本清单单独策略
-    mirror_base: str = "https://bmclapi2.bangbang93.com"  # 镜像根地址（可自定义）
-    target_dir: Optional[str] = None    # 下载目标目录（None=默认 APPDATA）
-
-    # 社区资源来源
-    market_source: str = "modrinth"     # modrinth / curseforge
-    curseforge_api_key: Optional[str] = None
 
 
 class NetworkConfig(BaseModel):
@@ -53,12 +42,10 @@ class NetworkConfig(BaseModel):
 
 class UIConfig(BaseModel):
     """界面配置"""
-    theme: str = "paper"        # paper / night / celadon（墨刻三纸色）
+    theme: str = "dark"         # dark / light
     language: str = "zh_CN"     # zh_CN / en_US
-    window_width: int = 1180
+    window_width: int = 1200
     window_height: int = 800
-    first_run_done: bool = False  # 是否已完成首启引导
-    float_mode: str = "disc"      # disc / island（最小化后的悬浮形态）
 
 
 class Settings(BaseModel):
