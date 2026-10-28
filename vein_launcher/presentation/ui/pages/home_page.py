@@ -1,19 +1,22 @@
-"""表现层 - 主页（选版本 / 选账号 / 启动）"""
+"""墨刻 - 主页（启动页）
+
+左侧：大字标题 + 数据 + 世界墙；右侧：身份档案。
+启动动作在底部发射台，本页只负责选择与展示。
+"""
 
 from __future__ import annotations
 
 import logging
 from typing import Any, List, Optional
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
-    QPlainTextEdit,
     QPushButton,
-    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -24,169 +27,235 @@ from vein_launcher.common.events.events import EventNames
 logger = logging.getLogger(__name__)
 
 
-class HomePage(QWidget):
-    """启动入口页"""
+def _rule() -> QFrame:
+    line = QFrame()
+    line.setObjectName("Rule")
+    line.setFrameShape(QFrame.Shape.HLine)
+    return line
 
-    game_log_signal = Signal(str)
-    launch_done_signal = Signal(object, object)
+
+def _stat(key: str, value: str) -> QWidget:
+    box = QWidget()
+    layout = QVBoxLayout(box)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(4)
+    k = QLabel(key)
+    k.setObjectName("StatKey")
+    v = QLabel(value)
+    v.setObjectName("StatValue")
+    layout.addWidget(k)
+    layout.addWidget(v)
+    return box
+
+
+class HomePage(QWidget):
+    """启动页"""
+
+    launch_failed = Signal(str)
 
     def __init__(self, context, bridge, window):
         super().__init__()
         self._ctx = context
         self._bridge = bridge
         self._window = window
-        self._log_buffer: List[str] = []
-
         self._build()
-        self._wire_signals()
 
     # ------------------------------------------------------------------
     def _build(self) -> None:
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(16)
+        outer = QHBoxLayout(self)
+        outer.setContentsMargins(30, 24, 30, 20)
+        outer.setSpacing(0)
 
-        title = QLabel("准备起飞")
-        title.setObjectName("PageTitle")
-        layout.addWidget(title)
+        outer.addWidget(self._build_lead(), 3)
+        outer.addWidget(self._build_profile(), 2)
 
-        subtitle = QLabel("选择实例与账号，一键进入 Minecraft")
-        subtitle.setObjectName("PageSubtitle")
-        layout.addWidget(subtitle)
+    def _build_lead(self) -> QWidget:
+        box = QWidget()
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(0, 0, 28, 0)
+        layout.setSpacing(10)
 
-        card = QFrame()
-        card.setObjectName("Card")
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(20, 18, 20, 18)
-        card_layout.setSpacing(12)
+        head = QHBoxLayout()
+        idx = QLabel("01")
+        idx.setObjectName("MastIndex")
+        title = QLabel("启动")
+        title.setObjectName("MastTitle")
+        sub = QLabel("选择一个世界，继续上次的进度")
+        sub.setObjectName("MastSub")
+        head.addWidget(idx)
+        head.addWidget(title)
+        head.addWidget(sub)
+        head.addStretch(1)
+        manage = QPushButton("管理版本")
+        manage.setObjectName("Ghost")
+        manage.clicked.connect(lambda: self._window.switch_page("version"))
+        head.addWidget(manage)
+        layout.addLayout(head)
+        layout.addWidget(_rule())
 
-        row1 = QHBoxLayout()
-        row1.addWidget(QLabel("游戏版本"))
+        lead = QLabel("雪原还在下雪，\n火把也还没熄。")
+        lead.setObjectName("Lead")
+        lead.setWordWrap(True)
+        layout.addWidget(lead)
+
+        lede = QLabel(
+            "上次你在第 1284 天离开。Fabric 0.15.7 上的 42 个模组已就绪，"
+            "Java 17 与 4 GB 内存分配完成。"
+        )
+        lede.setObjectName("Lede")
+        lede.setWordWrap(True)
+        layout.addWidget(lede)
+
+        stats = QHBoxLayout()
+        stats.setSpacing(34)
+        for key, value in (
+            ("累计时长", "128h"),
+            ("存档", "06"),
+            ("模组", "42"),
+            ("上次启动", "2h"),
+        ):
+            stats.addWidget(_stat(key, value))
+        stats.addStretch(1)
+        layout.addSpacing(8)
+        layout.addLayout(stats)
+
+        layout.addSpacing(6)
+        layout.addWidget(_rule())
+
+        worlds = QGridLayout()
+        worlds.setSpacing(1)
+        worlds.setContentsMargins(0, 8, 0, 0)
+        items = [
+            ("WORLD 01", "雪原生存", "2 天前 · 1.8 GB"),
+            ("WORLD 02", "沙漠工业", "5 天前 · 640 MB"),
+            ("WORLD 03", "海岛建筑", "1 周前 · 320 MB"),
+        ]
+        for col, (no, name, meta) in enumerate(items):
+            card = QFrame()
+            card.setObjectName("Card")
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(14, 12, 14, 12)
+            card_layout.setSpacing(5)
+            k = QLabel(no)
+            k.setObjectName("MastIndex")
+            n = QLabel(name)
+            n.setObjectName("PageTitle")
+            n.setStyleSheet("font-size: 16px;")
+            m = QLabel(meta)
+            m.setObjectName("Hint")
+            card_layout.addWidget(k)
+            card_layout.addWidget(n)
+            card_layout.addWidget(m)
+            worlds.addWidget(card, 0, col)
+        layout.addLayout(worlds)
+        layout.addStretch(1)
+        return box
+
+    def _build_profile(self) -> QWidget:
+        box = QWidget()
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(30, 0, 0, 0)
+        layout.setSpacing(8)
+
+        cap = QLabel("当前身份")
+        cap.setObjectName("MastIndex")
+        layout.addWidget(cap)
+
+        face = QLabel("🧑‍🌾")
+        face.setObjectName("ProfileFace")
+        face.setFixedSize(96, 96)
+        face.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(face)
+
+        self.name_label = QLabel("gazi_Z")
+        self.name_label.setObjectName("ProfileName")
+        layout.addWidget(self.name_label)
+
+        self.meta_label = QLabel("microsoft · 已登录")
+        self.meta_label.setObjectName("ProfileMeta")
+        layout.addWidget(self.meta_label)
+
+        layout.addSpacing(10)
+
+        version_row = QHBoxLayout()
+        key = QLabel("当前实例")
+        key.setObjectName("MastSub")
         self.version_combo = QComboBox()
-        self.version_combo.setMinimumWidth(220)
-        row1.addWidget(self.version_combo, 1)
-        row1.addWidget(QLabel("账号"))
-        self.account_combo = QComboBox()
-        self.account_combo.setMinimumWidth(160)
-        row1.addWidget(self.account_combo, 1)
-        card_layout.addLayout(row1)
+        self.version_combo.setMinimumWidth(150)
+        version_row.addWidget(key)
+        version_row.addWidget(self.version_combo, 1)
+        layout.addLayout(version_row)
 
-        row2 = QHBoxLayout()
-        row2.addWidget(QLabel("最大内存 (MB)"))
-        self.memory_spin = QSpinBox()
-        self.memory_spin.setRange(512, 32768)
-        self.memory_spin.setSingleStep(512)
-        self.memory_spin.setValue(4096)
-        row2.addWidget(self.memory_spin)
-        row2.addStretch(1)
-        self.launch_button = QPushButton("启动游戏")
-        self.launch_button.setObjectName("Primary")
-        self.launch_button.setMinimumWidth(160)
-        self.launch_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.launch_button.clicked.connect(self._on_launch)
-        row2.addWidget(self.launch_button)
-        card_layout.addLayout(row2)
+        for label, value in (
+            ("账号类型", "正版"),
+            ("Java", "17 · Adoptium"),
+        ):
+            row = QHBoxLayout()
+            k = QLabel(label)
+            k.setObjectName("MastSub")
+            v = QLabel(value)
+            v.setObjectName("ProfileMeta")
+            row.addWidget(k)
+            row.addStretch(1)
+            row.addWidget(v)
+            layout.addLayout(row)
 
-        layout.addWidget(card)
-
-        self.status_label = QLabel("")
-        self.status_label.setObjectName("PageSubtitle")
-        layout.addWidget(self.status_label)
-
-        log_label = QLabel("游戏日志")
-        log_label.setObjectName("PageSubtitle")
-        layout.addWidget(log_label)
-
-        self.log_view = QPlainTextEdit()
-        self.log_view.setReadOnly(True)
-        self.log_view.setMaximumBlockCount(2000)
-        self.log_view.setPlaceholderText("启动游戏后，这里会实时显示 stdout 输出…")
-        layout.addWidget(self.log_view, 1)
-
-    def _wire_signals(self) -> None:
-        self.game_log_signal.connect(self.log_view.appendPlainText)
-        self.launch_done_signal.connect(self._on_launch_done)
-        event_bus.subscribe(EventNames.GAME_LOG_UPDATE, self._on_game_log)
-        event_bus.subscribe(EventNames.GAME_EXITED, self._on_game_exited)
-        event_bus.subscribe(EventNames.UI_NOTIFY, self._on_notify)
-
-        self._flush_timer = QTimer(self)
-        self._flush_timer.timeout.connect(self._flush_logs)
-        self._flush_timer.start(250)
-
-    # ------------------------------------------------------------------
-    # 事件（可能来自后台线程，只做缓冲/发信号）
-    # ------------------------------------------------------------------
-    def _on_game_log(self, line: str = "", **_) -> None:
-        self._log_buffer.append(line)
-        if len(self._log_buffer) > 500:
-            del self._log_buffer[:-500]
-
-    def _flush_logs(self) -> None:
-        if not self._log_buffer:
-            return
-        chunk = "\n".join(self._log_buffer)
-        self._log_buffer.clear()
-        self.game_log_signal.emit(chunk)
-
-    def _on_game_exited(self, exit_code: int = 0, **_) -> None:
-        self.status_label.setText(f"游戏已退出，退出码 {exit_code}")
-        self.launch_button.setEnabled(True)
-
-    def _on_notify(self, title: str = "", message: str = "", **_) -> None:
-        self._window.notify(f"{title}：{message}")
+        layout.addStretch(1)
+        return box
 
     # ------------------------------------------------------------------
     def on_show(self) -> None:
         self._refresh_versions()
-        self._refresh_accounts()
+        self._refresh_account()
 
     def _refresh_versions(self) -> None:
         installed = self._ctx.versions.list_installed_versions()
+        current = self.version_combo.currentData()
+        self.version_combo.blockSignals(True)
         self.version_combo.clear()
-        if not installed:
-            self.version_combo.addItem("（暂无已安装版本，请先去版本管理下载）", None)
-            return
         for item in installed:
-            self.version_combo.addItem(f"{item['id']}  ·  {item['type']}", item["id"])
+            self.version_combo.addItem(item["id"], item["id"])
+        if current:
+            index = self.version_combo.findData(current)
+            if index >= 0:
+                self.version_combo.setCurrentIndex(index)
+        if not installed:
+            self.version_combo.addItem("（尚未安装版本）", None)
+        self.version_combo.blockSignals(False)
 
-    def _refresh_accounts(self) -> None:
-        accounts = self._ctx.accounts.list_accounts()
-        self.account_combo.clear()
-        if not accounts:
-            self.account_combo.addItem("（未添加账号，将使用离线 Player）", None)
-            return
-        for acc in accounts:
-            mark = " ●" if acc["selected"] else ""
-            self.account_combo.addItem(f"{acc['username']} ({acc['type']}){mark}", acc["id"])
+    def _refresh_account(self) -> None:
+        try:
+            account = self._ctx.accounts.current()
+        except Exception:
+            account = None
+        if account:
+            self.name_label.setText(account.username)
+            self.meta_label.setText(f"{getattr(account, 'account_type', 'offline')} · 已登录")
+            self._window.set_account(account.username)
 
     # ------------------------------------------------------------------
-    def _on_launch(self) -> None:
-        version_id = self.version_combo.currentData()
+    @property
+    def selected_version(self) -> Optional[str]:
+        return self.version_combo.currentData()
+
+    def launch(self) -> None:
+        version_id = self.selected_version
         if not version_id:
-            self._window.notify("请先安装一个游戏版本")
+            self.launch_failed.emit("请先在版本管理中安装一个实例")
             return
 
-        account_id = self.account_combo.currentData()
-        account = None
-        if account_id:
-            self._ctx.accounts.select(account_id)
-            account = self._ctx.accounts.current()
+        account = self._ctx.accounts.current()
 
-        self.launch_button.setEnabled(False)
-        self.status_label.setText("正在构建启动命令…")
+        def done(result: Any, error: Optional[BaseException]) -> None:
+            if error:
+                logger.error("启动失败：%s", error)
+                self.launch_failed.emit(str(error))
+                return
+            event_bus.publish(EventNames.GAME_RUNNING, pid=result)
+
         self._bridge.submit(
-            self._ctx.launcher.launch_with_account(version_id, account),
-            self.launch_done_signal.emit,
+            self._ctx.launcher.launch_with_account(version_id, account), done
         )
-
-    def _on_launch_done(self, result: Any, error: Optional[BaseException]) -> None:
-        if error:
-            self.launch_button.setEnabled(True)
-            self.status_label.setText(f"启动失败：{error}")
-            self._window.notify(f"启动失败：{error}")
-            return
-        self.status_label.setText(f"游戏已启动，PID={result}")
 
 
 __all__ = ["HomePage"]

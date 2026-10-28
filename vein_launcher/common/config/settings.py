@@ -53,10 +53,12 @@ class NetworkConfig(BaseModel):
 
 class UIConfig(BaseModel):
     """界面配置"""
-    theme: str = "dark"         # dark / light
+    theme: str = "paper"        # paper / night / celadon（墨刻三纸色）
     language: str = "zh_CN"     # zh_CN / en_US
-    window_width: int = 1200
+    window_width: int = 1180
     window_height: int = 800
+    first_run_done: bool = False  # 是否已完成首启引导
+    float_mode: str = "disc"      # disc / island（最小化后的悬浮形态）
 
 
 class Settings(BaseModel):

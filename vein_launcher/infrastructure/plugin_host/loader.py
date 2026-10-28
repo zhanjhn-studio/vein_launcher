@@ -97,7 +97,11 @@ class PluginLoader:
             try:
                 manifest = self.parse_manifest(child)
             except PluginLoadError as exc:
-                logger.warning("跳过插件 %s：%s", child.name, exc)
+                # 没有 package.json 的普通目录（如 node_modules 残留）静默跳过
+                if "缺少 package.json" in str(exc):
+                    logger.debug("跳过非插件目录 %s", child.name)
+                else:
+                    logger.warning("跳过插件 %s：%s", child.name, exc)
                 continue
 
             record = state.get(manifest.name, {})

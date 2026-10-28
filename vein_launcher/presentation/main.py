@@ -11,11 +11,13 @@ import asyncio
 import logging
 import sys
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog
 
+from vein_launcher.common.config.settings import settings_manager
 from vein_launcher.common.events.event_bus import event_bus
 from vein_launcher.common.events.events import EventNames
 from vein_launcher.common.logging.logger import setup_logger
+from vein_launcher.common.utils.first_run import write_first_run_log
 from vein_launcher.presentation.bridge import AsyncBridge
 from vein_launcher.presentation.context import AppContext
 
@@ -31,6 +33,22 @@ def main() -> int:
     app.setOrganisationName("Vein Studio")
 
     bridge = AsyncBridge()
+
+    # 首启引导：语言 + 纸色，并写入 first_run.log
+    settings = settings_manager.get()
+    if not settings.ui.first_run_done:
+        from vein_launcher.presentation.ui.onboarding import OnboardingDialog
+        from vein_launcher.presentation.ui.theme import tokens
+
+        app.setStyleSheet(tokens.qss(settings.ui.theme))
+        dialog = OnboardingDialog(settings.ui.theme, settings.ui.language)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            settings.ui.theme = dialog.selected_theme
+            settings.ui.language = dialog.selected_language
+            settings.ui.first_run_done = True
+            settings_manager.save()
+            log_path = write_first_run_log(settings.ui.theme, settings.ui.language)
+            logger.info("首启完成，日志：%s", log_path)
 
     # 服务装配需要 async（会创建 aiohttp 相关对象），放到后台循环完成后回到 UI
     holder: dict = {}

@@ -98,8 +98,15 @@ class SettingsPage(QWidget):
         form.addRow("窗口分辨率", res_row)
 
         self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["dark", "light"])
-        form.addRow("主题", self.theme_combo)
+        self.theme_combo.addItem("白墨（paper）", "paper")
+        self.theme_combo.addItem("夜墨（night）", "night")
+        self.theme_combo.addItem("青瓷（celadon）", "celadon")
+        form.addRow("纸色主题", self.theme_combo)
+
+        self.float_combo = QComboBox()
+        self.float_combo.addItem("圆盘", "disc")
+        self.float_combo.addItem("灵动岛", "island")
+        form.addRow("悬浮形态", self.float_combo)
 
         self.language_combo = QComboBox()
         self.language_combo.addItems(["zh_CN", "en_US"])
@@ -126,7 +133,10 @@ class SettingsPage(QWidget):
         self.memory_max.setValue(cfg.launch.memory_max)
         self.width_spin.setValue(cfg.launch.resolution_width)
         self.height_spin.setValue(cfg.launch.resolution_height)
-        self.theme_combo.setCurrentText(cfg.ui.theme)
+        index = self.theme_combo.findData(cfg.ui.theme)
+        self.theme_combo.setCurrentIndex(max(0, index))
+        index = self.float_combo.findData(cfg.ui.float_mode)
+        self.float_combo.setCurrentIndex(max(0, index))
         self.language_combo.setCurrentText(cfg.ui.language)
 
     def _browse_java(self) -> None:
@@ -162,11 +172,17 @@ class SettingsPage(QWidget):
         cfg.launch.memory_max = max(self.memory_max.value(), self.memory_min.value())
         cfg.launch.resolution_width = self.width_spin.value()
         cfg.launch.resolution_height = self.height_spin.value()
-        cfg.ui.theme = self.theme_combo.currentText()
+        cfg.ui.theme = str(self.theme_combo.currentData())
+        cfg.ui.float_mode = str(self.float_combo.currentData())
         cfg.ui.language = self.language_combo.currentText()
         ok = settings_manager.save()
         self.status.setText("已保存 ✅" if ok else "保存失败，请查看日志")
         if ok:
+            from vein_launcher.common.events.event_bus import event_bus
+            from vein_launcher.common.events.events import EventNames
+
+            event_bus.publish(EventNames.THEME_CHANGED, theme=cfg.ui.theme)
+            event_bus.publish(EventNames.SETTINGS_UPDATED, key="ui")
             self._window.notify("设置已保存")
 
 

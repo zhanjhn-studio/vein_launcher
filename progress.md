@@ -153,6 +153,25 @@ fabulously optimized→Fabulously Optimized、terralith→Terralith。
 
 ---
 
+## 🎨 墨刻界面落地（v0.0.1-beta，2026-10-29）
+
+- `theme/tokens.py`：三套纸色（白墨 / 夜墨 / 青瓷）令牌 + QSS 生成，换肤只改 PALETTES
+- `widgets/spine.py`：竖排书脊导航（逐字绘制 + 编号），替代图标栏
+- `ui/main_window.py`：无边框主窗口 = 顶栏 / 书脊 + 页面栈 / 底部发射台
+- `ui/pages/home_page.py`：大字标题 + 数据栏 + 世界墙 + 身份档案
+- `ui/pages/download_page.py`：原版版本下载 + 社区资源（5 类）搜索安装
+- `ui/floating.py`：置顶悬浮球（印章圆盘 / 灵动岛），拖动、辐射菜单、单击启动
+- `ui/onboarding.py` + `common/utils/first_run.py`：首启引导（语言/纸色）并写 first_run.log
+- 设置页支持纸色切换（实时生效）与悬浮形态选择
+- `common/version.py`：版本号 0.0.1-beta
+
+**打包**：PyInstaller 6.14.2 → `dist/VeinLauncher/VeinLauncher.exe`
+（onedir，含依赖约 164 MB；exe 可正常启动，无头模式验证 12s 无崩溃）
+
+测试：全套 47 项通过；`compileall` 通过；Qt 无头冒烟（5 页切换 / 换肤 / 悬浮球最小化恢复）通过。
+
+---
+
 ## ⏳ 已知限制 / 下一步
 
 1. **GUI 未在本机运行验证**：当前环境无 PySide6 且 PyPI 不可达，
