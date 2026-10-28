@@ -56,10 +56,10 @@ class PluginManifest:
     version: str                     # SemVer 版本号
     description: str                 # 描述
     author: str                      # 作者
-    license: Optional[str] = None    # 开源协议
-    
+
     # Vein Launcher 专用扩展字段
     display_name: str                # UI 显示的中文名称
+    license: Optional[str] = None    # 开源协议
     icon_path: Optional[str] = None  # 图标路径（相对插件目录）
     homepage_url: Optional[str] = None
     repository_url: Optional[str] = None
@@ -87,8 +87,13 @@ class PluginManifest:
     activate_on_startup: bool = False
     
     def has_permission(self, permission: str) -> bool:
-        """检查是否有特定权限"""
-        return permission in self.permissions or PluginPermissions[permission].value in self.permissions
+        """检查是否有特定权限（同时接受枚举名与枚举值两种写法）"""
+        if permission in self.permissions:
+            return True
+        try:
+            return PluginPermissions[permission].value in self.permissions
+        except KeyError:
+            return False
 
 
 @dataclass
@@ -174,9 +179,9 @@ class VRPCGameControl:
     
     @staticmethod
     async def launch(
-        version_id: str, 
-        memory_mb: int = 4096, 
-        ctx: VeinRPCContext
+        version_id: str,
+        ctx: VeinRPCContext,
+        memory_mb: int = 4096,
     ) -> Dict[str, Any]:
         return {
             "process_pid": ...,

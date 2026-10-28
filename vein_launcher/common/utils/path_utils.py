@@ -35,6 +35,21 @@ def get_assets_dir() -> Path:
     return get_app_data_dir() / "assets"
 
 
+def get_plugins_dir() -> Path:
+    """获取插件安装根目录（每个插件一个子目录）"""
+    return get_app_data_dir() / "plugins"
+
+
+def sanitize_plugin_id(plugin_id: str) -> str:
+    """把 NPM 包名转成安全的目录名（@scope/name -> @scope__name）"""
+    return plugin_id.replace("/", "__").replace("\\", "__").strip()
+
+
+def get_plugin_sandbox_dir(plugin_id: str) -> Path:
+    """获取单个插件的数据沙箱目录（插件只能读写这里 + 自身目录）"""
+    return get_plugins_dir() / sanitize_plugin_id(plugin_id) / "data"
+
+
 def get_libraries_dir() -> Path:
     """获取全局 libraries 目录（多版本共享）"""
     return get_app_data_dir() / "libraries"

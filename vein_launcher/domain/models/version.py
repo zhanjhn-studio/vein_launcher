@@ -1,7 +1,7 @@
 """Minecraft 版本模型 - Mojang 版本 JSON 解析"""
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from pydantic import BaseModel, Field
 
 

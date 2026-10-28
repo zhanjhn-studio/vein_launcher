@@ -1,7 +1,7 @@
 """账号模型 - 离线 / 微软正版双支持"""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
 
@@ -26,12 +26,12 @@ class AccountBase(ABC, BaseModel):
 class OfflineAccount(AccountBase):
     """离线模式账号 - 无需登录验证"""
     
-    account_type: str = Field(default="offline", const=True)
+    account_type: Literal["offline"] = Field(default="offline", description="离线账号标记")
     # username + account_id 就足够
     
     def is_valid(self) -> bool:
         """离线账号只要用户名非空即有效"""
-        return bool(self.username and len(self.username) >= 3 and len(self.username) <= 16
+        return bool(self.username and len(self.username) >= 3 and len(self.username) <= 16)
     
     def get_auth_token(self) -> Optional[str]:
         """离线账号返回 None"""
@@ -41,7 +41,7 @@ class OfflineAccount(AccountBase):
 class MicrosoftAccount(AccountBase):
     """微软正版账号 - OAuth2 流程认证"""
     
-    account_type: str = Field(default="microsoft", const=True)
+    account_type: Literal["microsoft"] = Field(default="microsoft", description="微软账号标记")
     
     # OAuth2 相关 token（刷新机制）
     access_token: Optional[str] = None
