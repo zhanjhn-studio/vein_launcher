@@ -32,17 +32,17 @@ class OnboardingDialog(QDialog):
         layout.setContentsMargins(34, 30, 34, 24)
         layout.setSpacing(12)
 
-        kicker = QLabel("FIRST RUN / 初次见面")
+        kicker = QLabel("WELCOME / 首次启动")
         kicker.setObjectName("MastIndex")
         layout.addWidget(kicker)
 
-        title = QLabel("选择你的第一印象")
+        title = QLabel("欢迎使用 Vein Launcher")
         title.setObjectName("PageTitle")
         layout.addWidget(title)
 
         desc = QLabel(
             "启动器会创建数据目录，并写入 first_run.log 记录本次初始化。\n"
-            "语言与纸色之后都可以在设置里改。"
+            "语言与外观之后都可以在设置里修改。"
         )
         desc.setObjectName("Hint")
         desc.setWordWrap(True)
@@ -63,7 +63,7 @@ class OnboardingDialog(QDialog):
         layout.addLayout(lang_row)
 
         theme_row = QHBoxLayout()
-        theme_label = QLabel("纸色主题")
+        theme_label = QLabel("外观")
         theme_label.setObjectName("MastSub")
         theme_label.setFixedWidth(90)
         self.theme_combo = QComboBox()
@@ -78,7 +78,7 @@ class OnboardingDialog(QDialog):
         layout.addStretch(1)
 
         footer = QHBoxLayout()
-        hint = QLabel("v0.0.1-beta · 墨刻")
+        hint = QLabel(f"v0.0.1-beta")
         hint.setObjectName("Hint")
         footer.addWidget(hint)
         footer.addStretch(1)
