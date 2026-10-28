@@ -61,14 +61,41 @@ Node.js 仍作为独立的插件宿主（双向 RPC）。
 
   实测：1.20.4 版本 JSON 获取成功（88 个库，assets 索引 3811 个对象）。
 
+- ✅ `network/modrinth_api.py`、`network/curseforge_api.py`
+  - 搜索 / 版本 / 文件映射；CurseForge 需 API Key
+
+- ✅ `download/downloader.py`、`sha_checker.py`、`queue.py`
+  - 断点续传、SHA-1 校验、并发队列（事件总线广播进度）
+
+- ✅ `process/java_detector.py`、`process/game_process.py`
+  - Java 探测（注册表 / JAVA_HOME / PATH / 常见目录），进程日志转发
+
+- ✅ `storage/file_storage.py`
+  - 版本目录、库路径、assets 对象路径、校验与原子写入
+
+## ✅ Application
+
+- `version_service.py` 版本合并、安装（client / libraries / assets）
+- `launcher_service.py` 启动命令构建、natives 解压、拉起进程
+- `account_service.py` 离线账号持久化
+
+## ✅ Presentation（WebView + React）
+
+- `main.py` QWebEngineView 主窗口（原生边框）
+- `bridge.py` QWebChannel 桥：`app.info`、`versions.*`、`launch`、`accounts.*`、`mods.*`、`java.detect`
+- `webui/` React 19（esbuild 本地打包，无需 npm 联网）
+  - 深色科技风：左侧导航 + 面板
+  - 页面：启动 / 版本 / 下载 / 模组 / 账号 / 设置
+
+启动方式：`python -m vein_launcher.presentation.main`
+
 ---
 
 ## 下一步
 
-1. `download/downloader.py` —— 断点续传下载（对应架构 download/）
-2. `process/java_detector.py`、`process/game_process.py`
-3. 下载完成后进入 Application 层服务
-4. 最后做桥接与 React 前端（Presentation）
+1. 插件宿主（Node.js 双向 RPC）—— 项目核心特色，优先完成
+2. 模组安装的实例选择与依赖处理
+3. 界面细节打磨（按验收反馈）
 
 ---
 
