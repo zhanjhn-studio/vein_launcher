@@ -1,0 +1,191 @@
+/* Vein Launcher - 深色科技风 */
+
+:root {
+  --bg: #0a0c0f;
+  --panel: #10141a;
+  --panel-2: #141a22;
+  --line: #1d252f;
+  --line-2: #27313d;
+  --text: #e6edf3;
+  --text-2: #9aa7b4;
+  --text-3: #64717e;
+  --accent: #4f9cf9;
+  --ok: #3fb950;
+  --warn: #d29922;
+  --bad: #f85149;
+  --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.55 "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+
+button { font: inherit; color: inherit; cursor: pointer; }
+input, select { font: inherit; color: inherit; }
+
+/* ---------- 布局 ---------- */
+.app { display: grid; grid-template-columns: 196px 1fr; height: 100%; }
+
+.sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  padding: 18px 12px 12px;
+}
+
+.brand {
+  display: flex; align-items: center; gap: 9px;
+  padding: 0 6px 18px;
+}
+.brand-mark {
+  width: 26px; height: 26px; border: 1px solid var(--line-2);
+  display: grid; place-items: center; border-radius: 7px;
+  font: 600 12px var(--mono); color: var(--accent);
+}
+.brand-name { font-size: 13px; font-weight: 600; letter-spacing: 2px; }
+.brand-ver { font: 10px var(--mono); color: var(--text-3); }
+
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  background: transparent; border: 0; border-radius: 7px;
+  padding: 9px 10px; color: var(--text-2); text-align: left;
+  transition: background .14s, color .14s;
+}
+.nav-item:hover { background: var(--panel-2); color: var(--text); }
+.nav-item.active { background: var(--panel-2); color: var(--accent); }
+.nav-item .ico { width: 16px; text-align: center; font-size: 12px; opacity: .9; }
+
+.sidebar-foot {
+  margin-top: auto; padding: 10px 8px 0;
+  border-top: 1px solid var(--line);
+  font: 10px var(--mono); color: var(--text-3);
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+/* ---------- 内容区 ---------- */
+.main { display: flex; flex-direction: column; min-width: 0; }
+
+.topbar {
+  height: 52px; flex: none;
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 20px;
+}
+.topbar h1 { font-size: 14px; font-weight: 600; }
+.topbar .sub { font: 10px var(--mono); color: var(--text-3); }
+.topbar .spacer { flex: 1; }
+
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-3); display: inline-block;
+}
+.status-dot.on { background: var(--ok); }
+.status-text { font: 10px var(--mono); color: var(--text-3); }
+
+.content { flex: 1; overflow: auto; padding: 20px; }
+.content::-webkit-scrollbar { width: 8px; }
+.content::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+
+/* ---------- 通用 ---------- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.panel-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px;
+}
+.panel-head h2 { font-size: 12px; font-weight: 600; letter-spacing: .5px; }
+.panel-head .count { font: 10px var(--mono); color: var(--text-3); }
+.panel-head .spacer { flex: 1; }
+
+.btn {
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  padding: 6px 14px;
+  color: var(--text-2);
+  transition: all .14s;
+}
+.btn:hover { border-color: var(--accent); color: var(--text); }
+.btn.primary {
+  background: var(--accent); border-color: var(--accent);
+  color: #04101f; font-weight: 600;
+}
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 3px 10px; font-size: 11px; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.input, select {
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  outline: none;
+}
+.input:focus, select:focus { border-color: var(--accent); }
+
+.row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.row:last-child { border-bottom: 0; }
+.row .grow { flex: 1; min-width: 0; }
+.row .name { font-size: 12.5px; }
+.row .meta { font: 10.5px var(--mono); color: var(--text-3); margin-top: 2px; }
+
+.tag {
+  font: 9px var(--mono);
+  border: 1px solid var(--line-2);
+  color: var(--text-3);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.tag.ok { color: var(--ok); border-color: #1c3b25; }
+.tag.warn { color: var(--warn); border-color: #3d2f14; }
+
+.empty {
+  padding: 34px 10px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.kv { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.kv:last-child { border-bottom: 0; }
+.kv .k { width: 110px; color: var(--text-3); font-size: 11.5px; flex: none; }
+.kv .v { flex: 1; font: 11.5px var(--mono); color: var(--text-2); word-break: break-all; }
+
+.progress { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: 7px; }
+.progress > i { display: block; height: 100%; background: var(--accent); }
+
+.toast {
+  position: fixed; right: 18px; bottom: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-left: 2px solid var(--accent);
+  border-radius: 6px;
+  padding: 9px 14px;
+  font-size: 12px;
+  max-width: 380px;
+}
+
+.mono { font-family: var(--mono); }
+.muted { color: var(--text-3); }
