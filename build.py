@@ -1,4 +1,4 @@
-"""Vein Launcher 打包脚本（PyInstaller）
+﻿"""Vein Launcher 打包脚本（PyInstaller）
 
 用法：
     python build.py                 # 清理并打包
@@ -30,6 +30,7 @@ DATA_FILES = [
         "vein_launcher/infrastructure/plugin_host/runtime",
     ),
     ("plugins_examples", "plugins_examples"),
+    ("assets", "assets"),
 ]
 
 

@@ -1,7 +1,7 @@
-"""表现层 - 墨刻主题令牌与 QSS 生成
+"""表现层 - Apple 风格主题令牌
 
-三套纸色：白墨（paper）/ 夜墨（night）/ 青瓷（celadon）。
-所有颜色集中在 PALETTES，改色不需要动界面代码。
+参考 apple.com 的视觉语言：大留白、细字重、浅灰底白卡、蓝色单一强调。
+两套：light（默认）/ dark。改色只动 PALETTES。
 """
 
 from __future__ import annotations
@@ -9,52 +9,43 @@ from __future__ import annotations
 from typing import Dict
 
 PALETTES: Dict[str, Dict[str, str]] = {
-    "paper": {
-        "paper": "#ece6da",
-        "paper2": "#f5f1e8",
-        "ink": "#141210",
-        "ink2": "#4a443c",
-        "ink3": "#8b8377",
-        "rule": "#cfc6b6",
-        "accent": "#b53a2b",
-        "accent_ink": "#f8f2e8",
-        "accent_soft": "#e7d3c8",
-        "ok": "#3f6b52",
-        "warn": "#9a6a1e",
-        "bad": "#a8362c",
+    "light": {
+        "bg": "#f5f5f7",
+        "surface": "#ffffff",
+        "surface2": "#fbfbfd",
+        "text": "#1d1d1f",
+        "text2": "#6e6e73",
+        "text3": "#86868b",
+        "line": "#d2d2d7",
+        "accent": "#0071e3",
+        "accent_ink": "#ffffff",
+        "accent_soft": "#e8f1fd",
+        "ok": "#1d7f43",
+        "warn": "#b25000",
+        "bad": "#c0392b",
     },
-    "night": {
-        "paper": "#12100e",
-        "paper2": "#191614",
-        "ink": "#ece5d7",
-        "ink2": "#b9b0a1",
-        "ink3": "#7d756a",
-        "rule": "#2b2622",
-        "accent": "#d4573f",
-        "accent_ink": "#1a0f0b",
-        "accent_soft": "#2e1d17",
-        "ok": "#7aa888",
-        "warn": "#d0a45f",
-        "bad": "#d96a5c",
-    },
-    "celadon": {
-        "paper": "#dfe4dd",
-        "paper2": "#e9ede7",
-        "ink": "#1a2320",
-        "ink2": "#46544e",
-        "ink3": "#7d8a83",
-        "rule": "#c3ccc4",
-        "accent": "#8a6a2f",
-        "accent_ink": "#f6f2e6",
-        "accent_soft": "#e0d6be",
-        "ok": "#3f6b52",
-        "warn": "#8a6a2f",
-        "bad": "#9c4a3f",
+    "dark": {
+        "bg": "#000000",
+        "surface": "#1d1d1f",
+        "surface2": "#161617",
+        "text": "#f5f5f7",
+        "text2": "#a1a1a6",
+        "text3": "#86868b",
+        "line": "#3a3a3c",
+        "accent": "#2997ff",
+        "accent_ink": "#ffffff",
+        "accent_soft": "#10243a",
+        "ok": "#5ac878",
+        "warn": "#f0a35e",
+        "bad": "#ff6b5e",
     },
 }
 
-THEME_NAMES = {"paper": "白墨", "night": "夜墨", "celadon": "青瓷"}
-DEFAULT_THEME = "paper"
+THEME_NAMES = {"light": "浅色", "dark": "深色"}
+DEFAULT_THEME = "light"
+
+FONT_STACK = '"Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif'
+FONT_DISPLAY = '"Segoe UI Display", "Segoe UI", "Microsoft YaHei UI", sans-serif'
 
 
 def palette(theme: str) -> Dict[str, str]:
@@ -62,230 +53,187 @@ def palette(theme: str) -> Dict[str, str]:
 
 
 def qss(theme: str = DEFAULT_THEME) -> str:
-    """生成整套样式表（墨刻）"""
     p = palette(theme)
     return f"""
-    /* ===== 基础 ===== */
     * {{
-        font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
-        font-size: 12px;
-        color: {p['ink']};
+        font-family: {FONT_STACK};
+        font-size: 13px;
+        color: {p['text']};
     }}
     QWidget {{
-        background: {p['paper2']};
+        background: {p['bg']};
     }}
     QMainWindow, QDialog {{
-        background: {p['paper']};
+        background: {p['bg']};
     }}
 
-    /* ===== 顶栏 ===== */
+    /* ===== 顶部导航 ===== */
     QFrame#TopBar {{
-        background: {p['paper2']};
-        border-bottom: 1px solid {p['rule']};
+        background: {p['bg']};
+        border-bottom: 1px solid {p['line']};
     }}
-    QLabel#Brand {{
-        font-family: "SimSun", "Songti SC", serif;
-        font-size: 17px;
-        letter-spacing: 6px;
-        color: {p['ink']};
-    }}
-    QLabel#BrandSub {{
-        font-size: 10px;
-        letter-spacing: 5px;
-        color: {p['ink3']};
-    }}
-    QLineEdit#Search {{
-        border: none;
-        border-bottom: 1px solid {p['rule']};
-        background: transparent;
-        padding: 3px 2px;
-        color: {p['ink']};
-    }}
-    QLineEdit#Search:focus {{
-        border-bottom: 1px solid {p['accent']};
-    }}
-
-    /* ===== 书脊导航 ===== */
-    QFrame#Spine {{
-        background: {p['paper']};
-        border-right: 1px solid {p['rule']};
-    }}
-
-    /* ===== 底部发射台 ===== */
-    QFrame#Dock {{
-        background: {p['paper']};
-        border-top: 1px solid {p['rule']};
-    }}
-    QLabel#DockVersion {{
-        font-family: "Consolas", monospace;
-        font-size: 13px;
-        color: {p['ink']};
-    }}
-    QLabel#DockMeta {{
-        font-size: 9px;
-        letter-spacing: 2px;
-        color: {p['ink3']};
-    }}
-    QLabel#DockState {{
-        font-family: "Consolas", monospace;
-        font-size: 10px;
-        color: {p['ink3']};
-    }}
-    QPushButton#Launch {{
-        background: {p['accent']};
-        color: {p['accent_ink']};
-        border: none;
-        padding: 0 40px;
-        height: 42px;
-        font-family: "SimSun", "Songti SC", serif;
+    QLabel#LogoText {{
+        font-family: {FONT_DISPLAY};
         font-size: 15px;
-        letter-spacing: 8px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        color: {p['text']};
     }}
-    QPushButton#Launch:hover {{
-        background: {p['accent']};
-        color: {p['accent_ink']};
+    QPushButton#NavTab {{
+        background: transparent;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 8px;
+        color: {p['text2']};
+        font-size: 13px;
     }}
-    QPushButton#Launch:disabled {{
-        background: {p['rule']};
-        color: {p['ink3']};
+    QPushButton#NavTab:hover {{
+        color: {p['text']};
+    }}
+    QPushButton#NavTab:checked {{
+        color: {p['accent']};
+        font-weight: 600;
     }}
 
-    /* ===== 页面标题 ===== */
-    QLabel#MastIndex {{
-        font-family: "Consolas", monospace;
-        font-size: 10px;
-        letter-spacing: 2px;
-        color: {p['ink3']};
+    /* ===== 标题 ===== */
+    QLabel#HeroTitle {{
+        font-family: {FONT_DISPLAY};
+        font-size: 40px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        color: {p['text']};
+    }}
+    QLabel#HeroSub {{
+        font-size: 15px;
+        color: {p['text2']};
+    }}
+    QLabel#SectionTitle {{
+        font-family: {FONT_DISPLAY};
+        font-size: 22px;
+        font-weight: 600;
+        color: {p['text']};
+    }}
+    QLabel#SectionSub {{
+        font-size: 12px;
+        color: {p['text3']};
+    }}
+    QLabel#CardTitle {{
+        font-size: 14px;
+        font-weight: 600;
+        color: {p['text']};
+    }}
+    QLabel#CardMeta {{
+        font-size: 11px;
+        color: {p['text3']};
+    }}
+    QLabel#Empty {{
+        font-size: 13px;
+        color: {p['text3']};
+    }}
+    /* 旧页面标题别名，保证其他页排版一致 */
+    QLabel#PageTitle {{
+        font-family: {FONT_DISPLAY};
+        font-size: 26px;
+        font-weight: 600;
+        color: {p['text']};
+    }}
+    QLabel#PageSubtitle, QLabel#Hint {{
+        font-size: 12px;
+        color: {p['text3']};
     }}
     QLabel#MastTitle {{
-        font-family: "SimSun", "Songti SC", serif;
-        font-size: 28px;
-        color: {p['ink']};
+        font-family: {FONT_DISPLAY};
+        font-size: 26px;
+        font-weight: 600;
+        color: {p['text']};
+    }}
+    QLabel#MastIndex {{
+        font-size: 11px;
+        color: {p['text3']};
     }}
     QLabel#MastSub {{
-        font-size: 11px;
-        color: {p['ink3']};
-    }}
-    QLabel#PageTitle {{
-        font-family: "SimSun", "Songti SC", serif;
-        font-size: 26px;
-        color: {p['ink']};
-    }}
-    QLabel#PageSubtitle {{
-        font-size: 11px;
-        color: {p['ink3']};
-    }}
-    QLabel#Hint {{
-        font-size: 10px;
-        color: {p['ink3']};
-    }}
-    QLabel#Lead {{
-        font-family: "SimSun", "Songti SC", serif;
-        font-size: 34px;
-        color: {p['ink']};
-    }}
-    QLabel#Lede {{
         font-size: 12px;
-        color: {p['ink2']};
+        color: {p['text2']};
     }}
-    QLabel#StatKey {{
-        font-size: 9px;
-        letter-spacing: 2px;
-        color: {p['ink3']};
+
+    /* ===== 卡片 ===== */
+    QFrame#Card {{
+        background: {p['surface']};
+        border: 1px solid {p['line']};
+        border-radius: 18px;
     }}
-    QLabel#StatValue {{
-        font-family: "Consolas", monospace;
-        font-size: 15px;
-        color: {p['ink']};
-    }}
-    QLabel#ProfileName {{
-        font-family: "SimSun", "Songti SC", serif;
-        font-size: 20px;
-        color: {p['ink']};
-    }}
-    QLabel#ProfileMeta {{
-        font-family: "Consolas", monospace;
-        font-size: 10px;
-        color: {p['ink3']};
-    }}
-    QLabel#ProfileFace {{
-        font-size: 38px;
-        background: {p['paper']};
-        border: 1px solid {p['ink']};
-    }}
-    QFrame#Rule {{
-        background: {p['rule']};
-        max-height: 1px;
-        border: none;
+    QFrame#Card:hover {{
+        border-color: {p['text3']};
     }}
 
     /* ===== 按钮 ===== */
     QPushButton {{
-        background: transparent;
-        border: 1px solid {p['ink']};
-        padding: 6px 14px;
-        color: {p['ink']};
+        background: {p['surface']};
+        border: 1px solid {p['line']};
+        border-radius: 980px;
+        padding: 7px 18px;
+        color: {p['text']};
+        font-size: 13px;
     }}
     QPushButton:hover {{
-        background: {p['ink']};
-        color: {p['paper2']};
+        border-color: {p['text3']};
+    }}
+    QPushButton:pressed {{
+        background: {p['surface2']};
     }}
     QPushButton:disabled {{
-        border-color: {p['rule']};
-        color: {p['ink3']};
+        color: {p['text3']};
+        border-color: {p['line']};
     }}
     QPushButton#Primary {{
         background: {p['accent']};
         border: 1px solid {p['accent']};
         color: {p['accent_ink']};
+        font-weight: 600;
+        padding: 10px 28px;
+        font-size: 14px;
     }}
     QPushButton#Primary:hover {{
         background: {p['accent']};
-        color: {p['accent_ink']};
+        border-color: {p['accent']};
     }}
-    QPushButton#Ghost {{
-        border: 1px solid {p['rule']};
-        color: {p['ink2']};
+    QPushButton#Primary:disabled {{
+        background: {p['line']};
+        border-color: {p['line']};
+        color: {p['text3']};
     }}
-    QPushButton#Ghost:hover {{
-        border-color: {p['ink']};
+    QPushButton#Link {{
         background: transparent;
-        color: {p['ink']};
-    }}
-    QPushButton#WinBtn {{
         border: none;
-        padding: 0;
-        font-size: 12px;
-        color: {p['ink3']};
+        color: {p['accent']};
+        padding: 2px 0;
+        font-size: 13px;
     }}
-    QPushButton#WinBtn:hover {{
-        background: {p['paper']};
-        color: {p['ink']};
-    }}
-    QPushButton#WinClose:hover {{
-        background: {p['accent']};
-        color: {p['accent_ink']};
+    QPushButton#Link:hover {{
+        text-decoration: underline;
     }}
 
     /* ===== 输入 ===== */
-    QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QPlainTextEdit, QTextEdit {{
-        background: {p['paper2']};
-        border: 1px solid {p['rule']};
-        padding: 5px 7px;
-        color: {p['ink']};
+    QLineEdit, QComboBox, QSpinBox, QPlainTextEdit, QTextEdit {{
+        background: {p['surface']};
+        border: 1px solid {p['line']};
+        border-radius: 10px;
+        padding: 7px 10px;
+        color: {p['text']};
         selection-background-color: {p['accent']};
-        selection-color: {p['accent_ink']};
+        selection-color: #ffffff;
     }}
-    QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QPlainTextEdit:focus {{
-        border-color: {p['ink']};
+    QLineEdit:focus, QComboBox:focus, QPlainTextEdit:focus {{
+        border-color: {p['accent']};
     }}
     QComboBox::drop-down {{
         border: none;
-        width: 18px;
+        width: 20px;
     }}
     QComboBox QAbstractItemView {{
-        background: {p['paper2']};
-        border: 1px solid {p['rule']};
+        background: {p['surface']};
+        border: 1px solid {p['line']};
+        border-radius: 10px;
         selection-background-color: {p['accent_soft']};
         selection-color: {p['accent']};
         outline: none;
@@ -293,117 +241,110 @@ def qss(theme: str = DEFAULT_THEME) -> str:
 
     /* ===== 列表 / 表格 ===== */
     QListWidget, QTableWidget, QTreeWidget {{
-        background: {p['paper2']};
-        border: 1px solid {p['rule']};
+        background: {p['surface']};
+        border: 1px solid {p['line']};
+        border-radius: 14px;
         outline: none;
     }}
     QListWidget::item, QTableWidget::item {{
-        padding: 7px 9px;
-        border-bottom: 1px solid {p['rule']};
+        padding: 9px 12px;
+        border-bottom: 1px solid {p['line']};
     }}
     QListWidget::item:selected, QTableWidget::item:selected {{
         background: {p['accent_soft']};
         color: {p['accent']};
     }}
     QHeaderView::section {{
-        background: {p['paper2']};
+        background: {p['surface']};
         border: none;
-        border-bottom: 1px solid {p['ink']};
-        padding: 6px;
-        font-size: 9px;
-        letter-spacing: 2px;
-        color: {p['ink3']};
+        border-bottom: 1px solid {p['line']};
+        padding: 8px 12px;
+        font-size: 11px;
+        color: {p['text3']};
     }}
     QTableCornerButton::section {{
-        background: {p['paper2']};
+        background: {p['surface']};
         border: none;
-    }}
-
-    /* ===== 卡片 ===== */
-    QFrame#Card {{
-        background: {p['paper2']};
-        border: 1px solid {p['rule']};
     }}
 
     /* ===== 滚动条 ===== */
     QScrollBar:vertical {{
         background: transparent;
-        width: 6px;
-        margin: 0;
+        width: 8px;
     }}
     QScrollBar::handle:vertical {{
-        background: {p['rule']};
-        min-height: 24px;
+        background: {p['line']};
+        border-radius: 4px;
+        min-height: 30px;
     }}
     QScrollBar::add-line, QScrollBar::sub-line,
     QScrollBar::add-page, QScrollBar::sub-page {{
         background: transparent;
         height: 0;
-        width: 0;
     }}
     QScrollBar:horizontal {{
         background: transparent;
-        height: 6px;
+        height: 8px;
     }}
     QScrollBar::handle:horizontal {{
-        background: {p['rule']};
-        min-width: 24px;
+        background: {p['line']};
+        border-radius: 4px;
     }}
 
-    /* ===== 进度条 ===== */
+    /* ===== 进度 ===== */
     QProgressBar {{
-        background: {p['paper']};
+        background: {p['line']};
         border: none;
-        height: 4px;
+        border-radius: 3px;
+        height: 6px;
         text-align: center;
-        color: {p['ink3']};
-        font-size: 9px;
+        color: transparent;
     }}
     QProgressBar::chunk {{
         background: {p['accent']};
+        border-radius: 3px;
     }}
 
-    /* ===== 菜单 ===== */
+    /* ===== 菜单 / 提示 ===== */
     QMenu {{
-        background: {p['paper2']};
-        border: 1px solid {p['rule']};
-        padding: 4px;
+        background: {p['surface']};
+        border: 1px solid {p['line']};
+        border-radius: 12px;
+        padding: 6px;
     }}
     QMenu::item {{
-        padding: 7px 22px 7px 14px;
-        color: {p['ink2']};
+        padding: 7px 20px 7px 14px;
+        border-radius: 7px;
+        color: {p['text']};
     }}
     QMenu::item:selected {{
         background: {p['accent_soft']};
         color: {p['accent']};
     }}
     QToolTip {{
-        background: {p['paper2']};
-        color: {p['ink']};
-        border: 1px solid {p['ink']};
-        padding: 4px 8px;
+        background: {p['surface']};
+        color: {p['text']};
+        border: 1px solid {p['line']};
+        border-radius: 6px;
+        padding: 5px 8px;
     }}
-
-    /* ===== 状态栏 ===== */
     QStatusBar {{
-        background: {p['paper']};
-        color: {p['ink3']};
-        border-top: 1px solid {p['rule']};
+        background: {p['bg']};
+        color: {p['text3']};
+        border-top: 1px solid {p['line']};
     }}
-
-    /* ===== 标签页 ===== */
     QTabWidget::pane {{
-        border: 1px solid {p['rule']};
-        background: {p['paper2']};
+        border: none;
+        background: transparent;
     }}
     QTabBar::tab {{
         background: transparent;
-        color: {p['ink3']};
-        padding: 7px 14px;
-        border-bottom: 1px solid transparent;
+        color: {p['text2']};
+        padding: 8px 16px;
+        border: none;
     }}
     QTabBar::tab:selected {{
-        color: {p['ink']};
-        border-bottom: 1px solid {p['accent']};
+        color: {p['accent']};
+        font-weight: 600;
     }}
     """

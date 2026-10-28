@@ -98,10 +98,9 @@ class SettingsPage(QWidget):
         form.addRow("窗口分辨率", res_row)
 
         self.theme_combo = QComboBox()
-        self.theme_combo.addItem("白墨（paper）", "paper")
-        self.theme_combo.addItem("夜墨（night）", "night")
-        self.theme_combo.addItem("青瓷（celadon）", "celadon")
-        form.addRow("纸色主题", self.theme_combo)
+        self.theme_combo.addItem("浅色", "light")
+        self.theme_combo.addItem("深色", "dark")
+        form.addRow("外观", self.theme_combo)
 
         self.float_combo = QComboBox()
         self.float_combo.addItem("圆盘", "disc")

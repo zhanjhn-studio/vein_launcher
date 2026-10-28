@@ -1,7 +1,7 @@
-"""墨刻 - 主窗口
+"""主窗口 —— Apple 风格 + 原生窗口边框
 
-结构：顶栏 / 书脊导航 + 页面栈 / 底部发射台。
-最小化后主窗口隐藏，只留置顶悬浮球（圆盘或灵动岛）。
+原生标题栏（关闭/最小化/最大化交给系统），应用内只做顶部导航与内容。
+「悬浮」是一个普通按钮：把主窗口收成置顶圆盘/灵动岛。
 """
 
 from __future__ import annotations
@@ -9,14 +9,13 @@ from __future__ import annotations
 import logging
 from typing import Dict, Optional
 
-from PySide6.QtCore import QPoint, Qt, QTimer
-from PySide6.QtGui import QFont
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QMainWindow,
     QPushButton,
     QStackedWidget,
@@ -30,38 +29,57 @@ from vein_launcher.common.events.events import EventNames
 from vein_launcher.common.version import __version__
 from vein_launcher.presentation.bridge import AsyncBridge
 from vein_launcher.presentation.context import AppContext
+from vein_launcher.presentation.ui.assets import asset
 from vein_launcher.presentation.ui.floating import FloatingOrb
 from vein_launcher.presentation.ui.theme import tokens
-from vein_launcher.presentation.ui.widgets.spine import SpineButton
 
 logger = logging.getLogger(__name__)
 
 NAV = [
-    ("launch", "01", "启动"),
-    ("download", "02", "下载"),
-    ("version", "03", "版本"),
-    ("plugin", "04", "插件"),
-    ("setting", "05", "设置"),
+    ("launch", "启动"),
+    ("download", "下载"),
+    ("version", "版本"),
+    ("plugin", "插件"),
+    ("setting", "设置"),
 ]
 
 
+def _logo_pixmap(size: int = 26) -> Optional[QPixmap]:
+    path = asset("logo.svg")
+    if path is None:
+        return None
+    try:
+        from PySide6.QtSvg import QSvgRenderer
+
+        renderer = QSvgRenderer(str(path))
+        pix = QPixmap(size, size)
+        pix.fill(Qt.GlobalColor.transparent)
+        from PySide6.QtGui import QPainter
+
+        painter = QPainter(pix)
+        renderer.render(painter)
+        painter.end()
+        return pix
+    except Exception:  # QtSvg 缺失时不影响启动
+        logger.debug("logo 渲染失败", exc_info=True)
+        return None
+
+
 class MainWindow(QMainWindow):
-    """Vein Launcher 主窗口（墨刻）"""
+    """Vein Launcher 主窗口"""
 
     def __init__(self, context: AppContext, bridge: AsyncBridge):
         super().__init__()
         self._ctx = context
         self._bridge = bridge
         self._theme = settings_manager.get().ui.theme or tokens.DEFAULT_THEME
-        self._nav_buttons: Dict[str, SpineButton] = {}
+        self._nav_buttons: Dict[str, QPushButton] = {}
         self._pages: Dict[str, QWidget] = {}
         self._orb: Optional[FloatingOrb] = None
-        self._drag_pos: Optional[QPoint] = None
 
         self.setWindowTitle(f"Vein Launcher {__version__}")
-        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
-        self.resize(1180, 800)
-        self.setMinimumSize(1000, 680)
+        self.resize(1180, 780)
+        self.setMinimumSize(980, 640)
         self.apply_theme(self._theme)
 
         self._build()
@@ -69,133 +87,70 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(80, self._bootstrap)
 
     # ------------------------------------------------------------------
-    # 构建
-    # ------------------------------------------------------------------
     def _build(self) -> None:
         root = QWidget()
-        root.setObjectName("Root")
         layout = QVBoxLayout(root)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
         layout.addWidget(self._build_topbar())
 
-        body = QWidget()
-        body_layout = QHBoxLayout(body)
-        body_layout.setContentsMargins(0, 0, 0, 0)
-        body_layout.setSpacing(0)
-        body_layout.addWidget(self._build_spine())
-
         self._stack = QStackedWidget()
-        body_layout.addWidget(self._stack, 1)
-        layout.addWidget(body, 1)
-
-        layout.addWidget(self._build_dock())
+        layout.addWidget(self._stack, 1)
 
         self.setCentralWidget(root)
+        self.statusBar().showMessage("就绪")
         self._build_pages()
         self.switch_page("launch")
+
+        icon = _logo_pixmap(64)
+        if icon is not None:
+            self.setWindowIcon(QIcon(icon))
 
     def _build_topbar(self) -> QWidget:
         bar = QFrame()
         bar.setObjectName("TopBar")
-        bar.setFixedHeight(56)
+        bar.setFixedHeight(52)
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(22, 0, 12, 0)
-        layout.setSpacing(16)
+        layout.setContentsMargins(20, 0, 20, 0)
+        layout.setSpacing(8)
 
-        brand_box = QVBoxLayout()
-        brand_box.setSpacing(0)
-        brand = QLabel("VEIN")
-        brand.setObjectName("Brand")
-        brand.setFont(QFont("SimSun", 17))
-        sub = QLabel("墨刻")
-        sub.setObjectName("BrandSub")
-        brand_box.addWidget(brand)
-        brand_box.addWidget(sub)
-        layout.addLayout(brand_box)
+        logo = QLabel()
+        pix = _logo_pixmap(26)
+        if pix is not None:
+            logo.setPixmap(pix)
+        else:
+            logo.setText("V")
+            logo.setObjectName("LogoText")
+        layout.addWidget(logo)
 
-        self.search = QLineEdit()
-        self.search.setObjectName("Search")
-        self.search.setPlaceholderText("搜索版本 / 模组 / 插件")
-        self.search.setFixedWidth(300)
-        self.search.returnPressed.connect(self._on_search)
-        layout.addWidget(self.search)
+        name = QLabel("Vein")
+        name.setObjectName("LogoText")
+        layout.addWidget(name)
+        layout.addSpacing(18)
+
+        for key, label in NAV:
+            button = QPushButton(label)
+            button.setObjectName("NavTab")
+            button.setCheckable(True)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.clicked.connect(lambda _=False, k=key: self.switch_page(k))
+            self._nav_buttons[key] = button
+            layout.addWidget(button)
+
         layout.addStretch(1)
 
-        self.account_label = QLabel("未登录")
-        self.account_label.setObjectName("MastSub")
-        layout.addWidget(self.account_label)
+        self.account_chip = QPushButton("未登录")
+        self.account_chip.setObjectName("Link")
+        self.account_chip.clicked.connect(lambda: self.switch_page("setting"))
+        layout.addWidget(self.account_chip)
 
-        for text, name, handler, tip in (
-            ("⤡", "WinBtn", self.minimize_to_orb, "收起为悬浮球"),
-            ("—", "WinBtn", self.minimize_to_orb, "最小化"),
-            ("□", "WinBtn", self._toggle_max, "最大化"),
-            ("✕", "WinClose", self.close, "关闭"),
-        ):
-            button = QPushButton(text)
-            button.setObjectName(name)
-            button.setFixedSize(30, 26)
-            button.setToolTip(tip)
-            button.clicked.connect(handler)
-            layout.addWidget(button)
+        float_btn = QPushButton("悬浮")
+        float_btn.setObjectName("Link")
+        float_btn.clicked.connect(self.minimize_to_orb)
+        layout.addWidget(float_btn)
 
         return bar
-
-    def _build_spine(self) -> QWidget:
-        spine = QFrame()
-        spine.setObjectName("Spine")
-        spine.setFixedWidth(104)
-        layout = QVBoxLayout(spine)
-        layout.setContentsMargins(0, 14, 0, 10)
-        layout.setSpacing(0)
-
-        for key, index, text in NAV:
-            button = SpineButton(index, text, self._theme)
-            button.clicked.connect(lambda _=False, k=key: self.switch_page(k))
-            layout.addWidget(button)
-            self._nav_buttons[key] = button
-            if key == "version":
-                spacer = QWidget()
-                spacer.setFixedHeight(12)
-                layout.addWidget(spacer)
-
-        layout.addStretch(1)
-        stamp = QLabel("VEIN · " + __version__)
-        stamp.setObjectName("Hint")
-        stamp.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(stamp)
-        return spine
-
-    def _build_dock(self) -> QWidget:
-        dock = QFrame()
-        dock.setObjectName("Dock")
-        dock.setFixedHeight(64)
-        layout = QHBoxLayout(dock)
-        layout.setContentsMargins(26, 0, 22, 0)
-        layout.setSpacing(16)
-
-        ver_box = QVBoxLayout()
-        ver_box.setSpacing(1)
-        self.dock_version = QLabel("未选择版本")
-        self.dock_version.setObjectName("DockVersion")
-        self.dock_meta = QLabel("OFFLINE")
-        self.dock_meta.setObjectName("DockMeta")
-        ver_box.addWidget(self.dock_version)
-        ver_box.addWidget(self.dock_meta)
-        layout.addLayout(ver_box)
-        layout.addSpacing(10)
-
-        self.dock_state = QLabel("就绪")
-        self.dock_state.setObjectName("DockState")
-        layout.addWidget(self.dock_state)
-        layout.addStretch(1)
-
-        self.launch_button = QPushButton("启 动")
-        self.launch_button.setObjectName("Launch")
-        self.launch_button.clicked.connect(self._on_launch)
-        layout.addWidget(self.launch_button)
-        return dock
 
     def _build_pages(self) -> None:
         from vein_launcher.presentation.ui.pages.download_page import DownloadPage
@@ -218,8 +173,6 @@ class MainWindow(QMainWindow):
             self._stack.addWidget(page)
 
     # ------------------------------------------------------------------
-    # 行为
-    # ------------------------------------------------------------------
     def switch_page(self, key: str) -> None:
         for nav_key, button in self._nav_buttons.items():
             button.setChecked(nav_key == key)
@@ -229,75 +182,47 @@ class MainWindow(QMainWindow):
         self._stack.setCurrentWidget(page)
         if hasattr(page, "on_show"):
             page.on_show()  # type: ignore[attr-defined]
-        self._sync_dock()
         event_bus.publish(EventNames.PAGE_CHANGED, page=key)
 
-    def _sync_dock(self) -> None:
-        home = self._pages.get("launch")
-        version = getattr(home, "selected_version", None) if home else None
-        self.dock_version.setText(version or "未选择版本")
-
     def notify(self, text: str) -> None:
-        self.dock_state.setText(text)
-        QTimer.singleShot(5000, lambda: self.dock_state.setText("就绪"))
+        self.statusBar().showMessage(str(text), 6000)
+        QTimer.singleShot(6000, lambda: self.statusBar().showMessage("就绪"))
 
     def set_account(self, username: str) -> None:
-        self.account_label.setText(username)
-        self.dock_meta.setText(f"MICROSOFT · {username.upper()}")
+        self.account_chip.setText(username or "未登录")
 
-    def _on_search(self) -> None:
-        query = self.search.text().strip()
-        if not query:
-            return
-        self.switch_page("download")
-        page = self._pages["download"]
-        if hasattr(page, "search_input"):
-            page.search_input.setText(query)  # type: ignore[attr-defined]
-            page._search()  # type: ignore[attr-defined]
-
-    def _on_launch(self) -> None:
-        home = self._pages.get("launch")
-        if home is None:
-            return
-        self.launch_button.setEnabled(False)
-        self.dock_state.setText("启动中…")
-        try:
-            home.launch()  # type: ignore[attr-defined]
-        finally:
-            QTimer.singleShot(1500, lambda: self.launch_button.setEnabled(True))
-
-    # ------------------------------------------------------------------
-    # 主题
     # ------------------------------------------------------------------
     def apply_theme(self, theme: str) -> None:
         self._theme = theme if theme in tokens.PALETTES else tokens.DEFAULT_THEME
         self.setStyleSheet(tokens.qss(self._theme))
-        for button in getattr(self, "_nav_buttons", {}).values():
-            button.set_theme(self._theme)
         if self._orb is not None:
             self._orb.set_theme(self._theme)
 
     # ------------------------------------------------------------------
-    # 悬浮球
-    # ------------------------------------------------------------------
+    def _ensure_orb(self) -> None:
+        if self._orb is not None:
+            return
+        mode = settings_manager.get().ui.float_mode or "disc"
+        self._orb = FloatingOrb(self._theme, mode)
+        self._orb.launch_requested.connect(self._launch_from_orb)
+        self._orb.restore_requested.connect(self.restore_from_orb)
+        self._orb.switch_mode_requested.connect(self._toggle_orb_mode)
+        self._orb.navigate_requested.connect(self._navigate_from_orb)
+
     def minimize_to_orb(self) -> None:
         self._ensure_orb()
         assert self._orb is not None
-        mode = settings_manager.get().ui.float_mode or "disc"
-        self._orb.set_mode(mode)
         self._orb.move_to_default(QApplication.primaryScreen())
         self._orb.show()
         self._orb.raise_()
         self.hide()
 
-    def _ensure_orb(self) -> None:
+    def restore_from_orb(self) -> None:
         if self._orb is not None:
-            return
-        self._orb = FloatingOrb(self._theme, "disc")
-        self._orb.launch_requested.connect(self._launch_from_orb)
-        self._orb.restore_requested.connect(self.restore_from_orb)
-        self._orb.switch_mode_requested.connect(self._toggle_orb_mode)
-        self._orb.navigate_requested.connect(self._navigate_from_orb)
+            self._orb.hide()
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
 
     def _toggle_orb_mode(self) -> None:
         if self._orb is None:
@@ -308,49 +233,16 @@ class MainWindow(QMainWindow):
         settings = settings_manager.get()
         settings.ui.float_mode = new_mode
         settings_manager.save()
-        self.notify(f"悬浮形态：{'灵动岛' if new_mode == 'island' else '圆盘'}")
+        self.notify("悬浮形态：" + ("灵动岛" if new_mode == "island" else "圆盘"))
 
     def _navigate_from_orb(self, key: str) -> None:
         self.restore_from_orb()
         self.switch_page(key)
 
     def _launch_from_orb(self) -> None:
-        self._on_launch()
-
-    def restore_from_orb(self) -> None:
-        if self._orb is not None:
-            self._orb.hide()
-        self.showNormal()
-        self.raise_()
-        self.activateWindow()
-
-    # ------------------------------------------------------------------
-    # 窗口拖动 / 最大化
-    # ------------------------------------------------------------------
-    def _toggle_max(self) -> None:
-        if self.isMaximized():
-            self.showNormal()
-        else:
-            self.showMaximized()
-
-    def mousePressEvent(self, event) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and event.position().y() < 56:
-            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event) -> None:  # noqa: N802
-        if self._drag_pos is not None and event.buttons() & Qt.MouseButton.LeftButton:
-            self.move(event.globalPosition().toPoint() - self._drag_pos)
-        super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event) -> None:  # noqa: N802
-        self._drag_pos = None
-        super().mouseReleaseEvent(event)
-
-    def mouseDoubleClickEvent(self, event) -> None:  # noqa: N802
-        if event.position().y() < 56:
-            self._toggle_max()
-        super().mouseDoubleClickEvent(event)
+        page = self._pages.get("launch")
+        if page is not None:
+            page.launch()  # type: ignore[attr-defined]
 
     # ------------------------------------------------------------------
     def _connect_events(self) -> None:
@@ -363,10 +255,10 @@ class MainWindow(QMainWindow):
         self.apply_theme(theme)
 
     def _on_game_running(self, pid: int = 0, **_):
-        self.dock_state.setText(f"运行中 · PID {pid}")
+        self.statusBar().showMessage(f"游戏运行中 · PID {pid}")
 
     def _on_game_exited(self, exit_code: int = 0, **_):
-        self.dock_state.setText(f"已退出 · code {exit_code}")
+        self.statusBar().showMessage(f"游戏已退出 · code {exit_code}")
 
     def _on_notify(self, title: str = "", message: str = "", **_):
         self.notify(f"{title}：{message}")

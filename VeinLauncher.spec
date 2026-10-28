@@ -9,7 +9,7 @@ a = Analysis(
     ['Z:\\Vein Launche\\run_launcher.py'],
     pathex=[],
     binaries=[],
-    datas=[('Z:\\Vein Launche\\vein_launcher\\presentation\\ui\\theme', 'vein_launcher/presentation/ui/theme'), ('Z:\\Vein Launche\\vein_launcher\\common\\i18n\\locales', 'vein_launcher/common/i18n/locales'), ('Z:\\Vein Launche\\vein_launcher\\infrastructure\\plugin_host\\runtime', 'vein_launcher/infrastructure/plugin_host/runtime'), ('Z:\\Vein Launche\\plugins_examples', 'plugins_examples')],
+    datas=[('Z:\\Vein Launche\\vein_launcher\\presentation\\ui\\theme', 'vein_launcher/presentation/ui/theme'), ('Z:\\Vein Launche\\vein_launcher\\common\\i18n\\locales', 'vein_launcher/common/i18n/locales'), ('Z:\\Vein Launche\\vein_launcher\\infrastructure\\plugin_host\\runtime', 'vein_launcher/infrastructure/plugin_host/runtime'), ('Z:\\Vein Launche\\plugins_examples', 'plugins_examples'), ('Z:\\Vein Launche\\assets', 'assets')],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

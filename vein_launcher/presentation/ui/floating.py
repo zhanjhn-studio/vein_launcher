@@ -1,4 +1,4 @@
-"""墨刻 - 悬浮球（印章圆盘 / 灵动岛）
+﻿"""墨刻 - 悬浮球（印章圆盘 / 灵动岛）
 
 最小化主窗口后显示，永远置顶：
 - 圆盘：拖动移动，单击弹出辐射菜单（启动 / 恢复 / 下载 / 插件 / 设置 / 切换形态）
@@ -93,8 +93,8 @@ class FloatingOrb(QWidget):
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "启")
         else:
             rect = self.rect().adjusted(1, 1, -1, -1)
-            painter.setBrush(QColor(p["paper2"]))
-            painter.setPen(QPen(QColor(p["ink3"]), 1))
+            painter.setBrush(QColor(p["surface"]))
+            painter.setPen(QPen(QColor(p["text3"]), 1))
             painter.drawRoundedRect(rect, 8, 8)
 
             painter.setBrush(QColor(p["ok"]))
@@ -103,7 +103,7 @@ class FloatingOrb(QWidget):
 
             font = QFont("Consolas", 10)
             painter.setFont(font)
-            painter.setPen(QPen(QColor(p["ink2"])))
+            painter.setPen(QPen(QColor(p["text2"])))
             painter.drawText(
                 QRect(28, 0, self.width() - 96, self.height()),
                 Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
