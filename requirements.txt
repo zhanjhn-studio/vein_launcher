@@ -1,0 +1,24 @@
+# Vein Launcher - Python Dependencies
+# For Minecraft Windows Launcher using PySide6
+
+# PySide6 GUI Framework (core)
+PySide6>=6.6.0,<7.0.0
+
+# Async HTTP client（下载器 / API 层统一使用 aiohttp）
+aiohttp>=3.9.0,<4.0.0
+
+# 部分旧接口/工具仍用同步 requests
+requests>=2.31.0,<3.0.0
+
+# Config validation
+pydantic>=2.5.0,<3.0.0
+
+# PyInstaller for packaging (dev dependency)
+pyinstaller>=6.0.0,<7.0.0
+
+# Progress bar (optional, for download UI)
+tqdm>=4.66.0,<5.0.0
+
+# Unit testing framework (testing only)
+pytest>=7.4.0,<8.0.0
+pytest-asyncio>=0.23.0,<1.0.0

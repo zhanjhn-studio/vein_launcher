@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+
+# PyInstaller
+*.spec.bak
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 运行期数据（日志、下载缓存、实例目录）
+logs/
+*.log
+*.part

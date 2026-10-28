@@ -1,0 +1,59 @@
+{
+  "app_name": "Vein Launcher",
+  "nav": {
+    "home": "Home",
+    "versions": "Versions",
+    "mods": "Mods",
+    "account": "Account",
+    "settings": "Settings"
+  },
+  "home": {
+    "start_game": "Start Game",
+    "select_version": "Select Version",
+    "game_running": "Game Running...",
+    "game_stopped": "Game Stopped",
+    "no_java": "Java not found, please configure first"
+  },
+  "version": {
+    "add_version": "Add Version",
+    "delete_version": "Delete Version",
+    "download_complete": "Download Complete",
+    "downloading": "Downloading",
+    "install_loader": "Install Loader",
+    "fabric": "Fabric",
+    "forge": "Forge",
+    "quilt": "Quilt"
+  },
+  "account": {
+    "offline_mode": "Offline Mode",
+    "microsoft_account": "Microsoft Account",
+    "login": "Login",
+    "logout": "Logout",
+    "add_account": "Add Account",
+    "username": "Username"
+  },
+  "settings": {
+    "java_path": "Java Path",
+    "memory_allocation": "Memory Allocation (MB)",
+    "resolution": "Resolution",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "language": "Language",
+    "simplified_chinese": "简体中文",
+    "english": "English"
+  },
+  "download": {
+    "downloading": "Downloading...",
+    "paused": "Paused",
+    "failed": "Failed",
+    "retry": "Retry",
+    "speed": "Speed"
+  },
+  "error": {
+    "title": "Error",
+    "launch_failed": "Launch Failed",
+    "download_failed": "Download Failed",
+    "java_not_found": "Java Not Found"
+  }
+}

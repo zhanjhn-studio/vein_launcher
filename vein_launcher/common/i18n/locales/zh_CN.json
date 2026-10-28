@@ -1,0 +1,59 @@
+{
+  "app_name": "Vein Launcher",
+  "nav": {
+    "home": "首页",
+    "versions": "版本管理",
+    "mods": "模组",
+    "account": "账号",
+    "settings": "设置"
+  },
+  "home": {
+    "start_game": "启动游戏",
+    "select_version": "选择版本",
+    "game_running": "游戏中...",
+    "game_stopped": "游戏已停止",
+    "no_java": "未找到 Java，请先配置"
+  },
+  "version": {
+    "add_version": "添加版本",
+    "delete_version": "删除版本",
+    "download_complete": "下载完成",
+    "downloading": "下载中",
+    "install_loader": "安装加载器",
+    "fabric": "Fabric",
+    "forge": "Forge",
+    "quilt": "Quilt"
+  },
+  "account": {
+    "offline_mode": "离线账号",
+    "microsoft_account": "微软账号",
+    "login": "登录",
+    "logout": "退出登录",
+    "add_account": "添加账号",
+    "username": "用户名"
+  },
+  "settings": {
+    "java_path": "Java 路径",
+    "memory_allocation": "内存分配 (MB)",
+    "resolution": "分辨率",
+    "theme": "主题",
+    "light": "浅色",
+    "dark": "深色",
+    "language": "语言",
+    "simplified_chinese": "简体中文",
+    "english": "English"
+  },
+  "download": {
+    "downloading": "下载中...",
+    "paused": "已暂停",
+    "failed": "失败",
+    "retry": "重试",
+    "speed": "速度"
+  },
+  "error": {
+    "title": "错误",
+    "launch_failed": "启动失败",
+    "download_failed": "下载失败",
+    "java_not_found": "未找到 Java"
+  }
+}
