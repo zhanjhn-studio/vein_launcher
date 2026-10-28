@@ -30,7 +30,7 @@ def main() -> int:
 
     app = QApplication(sys.argv)
     app.setApplicationName("Vein Launcher")
-    app.setOrganisationName("Vein Studio")
+    app.setOrganizationName("Vein Studio")
 
     bridge = AsyncBridge()
 
