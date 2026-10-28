@@ -39,3 +39,4 @@ logs/
 
 # 本地界面预览（不纳入版本库）
 preview.html
+preview*.html

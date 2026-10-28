@@ -145,7 +145,13 @@ class ModsPage(QWidget):
         self.install_btn.setEnabled(False)
         self.status.setText(f"正在安装 {mod['title']} …")
         self._bridge.submit(
-            self._ctx.mods.install(mod["slug"], version, version, loader=loader),
+            self._ctx.mods.install(
+                mod["slug"],
+                version,
+                project_type="mod",
+                mc_version=version,
+                loader=loader,
+            ),
             self.install_signal.emit,
         )
 

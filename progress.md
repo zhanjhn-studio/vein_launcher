@@ -103,6 +103,35 @@
 
 ---
 
+## 🆕 下载源与多类型下载（2026-10-28 晚）
+
+### 多下载源 `infrastructure/network/download_sources.py`
+- 官方源 / BMCLAPI 镜像 / 自定义镜像根地址
+- 策略：`auto`（官方优先，失败自动切镜像）/ `official` / `bmclapi`
+- URL 重写规则：launchermeta、piston-meta、piston-data（直连）、libraries.minecraft.net → `/maven`、resources.download.minecraft.net → `/assets`
+- 版本清单源（`version_list_source`）可独立于文件源配置
+- 下载任务自动携带镜像候选，主地址失败后按序回退
+
+### 配置扩展 `DownloadConfig`
+`source` / `version_list_source` / `mirror_base` / `max_concurrent`（线程数）/ `max_speed_mbps` / `target_dir`
+
+### 多类型资源下载 `application/services/mod_service.py`
+| 类型 | 目标目录 | 说明 |
+|------|----------|------|
+| mod | `instances/<id>/mods` | 自动补 required 前置依赖 |
+| resourcepack | `resourcepacks/` | 资源包 |
+| shader | `shaderpacks/` | 光影包 |
+| datapack | `datapacks/` | 数据包 |
+| modpack | `modpacks/` | .mrpack 下载 |
+
+Modrinth 搜索支持 `project_type` facet，实测 5 类均可用：
+sodium→Sodium、faithful→Faithful 64x、complementary→Complementary Reimagined、
+fabulously optimized→Fabulously Optimized、terralith→Terralith。
+
+测试：`tests/test_download_sources.py` 13 项；全套 33 项通过。
+
+---
+
 ## ⏳ 已知限制 / 下一步
 
 1. **GUI 未在本机运行验证**：当前环境无 PySide6 且 PyPI 不可达，

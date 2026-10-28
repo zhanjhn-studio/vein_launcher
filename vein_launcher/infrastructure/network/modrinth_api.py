@@ -1,4 +1,4 @@
-﻿"""基础设施层 - Modrinth API 实现（模组市场主通道）"""
+"""基础设施层 - Modrinth API 实现（模组 / 资源包 / 光影 / 整合包 / 数据包）"""
 
 from __future__ import annotations
 
@@ -8,11 +8,23 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
 from vein_launcher.domain.repositories.network_repo import ModrinthAPIRepository
-from vein_launcher.infrastructure.network.api_client import ApiClient, HttpRepositoryMixin
+from vein_launcher.infrastructure.network.api_client import (
+    ApiClient,
+    HttpRepositoryMixin,
+)
 
 logger = logging.getLogger(__name__)
 
 MODRINTH_BASE = "https://api.modrinth.com/v2"
+
+# 支持的资源类型（与 Modrinth project_type 对应）
+PROJECT_TYPES = {
+    "mod": "模组",
+    "modpack": "整合包",
+    "resourcepack": "资源包",
+    "shader": "光影包",
+    "datapack": "数据包",
+}
 
 
 class ModrinthAPI(HttpRepositoryMixin, ModrinthAPIRepository):
@@ -38,10 +50,16 @@ class ModrinthAPI(HttpRepositoryMixin, ModrinthAPIRepository):
         limit: int = 20,
         tags: Optional[List[str]] = None,
         game_versions: Optional[List[str]] = None,
+        project_type: str = "mod",
     ) -> List[Dict[str, Any]]:
-        """搜索模组；tags 形如 ["fabric"]，game_versions 形如 ["1.20.4"]"""
-        facets: List[List[str]] = []
-        facets.append(["project_type:mod"])
+        """搜索项目
+
+        Args:
+            project_type: mod / modpack / resourcepack / shader / datapack
+            tags: 加载器或分类，如 ["fabric"]
+            game_versions: 如 ["1.20.4"]
+        """
+        facets: List[List[str]] = [[f"project_type:{project_type}"]]
         for tag in tags or []:
             facets.append([f"categories:{tag}"])
         for ver in game_versions or []:
@@ -66,7 +84,7 @@ class ModrinthAPI(HttpRepositoryMixin, ModrinthAPIRepository):
         game_version: Optional[str] = None,
         loaders: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
-        """某模组的文件列表（按发布时间倒序）"""
+        """某项目的文件列表（按发布时间倒序）"""
         params: Dict[str, Any] = {}
         if game_version:
             params["game_versions"] = json.dumps([game_version])
@@ -81,14 +99,16 @@ class ModrinthAPI(HttpRepositoryMixin, ModrinthAPIRepository):
         """单个文件版本详情（含 dependencies）"""
         return await self._client.get_json(f"{MODRINTH_BASE}/version/{quote(version_id)}")
 
-    # -------------------- 结果映射（统一为 UI 友好的 dict） --------------------
+    # -------------------- 结果映射 --------------------
     @staticmethod
     def to_mod_summary(hit: Dict[str, Any]) -> Dict[str, Any]:
-        """把搜索结果映射成稳定的 UI 数据结构"""
+        """搜索结果 -> 稳定的 UI 数据结构"""
+        ptype = hit.get("project_type", "mod")
         return {
             "source": "modrinth",
             "slug": hit.get("slug", ""),
             "project_id": hit.get("project_id", ""),
+            "project_type": ptype,
             "title": hit.get("title", ""),
             "description": hit.get("description", ""),
             "icon_url": hit.get("icon_url") or "",
@@ -97,12 +117,12 @@ class ModrinthAPI(HttpRepositoryMixin, ModrinthAPIRepository):
             "categories": hit.get("categories", []),
             "versions": hit.get("versions", []),
             "author": hit.get("author", ""),
-            "page_url": f"https://modrinth.com/mod/{hit.get('slug', '')}",
+            "page_url": f"https://modrinth.com/{ptype}/{hit.get('slug', '')}",
         }
 
     @staticmethod
     def to_mod_file(version: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """把 version 对象的主文件映射为可下载结构"""
+        """version 对象 -> 可下载文件结构"""
         files = version.get("files") or []
         primary = next((f for f in files if f.get("primary")), files[0] if files else None)
         if not primary:
@@ -123,4 +143,4 @@ class ModrinthAPI(HttpRepositoryMixin, ModrinthAPIRepository):
         }
 
 
-__all__ = ["ModrinthAPI", "MODRINTH_BASE"]
+__all__ = ["ModrinthAPI", "MODRINTH_BASE", "PROJECT_TYPES"]

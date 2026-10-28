@@ -26,6 +26,7 @@ from vein_launcher.infrastructure.download.downloader import (
     DownloadTask,
 )
 from vein_launcher.infrastructure.network.mojang_api import MojangAPI
+from vein_launcher.infrastructure.network.download_sources import candidates
 from vein_launcher.infrastructure.storage.file_storage import FileStorage
 
 logger = logging.getLogger(__name__)
@@ -210,11 +211,11 @@ class VersionService:
         client = (merged.get("downloads") or {}).get("client") or {}
         if client.get("url"):
             tasks.append(
-                DownloadTask(
-                    url=client["url"],
-                    dest=self._storage.client_jar_path(version_id),
-                    expected_sha1=client.get("sha1"),
-                    size=client.get("size"),
+                self._make_task(
+                    client["url"],
+                    self._storage.client_jar_path(version_id),
+                    client.get("sha1"),
+                    client.get("size"),
                 )
             )
 
@@ -306,11 +307,11 @@ class VersionService:
             if artifact and artifact.get("url"):
                 rel = artifact.get("path") or self._maven_to_path(lib.get("name", ""))
                 tasks.append(
-                    DownloadTask(
-                        url=artifact["url"],
-                        dest=get_libraries_dir() / rel,
-                        expected_sha1=artifact.get("sha1"),
-                        size=artifact.get("size"),
+                    self._make_task(
+                        artifact["url"],
+                        get_libraries_dir() / rel,
+                        artifact.get("sha1"),
+                        artifact.get("size"),
                     )
                 )
 
@@ -324,11 +325,11 @@ class VersionService:
                 if artifact and artifact.get("url"):
                     rel = artifact.get("path") or self._maven_to_path(lib.get("name", ""))
                     tasks.append(
-                        DownloadTask(
-                            url=artifact["url"],
-                            dest=get_libraries_dir() / rel,
-                            expected_sha1=artifact.get("sha1"),
-                            size=artifact.get("size"),
+                        self._make_task(
+                            artifact["url"],
+                            get_libraries_dir() / rel,
+                            artifact.get("sha1"),
+                            artifact.get("size"),
                         )
                     )
         return tasks
@@ -355,14 +356,31 @@ class VersionService:
                 continue
             prefix = digest[:2]
             tasks.append(
-                DownloadTask(
-                    url=f"{base}/{prefix}/{digest}",
-                    dest=get_assets_dir() / "objects" / prefix / digest,
-                    expected_sha1=digest,
-                    size=meta.get("size"),
+                self._make_task(
+                    f"{base}/{prefix}/{digest}",
+                    get_assets_dir() / "objects" / prefix / digest,
+                    digest,
+                    meta.get("size"),
                 )
             )
         return tasks
+
+    @staticmethod
+    def _make_task(
+        url: str,
+        dest: Path,
+        sha1: Optional[str] = None,
+        size: Optional[int] = None,
+    ) -> DownloadTask:
+        """按下载源策略生成任务：首选地址 + 备用镜像列表"""
+        urls = candidates(url)
+        return DownloadTask(
+            url=urls[0],
+            dest=dest,
+            expected_sha1=sha1,
+            size=size,
+            mirrors=tuple(urls[1:]),
+        )
 
     @staticmethod
     def _maven_to_path(coord: str) -> str:

@@ -27,9 +27,16 @@ class LaunchConfig(BaseModel):
 
 class DownloadConfig(BaseModel):
     """下载配置"""
+
     max_speed_mbps: int = 0     # 限速 (0=不限速)
-    max_concurrent: int = 4     # 最大并发数
+    max_concurrent: int = 4     # 最大并发数（线程数）
     retry_count: int = 3        # 失败重试次数
+
+    # 下载源策略：auto=优先官方失败切镜像 / official=仅官方 / bmclapi=仅镜像
+    source: str = "auto"
+    version_list_source: str = "auto"   # 版本清单单独策略
+    mirror_base: str = "https://bmclapi2.bangbang93.com"  # 镜像根地址（可自定义）
+    target_dir: Optional[str] = None    # 下载目标目录（None=默认 APPDATA）
 
 
 class NetworkConfig(BaseModel):
