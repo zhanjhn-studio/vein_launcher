@@ -43,6 +43,7 @@ class Downloader:
         self._retries = max(0, retries)
         self._timeout = timeout
         self._insecure = False
+        self._insecure_session_obj: Optional[aiohttp.ClientSession] = None
 
     async def __aenter__(self) -> "Downloader":
         await self.session()
@@ -54,18 +55,30 @@ class Downloader:
     async def session(self) -> aiohttp.ClientSession:
         if self._session is not None and not self._session.closed:
             return self._session
-        connector = aiohttp.TCPConnector(ssl=None if not self._insecure else False)
         self._session = aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(total=None, sock_connect=15, sock_read=self._timeout),
             headers={"User-Agent": "VeinLauncher/0.1.0 (Minecraft Launcher)"},
-            connector=connector,
         )
         return self._session
+
+    async def insecure_session(self) -> aiohttp.ClientSession:
+        """证书链不完整的镜像节点专用会话（与常规会话并存，不互相影响）"""
+        if self._insecure_session_obj is None or self._insecure_session_obj.closed:
+            connector = aiohttp.TCPConnector(ssl=False)
+            self._insecure_session_obj = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=None, sock_connect=15, sock_read=self._timeout),
+                headers={"User-Agent": "VeinLauncher/0.1.0 (Minecraft Launcher)"},
+                connector=connector,
+            )
+        return self._insecure_session_obj
 
     async def close(self) -> None:
         if self._owns_session and self._session is not None and not self._session.closed:
             await self._session.close()
         self._session = None
+        if self._insecure_session_obj is not None and not self._insecure_session_obj.closed:
+            await self._insecure_session_obj.close()
+        self._insecure_session_obj = None
 
     # ------------------------------------------------------------------
     async def download(
@@ -103,8 +116,7 @@ class Downloader:
                     text = str(exc)
                     if not self._insecure and ("CERTIFICATE_VERIFY_FAILED" in text or "SSL" in text):
                         self._insecure = True
-                        await self.close()
-                        logger.warning("证书校验失败，降级不校验 SSL 重下：%s", dest.name)
+                        logger.warning("证书校验失败，改用不校验会话重下：%s", dest.name)
                         continue
                     if attempt >= self._retries:
                         logger.warning("下载失败 %s：%s", url, exc)
@@ -124,7 +136,7 @@ class Downloader:
             resume_from = 0
         headers = {"Range": f"bytes={resume_from}-"} if resume_from else {}
 
-        session = await self.session()
+        session = await (self.insecure_session() if self._insecure else self.session())
         async with session.get(url, headers=headers) as response:
             if response.status == 416:
                 part.replace(dest)
