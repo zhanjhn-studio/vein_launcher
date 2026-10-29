@@ -1,0 +1,12 @@
+{
+  "name": "vein-plugin-template",
+  "version": "0.1.0",
+  "description": "Vein 插件模板：最小可加载插件",
+  "type": "module",
+  "main": "index.js",
+  "vein": {
+    "displayName": "插件模板",
+    "activateOnStartup": true,
+    "permissions": []
+  }
+}

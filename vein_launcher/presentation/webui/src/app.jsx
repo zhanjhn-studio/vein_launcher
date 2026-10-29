@@ -6,6 +6,7 @@ const PAGES = [
   { key: 'download', label: '下载', icon: '↓' },
   { key: 'versions', label: '版本', icon: '▤' },
   { key: 'mods', label: '模组', icon: '▦' },
+  { key: 'plugins', label: '插件', icon: '⌘' },
   { key: 'accounts', label: '账号', icon: '◉' },
   { key: 'settings', label: '设置', icon: '⚙' },
 ];
@@ -26,6 +27,7 @@ export function App() {
   const [installed, setInstalled] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [selected, setSelected] = useState('');
+  const [gameLogs, setGameLogs] = useState([]);
 
   const notify = useCallback((message) => {
     setToast(String(message));
@@ -53,10 +55,13 @@ export function App() {
       }
     })();
     const onNavigate = (event) => setPage(event.detail);
+    const onLog = (event) => setGameLogs((prev) => [...prev.slice(-299), String(event.detail)]);
     window.addEventListener('vein:navigate', onNavigate);
+    window.addEventListener('vein:log', onLog);
     return () => {
       alive = false;
       window.removeEventListener('vein:navigate', onNavigate);
+      window.removeEventListener('vein:log', onLog);
     };
   }, [notify, refreshInstalled, refreshAccounts]);
 
@@ -93,6 +98,7 @@ export function App() {
             goDownload={() => setPage('download')}
             goAccounts={() => setPage('accounts')}
             pickVersion={(id) => setPage('download')}
+            logs={gameLogs}
           />
         )}
         {page === 'download' && (
@@ -102,6 +108,7 @@ export function App() {
           <VersionsPage installed={installed} onChange={refreshInstalled} notify={notify} />
         )}
         {page === 'mods' && <ModsPage selected={selected} notify={notify} />}
+        {page === 'plugins' && <PluginsPage notify={notify} />}
         {page === 'accounts' && (
           <AccountsPage accounts={accounts} onChange={refreshAccounts} notify={notify} />
         )}
@@ -114,7 +121,7 @@ export function App() {
 }
 
 /* ------------------------------------------------------------------ */
-function HomePage({ installed, accounts, selected, onSelect, notify, goDownload, goAccounts }) {
+function HomePage({ installed, accounts, selected, onSelect, notify, goDownload, goAccounts, logs }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [latest, setLatest] = useState([]);
@@ -217,6 +224,143 @@ function HomePage({ installed, accounts, selected, onSelect, notify, goDownload,
             ))
           )}
         </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">游戏日志</div>
+        {logs.length === 0 ? (
+          <div className="empty">启动游戏后，Python 会把游戏进程输出实时推送到这里</div>
+        ) : (
+          <div className="activity" style={{ maxHeight: 220, marginTop: 0 }}>
+            {logs.join('\n')}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+function PluginsPage({ notify }) {
+  const [state, setState] = useState({ host: {}, plugins: [] });
+  const [logs, setLogs] = useState([]);
+  const [busy, setBusy] = useState('');
+
+  const refresh = useCallback(async () => {
+    try {
+      const data = await call('plugins.state');
+      setState(data);
+      setLogs(await call('plugins.logs', 200));
+    } catch (err) {
+      notify(`读取插件状态失败：${err.message}`);
+    }
+  }, [notify]);
+
+  useEffect(() => {
+    refresh();
+    const timer = window.setInterval(refresh, 5000);
+    return () => window.clearInterval(timer);
+  }, [refresh]);
+
+  const toggle = async (plugin) => {
+    setBusy(plugin.name);
+    try {
+      await call('plugins.setEnabled', plugin.name, !plugin.enabled);
+      await refresh();
+    } catch (err) {
+      notify(`操作失败：${err.message}`);
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const reload = async (plugin) => {
+    setBusy(plugin.name);
+    try {
+      await call('plugins.reload', plugin.name);
+      await refresh();
+      notify(`${plugin.displayName} 已重载`);
+    } catch (err) {
+      notify(`重载失败：${err.message}`);
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const install = async (name) => {
+    try {
+      await call('plugins.installExample', name);
+      await refresh();
+      notify(`已安装示例：${name}`);
+    } catch (err) {
+      notify(`安装失败：${err.message}`);
+    }
+  };
+
+  return (
+    <>
+      <div className="page-head">
+        <h1>插件</h1>
+        <span className="desc">
+          宿主 {state.host.running ? `运行中 pid=${state.host.pid}` : '未启动'}
+          {state.plugins.length ? ` · ${state.plugins.length} 个插件` : ''}
+        </span>
+      </div>
+
+      <div className="card">
+        <div className="card-title">已安装插件</div>
+        {state.plugins.length === 0 ? (
+          <div className="empty">
+            还没有插件。可以先安装示例插件体验双向 RPC 与权限沙箱。
+            <div style={{ marginTop: 12, display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button className="btn sm" onClick={() => install('template')}>
+                安装插件模板
+              </button>
+              <button className="btn primary sm" onClick={() => install('game-log')}>
+                安装日志示例
+              </button>
+            </div>
+          </div>
+        ) : (
+          state.plugins.map((plugin) => (
+            <div className="row" key={plugin.name}>
+              <div className="grow">
+                <div className="name">
+                  {plugin.displayName}
+                  <span className="meta" style={{ marginLeft: 8 }}>v{plugin.version}</span>
+                </div>
+                <div className="meta">{plugin.description || plugin.name}</div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                  {(plugin.permissions || []).map((perm) => (
+                    <span className="tag" key={perm}>{perm}</span>
+                  ))}
+                  {plugin.loaded && <span className="tag ok">已加载</span>}
+                </div>
+              </div>
+              <button className="btn sm" onClick={() => reload(plugin)} disabled={busy === plugin.name}>
+                重载
+              </button>
+              <button
+                className={plugin.enabled ? 'btn sm' : 'btn primary sm'}
+                onClick={() => toggle(plugin)}
+                disabled={busy === plugin.name}
+              >
+                {plugin.enabled ? '禁用' : '启用'}
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card-title">宿主日志</div>
+        {logs.length === 0 ? (
+          <div className="empty">暂无日志</div>
+        ) : (
+          <div className="activity" style={{ maxHeight: 240, marginTop: 0 }}>
+            {logs.join('\n')}
+          </div>
+        )}
       </div>
     </>
   );
@@ -631,6 +775,15 @@ function SettingsPage({ notify }) {
         <div className="kv"><div className="k">版本</div><div className="v">{info ? info.version : '—'}</div></div>
         <div className="kv"><div className="k">数据目录</div><div className="v">{info ? info.dataDir : '—'}</div></div>
         <div className="kv"><div className="k">架构</div><div className="v">Python + PySide6 WebView + React</div></div>
+        <div className="row" style={{ paddingBottom: 0 }}>
+          <div className="grow">
+            <div className="name">日志目录</div>
+            <div className="meta">按天一个文件，保留 30 天</div>
+          </div>
+          <button className="btn sm" onClick={() => call('logs.openDir')}>
+            打开目录
+          </button>
+        </div>
       </div>
 
       <div className="card">

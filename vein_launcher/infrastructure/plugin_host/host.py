@@ -53,6 +53,10 @@ class PluginHost:
     def pid(self) -> Optional[int]:
         return self._proc.pid if self._proc else None
 
+    @property
+    def node_path(self) -> Optional[str]:
+        return self._node
+
     def recent_logs(self, limit: int = 50) -> List[str]:
         return self._logs[-limit:]
 

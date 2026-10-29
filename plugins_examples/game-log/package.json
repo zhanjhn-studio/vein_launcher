@@ -1,0 +1,12 @@
+{
+  "name": "vein-plugin-game-log",
+  "version": "0.1.0",
+  "description": "示例插件：把游戏日志写入插件沙箱，并在游戏退出时通知",
+  "type": "module",
+  "main": "index.js",
+  "vein": {
+    "displayName": "游戏日志记录",
+    "activateOnStartup": true,
+    "permissions": ["file.write", "ui.notify", "mlc.world"]
+  }
+}

@@ -82,6 +82,12 @@ class ApiBridge(QObject):
             "mods.search": self._mods_search,
             "mods.install": self._mods_install,
             "java.detect": self._java_detect,
+            "plugins.state": self._plugins_state,
+            "plugins.setEnabled": self._plugins_set_enabled,
+            "plugins.reload": self._plugins_reload,
+            "plugins.logs": self._plugins_logs,
+            "plugins.installExample": self._plugins_install_example,
+            "logs.openDir": self._open_log_dir,
         }
 
         event_bus.subscribe(EventNames.GAME_LOG_UPDATE, self._on_game_log)
@@ -251,6 +257,31 @@ class ApiBridge(QObject):
             {"path": str(rt.path), "major": rt.major, "version": rt.version, "vendor": rt.vendor}
             for rt in runtimes
         ]
+
+    # ------------------------------------------------------------------
+    async def _plugins_state(self) -> dict:
+        return self._ctx.plugins.state()
+
+    async def _plugins_set_enabled(self, name: str, enabled: bool = True) -> dict:
+        return await self._ctx.plugins.set_enabled(str(name), bool(enabled))
+
+    async def _plugins_reload(self, name: str) -> dict:
+        return await self._ctx.plugins.reload(str(name))
+
+    async def _plugins_logs(self, limit: int = 200) -> list:
+        return self._ctx.plugins.logs(int(limit))
+
+    async def _plugins_install_example(self, name: str) -> dict:
+        return self._ctx.plugins.install_example(str(name))
+
+    async def _open_log_dir(self) -> dict:
+        import subprocess
+
+        from vein_launcher.common.logging.logger import log_dir
+
+        path = log_dir()
+        subprocess.Popen(["explorer", str(path)])
+        return {"path": str(path)}
 
     # ------------------------------------------------------------------
     def shutdown(self) -> None:

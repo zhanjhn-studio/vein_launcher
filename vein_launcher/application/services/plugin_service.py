@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -23,6 +25,8 @@ from vein_launcher.mlc.service import MlcService
 
 logger = logging.getLogger(__name__)
 
+EXAMPLES_DIR = Path(__file__).resolve().parents[3] / "plugins_examples"
+
 
 class PluginService:
     """插件生命周期与能力注入"""
@@ -35,6 +39,8 @@ class PluginService:
         self._host = PluginHost(self._registry)
         self._plugins: Dict[str, InstalledPlugin] = {}
         self._installed_event_bridge = False
+        self._state_file = ensure_dir(self._loader.root.parent) / "plugins_state.json"
+        self._enabled: Dict[str, bool] = self._load_state()
 
         self._register_capabilities()
 
@@ -46,6 +52,27 @@ class PluginService:
     def root_for(self, plugin_id: str) -> Path:
         return ensure_dir(self._loader.root / sanitize(plugin_id))
 
+    # ------------------------------------------------------------------
+    def _load_state(self) -> Dict[str, bool]:
+        try:
+            if self._state_file.is_file():
+                return json.loads(self._state_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            logger.warning("插件状态文件读取失败，使用默认值")
+        return {}
+
+    def _save_state(self) -> None:
+        try:
+            self._state_file.write_text(
+                json.dumps(self._enabled, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        except OSError:
+            logger.exception("插件状态保存失败")
+
+    def _is_enabled(self, name: str) -> bool:
+        return self._enabled.get(name, True)
+
+    # ------------------------------------------------------------------
     def _safe_path(self, plugin_id: str, raw: str) -> Path:
         root = self.root_for(plugin_id).resolve()
         candidate = Path(raw)
@@ -78,9 +105,7 @@ class PluginService:
             target = self._safe_path(plugin_id, path)
             if not target.is_dir():
                 raise NotADirectoryError(str(target))
-            return [
-                {"name": c.name, "dir": c.is_dir()} for c in sorted(target.iterdir())
-            ]
+            return [{"name": c.name, "dir": c.is_dir()} for c in sorted(target.iterdir())]
 
         async def config_read(plugin_id: str) -> Dict[str, Any]:
             return settings_manager.get().model_dump()
@@ -144,8 +169,9 @@ class PluginService:
         reg.register("mlc.plugin.search", "mlc.plugin", mlc_plugin_search)
 
     # ------------------------------------------------------------------
+    # 生命周期
+    # ------------------------------------------------------------------
     async def start(self) -> None:
-        """安装 demo、启动宿主、激活插件"""
         plugins = self._loader.scan()
         if not plugins:
             logger.info("没有可用插件")
@@ -155,19 +181,100 @@ class PluginService:
         self._install_event_bridge()
 
         for plugin in plugins:
+            if not self._is_enabled(plugin.manifest.name):
+                continue
             if not plugin.manifest.activate_on_startup:
                 continue
-            try:
-                self._registry.add_root(self.root_for(plugin.manifest.name))
-                await self._host.load(plugin)
-                self._plugins[plugin.manifest.name] = plugin
-            except Exception as exc:
-                logger.error("插件加载失败 %s：%s", plugin.manifest.name, exc)
+            await self._load_one(plugin)
 
     async def stop(self) -> None:
         await self._host.stop()
         self._plugins.clear()
 
+    async def _load_one(self, plugin: InstalledPlugin) -> None:
+        try:
+            self._registry.add_root(self.root_for(plugin.manifest.name))
+            await self._host.load(plugin)
+            self._plugins[plugin.manifest.name] = plugin
+            logger.info("插件已加载：%s", plugin.manifest.name)
+        except Exception as exc:
+            logger.error("插件加载失败 %s：%s", plugin.manifest.name, exc)
+
+    # ------------------------------------------------------------------
+    # 管理接口（供插件页使用）
+    # ------------------------------------------------------------------
+    def state(self) -> Dict[str, Any]:
+        plugins = []
+        for plugin in self._loader.scan():
+            name = plugin.manifest.name
+            plugins.append(
+                {
+                    "name": name,
+                    "version": plugin.manifest.version,
+                    "displayName": plugin.manifest.display_name,
+                    "description": plugin.manifest.description,
+                    "permissions": plugin.manifest.permissions,
+                    "enabled": self._is_enabled(name),
+                    "loaded": name in self._plugins,
+                    "path": str(plugin.path),
+                }
+            )
+        return {
+            "host": {
+                "running": self._host.running,
+                "pid": self._host.pid,
+                "node": self._host.node_path,
+            },
+            "plugins": plugins,
+        }
+
+    async def set_enabled(self, name: str, enabled: bool) -> Dict[str, Any]:
+        plugin = next((p for p in self._loader.scan() if p.manifest.name == name), None)
+        if plugin is None:
+            raise KeyError(f"插件不存在：{name}")
+
+        self._enabled[name] = bool(enabled)
+        self._save_state()
+
+        if enabled:
+            if not self._host.running:
+                await self._host.start()
+                self._install_event_bridge()
+            await self._load_one(plugin)
+        else:
+            await self._host.unload(name)
+            self._plugins.pop(name, None)
+        return {"ok": True, "enabled": bool(enabled)}
+
+    async def reload(self, name: str) -> Dict[str, Any]:
+        plugin = next((p for p in self._loader.scan() if p.manifest.name == name), None)
+        if plugin is None:
+            raise KeyError(f"插件不存在：{name}")
+        await self._host.unload(name)
+        self._plugins.pop(name, None)
+        if not self._host.running:
+            await self._host.start()
+            self._install_event_bridge()
+        await self._load_one(plugin)
+        return {"ok": True}
+
+    def logs(self, limit: int = 200) -> List[str]:
+        return self._host.recent_logs(limit)
+
+    def install_example(self, name: str) -> Dict[str, Any]:
+        source = EXAMPLES_DIR / name
+        if not source.is_dir():
+            raise FileNotFoundError(f"示例不存在：{name}")
+        target = self._loader.root / sanitize(name)
+        if target.exists():
+            raise FileExistsError(f"插件已存在：{name}")
+        shutil.copytree(source, target, ignore=shutil.ignore_patterns("node_modules", "data"))
+        self._enabled[name] = True
+        self._save_state()
+        logger.info("已安装示例插件：%s", name)
+        return {"ok": True, "name": name}
+
+    # ------------------------------------------------------------------
     def _install_event_bridge(self) -> None:
         if self._installed_event_bridge:
             return
@@ -195,4 +302,4 @@ class PluginService:
         return handler
 
 
-__all__ = ["PluginService"]
+__all__ = ["PluginService", "EXAMPLES_DIR"]
