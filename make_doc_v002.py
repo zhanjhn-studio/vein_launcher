@@ -86,6 +86,10 @@ def main() -> None:
     # 封面
     for _ in range(5):
         doc.add_paragraph()
+    logo = doc.add_paragraph()
+    logo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    logo.add_run().add_picture("assets/logo.png", width=Cm(4.2))
+
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     set_font(title.add_run("Vein Launcher"), size=34, bold=True, color=ACCENT)
@@ -242,7 +246,8 @@ def main() -> None:
         ["MLC", "启动/存档/事件可用；玩家数据待游戏侧 mod"],
         ["微软登录", "未实现"],
         ["CurseForge", "客户端就绪，界面未接入"],
-        ["广场 / 联机", "仅占位"],
+        ["帖子系统（广场）", "仅 API 契约与模型，未实现"],
+        ["联机", "仅导航占位"],
         ["打包", "未开始"],
     ], widths=[6.5, 10.5])
 
@@ -253,6 +258,23 @@ def main() -> None:
     bullet(doc, "镜像 SSL 不校验仅限镜像域，依赖 SHA-1 保证内容。")
     bullet(doc, "Forge 安装器依赖本机 Java 与网络，失败会回滚临时目录。")
     bullet(doc, "联机与广场未开发，仅保留导航占位。")
+
+    heading(doc, "附录 A　帖子系统（API 预留）")
+    body(doc, "广场帖子系统目前只定义了接口契约与数据模型：没有服务端实现，也没有界面入口，"
+              "按项目规则暂不开发，仅作为后续迭代的预留。")
+    table(doc, ["方法", "路径", "说明"], [
+        ["GET", "/api/posts?tag=&sort=hot|new&page=", "帖子列表，支持标签过滤与热度/时间排序"],
+        ["GET", "/api/posts/{id}", "帖子详情"],
+        ["POST", "/api/posts", "发帖：title、content、tags"],
+        ["POST", "/api/posts/{id}/like", "点赞（同一用户幂等）"],
+        ["GET", "/api/tags", "标签列表"],
+    ], widths=[2.2, 8.0, 7.0])
+    body(doc, "数据模型：")
+    code(doc, "Post { id, title, content, author_id, tags[], likes, created_at, hot_score }")
+    body(doc, "热度排序（预留算法）：按点赞与时间的衰减计算，避免旧帖长期占榜。")
+    code(doc, "hot_score = likes / pow(hours_since_created + 2, 1.5)")
+    body(doc, "实现状态：契约与模型已定义；服务端、鉴权与 UI 均未实现。启用前需要补齐接口鉴权、"
+              "内容审核与分页缓存。")
 
     doc.save("VeinLauncher_开发者文档_v0.0.2.docx")
 
