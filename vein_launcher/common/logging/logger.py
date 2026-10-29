@@ -25,7 +25,9 @@ def setup_logger(name: str = "vein_launcher", log_level: int = logging.INFO) -> 
         return logger
     
     # 创建日志目录
-    log_dir = Path(__import__("os").path.expandvars("~\\AppData\\Roaming\\VeinLauncher\\logs"))
+    import os
+    base = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
+    log_dir = Path(base) / "VeinLauncher" / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     
     # 日期标记的日志文件

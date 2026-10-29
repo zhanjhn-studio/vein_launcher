@@ -5,8 +5,11 @@ import os
 
 
 def get_app_data_dir() -> Path:
-    """获取应用程序数据目录 (AppData\\Roaming)"""
-    return Path(os.path.expandvars("~\\AppData\\Roaming\\VeinLauncher"))
+    """获取应用程序数据目录（%APPDATA%\\VeinLauncher）"""
+    base = os.environ.get("APPDATA")
+    if base:
+        return Path(base) / "VeinLauncher"
+    return Path.home() / "AppData" / "Roaming" / "VeinLauncher"
 
 
 def get_instance_root() -> Path:
