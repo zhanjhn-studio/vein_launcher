@@ -150,3 +150,18 @@ accounts.list|add|select / mods.search / mods.install / java.detect`
 - 工作区回滚至 Domain 基线，移除 infrastructure/application/presentation 等全部产出
 - 重新从 `infrastructure/network/http_client.py` 开始
 - 交付 MLC demo、插件宿主与 demo 插件、通信桥对齐、React 界面日志面板
+
+## 🩺 日志与稳定性（2026-10-29 晚）
+
+- **未响应根因**：桥接回调在后台 AsyncRunner 线程直接调用 `QWebEnginePage.runJavaScript`，
+  Qt WebEngine 要求 UI 线程，跨线程调用会把主线程卡死。
+- **修复**：ApiBridge 增加 `Signal(str)` 通道（后台线程 emit → UI 线程执行）；
+  页面加载完成前的脚本先入队，`loadFinished` 后统一冲刷；调用耗时与异常写入日志。
+- **日志系统**：
+  - `app.log` 按 5MB × 5 滚动，`error.log` 单独收集 ERROR
+  - 控制台 + 文件双输出，格式含线程名、文件行号
+  - 接管 Qt 消息（`qInstallMessageHandler`）与前端 console（`javaScriptConsoleMessage`）
+  - 未捕获异常钩子（`sys.excepthook`）与 `faulthandler`
+  - 主线程心跳：每秒一次，卡顿超过 3 秒立即 WARNING
+  - 启动时记录版本、pid、Python/Qt 版本、日志目录
+- 修正 `main.py` 以 `python -m` 运行时 `__name__ == "__main__"` 导致启动日志不落盘。

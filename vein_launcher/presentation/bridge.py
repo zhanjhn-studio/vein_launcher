@@ -14,10 +14,11 @@ import asyncio
 import json
 import logging
 import threading
+import time
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from PySide6.QtCore import QObject, Slot
+from PySide6.QtCore import QObject, Signal, Slot
 
 from vein_launcher.common.events.event_bus import event_bus
 from vein_launcher.common.events.events import EventNames
@@ -56,11 +57,18 @@ class AsyncRunner:
 class ApiBridge(QObject):
     """暴露给前端的接口"""
 
+    # 线程安全的 JS 执行通道：后台线程 emit，UI 线程执行
+    _js_request = Signal(str)
+
     def __init__(self, context: AppContext, page, parent: Optional[QObject] = None):
         super().__init__(parent)
         self._ctx = context
         self._page = page
         self._runner = AsyncRunner()
+        self._page_ready = False
+        self._js_queue: list[str] = []
+        self._js_request.connect(self._execute_js)
+        page.loadFinished.connect(self._on_page_loaded)
         self._handlers: dict[str, Callable[..., Any]] = {
             "app.info": self._app_info,
             "versions.remote": self._versions_remote,
@@ -112,11 +120,16 @@ class ApiBridge(QObject):
         self._runner.submit(self._run(request_id, handler, args))
 
     async def _run(self, request_id: str, handler: Callable[..., Any], args: list) -> None:
+        method = getattr(handler, "__name__", "call")
+        started = time.perf_counter()
         try:
             result = await handler(*args)
+            elapsed = (time.perf_counter() - started) * 1000
+            logger.debug("bridge %s ok (%.0f ms)", method, elapsed)
             self._ok(request_id, result)
         except Exception as exc:  # 任何异常都回到前端，不吞掉
-            logger.exception("桥接调用失败 %s", request_id)
+            elapsed = (time.perf_counter() - started) * 1000
+            logger.exception("bridge %s failed (%.0f ms)：%s", method, elapsed, exc)
             self._fail(request_id, str(exc))
 
     # ------------------------------------------------------------------
@@ -130,7 +143,26 @@ class ApiBridge(QObject):
         self._run_js(f"window.__veinProgress({json.dumps(task_id)}, {done}, {total})")
 
     def _run_js(self, script: str) -> None:
+        """任意线程可调用；未加载完成时先排队"""
+        if not self._page_ready:
+            self._js_queue.append(script)
+            if len(self._js_queue) > 500:
+                self._js_queue.pop(0)
+            return
+        self._js_request.emit(script)
+
+    def _execute_js(self, script: str) -> None:
         self._page.runJavaScript(script)
+
+    def _on_page_loaded(self, ok: bool) -> None:
+        self._page_ready = bool(ok)
+        if not ok:
+            logger.warning("页面加载失败，JS 队列保留 %d 条", len(self._js_queue))
+            return
+        logger.info("前端就绪，冲刷 %d 条待执行脚本", len(self._js_queue))
+        queued, self._js_queue = self._js_queue, []
+        for script in queued:
+            self._js_request.emit(script)
 
     # ------------------------------------------------------------------
     # 处理方法
