@@ -70,7 +70,7 @@ export function App() {
   return (
     <div className="shell">
       <aside className="rail">
-        <div className="rail-logo">V</div>
+        <img className="rail-logo" src="logo.png" alt="VEIN" />
         <nav className="rail-nav">
           {PAGES.map((item) => (
             <button

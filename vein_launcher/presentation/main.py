@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 from PySide6.QtCore import QTimer, QUrl
+from PySide6.QtGui import QIcon
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -158,6 +159,9 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Vein Launcher")
     app.setOrganizationName("Vein Studio")
+    icon = Path(__file__).resolve().parents[2] / "assets" / "logo.png"
+    if icon.is_file():
+        app.setWindowIcon(QIcon(str(icon)))
 
     started = time.perf_counter()
     context = AppContext()
