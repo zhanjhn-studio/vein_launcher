@@ -108,7 +108,10 @@ class HttpClient:
         cfg = settings_manager.get().network
         if not cfg.proxy_enabled or not cfg.proxy_host:
             return None
-        scheme = "socks5" if cfg.proxy_type.upper() == "SOCKS5" else "http"
+        if cfg.proxy_type.upper() == "SOCKS5":
+            logger.warning("暂不支持 SOCKS5 代理（缺少 aiohttp_socks），已忽略代理设置")
+            return None
+        scheme = "http"
         port = cfg.proxy_port or (1080 if scheme == "socks5" else 8080)
         return f"{scheme}://{cfg.proxy_host}:{port}"
 

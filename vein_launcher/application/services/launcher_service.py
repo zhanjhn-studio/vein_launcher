@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import uuid as uuid_lib
@@ -100,11 +101,30 @@ class LauncherService:
         return await self._process.launch(command, cwd=get_version_dir(version_id))
 
     # ------------------------------------------------------------------
+    def _jar_chain(self, version_id: str) -> List[Path]:
+        """沿 inheritsFrom 收集每一层的 client jar（加载器实例需要父版本 jar）"""
+        jars: List[Path] = []
+        seen = set()
+        current = version_id
+        while current and current not in seen:
+            seen.add(current)
+            jar = get_version_dir(current) / f"{current}.jar"
+            if jar.is_file():
+                jars.append(jar)
+            meta = get_version_dir(current) / f"{current}.json"
+            if not meta.is_file():
+                break
+            try:
+                data = json.loads(meta.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                break
+            current = data.get("inheritsFrom")
+        return jars
+
     def _classpath(self, merged: Dict[str, Any], version_id: str) -> str:
         entries: List[str] = []
-        client = get_version_dir(version_id) / f"{version_id}.jar"
-        if client.is_file():
-            entries.append(str(client))
+        for jar in self._jar_chain(version_id):
+            entries.append(str(jar))
         for lib in merged.get("libraries", []):
             if not self._rules_allow(lib.get("rules")):
                 continue

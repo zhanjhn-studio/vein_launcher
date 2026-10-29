@@ -258,11 +258,16 @@ class ApiBridge(QObject):
             raise RuntimeError("文件信息缺失")
 
         if str(project_type) == "modpack":
+            import shutil
             import tempfile
 
-            archive = Path(tempfile.mkdtemp(prefix="vein_pack_")) / file["name"]
-            await self._ctx.modrinth_download(file["url"], archive, file.get("sha1"))
-            return await self._ctx.modpacks.install(archive, str(instance))
+            workdir = Path(tempfile.mkdtemp(prefix="vein_pack_"))
+            archive = workdir / file["name"]
+            try:
+                await self._ctx.modrinth_download(file["url"], archive, file.get("sha1"))
+                return await self._ctx.modpacks.install(archive, str(instance))
+            finally:
+                shutil.rmtree(workdir, ignore_errors=True)
 
         target_dir = self._ctx.instance_sub_dir(str(instance), str(project_type))
         target_dir.mkdir(parents=True, exist_ok=True)
@@ -304,5 +309,13 @@ class ApiBridge(QObject):
         return {"path": str(path)}
 
     # ------------------------------------------------------------------
-    def shutdown(self) -> None:
+    def shutdown(self, context=None) -> None:
+        """先异步释放资源，再停事件循环；避免插件宿主等子进程泄漏"""
+        if context is not None:
+            try:
+                future = asyncio.run_coroutine_threadsafe(context.close(), self._runner.loop)
+                future.result(timeout=8)
+                logger.info("后端资源已释放")
+            except Exception:
+                logger.exception("关闭后端服务失败")
         self._runner.shutdown()

@@ -119,7 +119,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt 约定
         logger.info("窗口关闭，开始释放资源")
         try:
-            self.bridge.shutdown()
+            self.bridge.shutdown(self._ctx)
             self._ctx.launcher.process.kill()
         except Exception:
             logger.exception("关闭清理失败")
