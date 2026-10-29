@@ -22,7 +22,6 @@ from vein_launcher.common.logging.logger import (
 )
 from vein_launcher.presentation.bridge import ApiBridge
 from vein_launcher.presentation.context import AppContext, VERSION
-from vein_launcher.presentation.floating import LogoBall
 
 logger = logging.getLogger("vein_launcher.presentation.main")
 
@@ -113,31 +112,10 @@ class MainWindow(QMainWindow):
         else:
             logger.error("页面加载失败")
 
-    def show_page(self, page: str) -> None:
-        if page == "quit":
-            self.quit_app()
-            return
-        self.showNormal()
-        self.raise_()
-        self.activateWindow()
-        self.bridge.navigate(page)
-        logger.info("悬浮球跳转：%s", page)
-
-    def quit_app(self) -> None:
-        logger.info("用户从悬浮球退出")
-        self._quitting = True
-        self.close()
-        QApplication.quit()
-
     def _on_renderer_crashed(self, status, exit_code: int) -> None:
         logger.critical("渲染进程终止：status=%s exit_code=%s", status, exit_code)
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt 约定
-        if not getattr(self, "_quitting", False):
-            logger.info("窗口收起（保留悬浮球）")
-            event.ignore()
-            self.hide()
-            return
         logger.info("窗口关闭，开始释放资源")
         try:
             self.bridge.shutdown()
@@ -167,7 +145,6 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Vein Launcher")
     app.setOrganizationName("Vein Studio")
-    app.setQuitOnLastWindowClosed(False)
 
     started = time.perf_counter()
     context = AppContext()
@@ -175,12 +152,6 @@ def main() -> int:
 
     window = MainWindow(context)
     window.show()
-
-    ball = LogoBall()
-    ball.navigate.connect(window.show_page)
-    ball.show()
-    window.ball = ball
-    logger.info("悬浮球已启用")
     logger.info("窗口已显示")
 
     code = app.exec()

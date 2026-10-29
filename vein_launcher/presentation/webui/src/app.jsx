@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { call } from './bridge.js';
 
 const PAGES = [
-  ['home', '启动', '▷'],
-  ['versions', '版本', '▤'],
-  ['download', '下载', '↓'],
-  ['mods', '模组', '▦'],
-  ['accounts', '账号', '◉'],
-  ['settings', '设置', '⚙'],
+  { key: 'home', label: '启动', icon: '▶' },
+  { key: 'download', label: '下载', icon: '↓' },
+  { key: 'versions', label: '版本', icon: '▤' },
+  { key: 'mods', label: '模组', icon: '▦' },
+  { key: 'accounts', label: '账号', icon: '◉' },
+  { key: 'settings', label: '设置', icon: '⚙' },
 ];
 
 const LOADERS = [
@@ -18,14 +18,11 @@ const LOADERS = [
   { key: 'neoforge', title: 'NeoForge', desc: '1.20.2+' },
 ];
 
-function clock() {
-  return new Date().toLocaleTimeString('zh-CN', { hour12: false });
-}
+const clock = () => new Date().toLocaleTimeString('zh-CN', { hour12: false });
 
 export function App() {
   const [page, setPage] = useState('home');
   const [toast, setToast] = useState('');
-  const [info, setInfo] = useState(null);
   const [installed, setInstalled] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [selected, setSelected] = useState('');
@@ -50,98 +47,65 @@ export function App() {
     let alive = true;
     (async () => {
       try {
-        const meta = await call('app.info');
-        if (!alive) return;
-        setInfo(meta);
         await Promise.all([refreshInstalled(), refreshAccounts()]);
       } catch (err) {
-        notify(`初始化失败：${err.message}`);
+        if (alive) notify(`初始化失败：${err.message}`);
       }
     })();
-
     const onNavigate = (event) => setPage(event.detail);
-    const onNotify = (event) => notify(`${event.detail.title}：${event.detail.message}`);
     window.addEventListener('vein:navigate', onNavigate);
-    window.addEventListener('vein:notify', onNotify);
     return () => {
       alive = false;
       window.removeEventListener('vein:navigate', onNavigate);
-      window.removeEventListener('vein:notify', onNotify);
     };
   }, [notify, refreshInstalled, refreshAccounts]);
 
-  const current = PAGES.find((p) => p[0] === page) || PAGES[0];
   const account = accounts.find((a) => a.selected) || null;
 
   return (
-    <div className="app">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">V</div>
-          <div>
-            <div className="brand-name">VEIN</div>
-            <div className="brand-ver">{info ? info.version : '—'}</div>
-          </div>
-        </div>
-
-        <nav className="nav">
-          {PAGES.map(([key, label, icon]) => (
+    <div className="shell">
+      <aside className="rail">
+        <div className="rail-logo">V</div>
+        <nav className="rail-nav">
+          {PAGES.map((item) => (
             <button
-              key={key}
-              className={`nav-item ${page === key ? 'active' : ''}`}
-              onClick={() => setPage(key)}
+              key={item.key}
+              className={`rail-btn ${page === item.key ? 'active' : ''}`}
+              onClick={() => setPage(item.key)}
+              title={item.label}
             >
-              <span className="ico">{icon}</span>
-              {label}
+              <span className="ico">{item.icon}</span>
+              <span className="txt">{item.label}</span>
             </button>
           ))}
         </nav>
-
-        <div className="sidebar-foot">
-          <span>账号 {account ? account.username : '未登录'}</span>
-          <span>实例 {installed.length}</span>
-        </div>
+        <div className="rail-foot">v0.0.1</div>
       </aside>
 
-      <main className="main">
-        <header className="topbar">
-          <h1>{current[1]}</h1>
-          <span className="sub">
-            {page === 'home' && (selected || '未选择实例')}
-            {page === 'mods' && 'MODRINTH'}
-            {page === 'download' && '选择版本 → 选择加载器 → 安装'}
-            {page === 'accounts' && `${accounts.length} 个本地账号`}
-          </span>
-          <div className="spacer" />
-          <span className={`status-dot ${installed.length ? 'on' : ''}`} />
-          <span className="status-text">
-            {installed.length ? `已安装 ${installed.length} 个版本` : '尚无可用实例'}
-          </span>
-        </header>
-
-        <div className="content">
-          {page === 'home' && (
-            <HomePage
-              installed={installed}
-              accounts={accounts}
-              selected={selected}
-              onSelect={setSelected}
-              notify={notify}
-              onGoDownload={() => setPage('download')}
-            />
-          )}
-          {page === 'versions' && (
-            <VersionsPage installed={installed} onChange={refreshInstalled} notify={notify} />
-          )}
-          {page === 'download' && (
-            <DownloadPage installed={installed} onChange={refreshInstalled} notify={notify} />
-          )}
-          {page === 'mods' && <ModsPage installed={installed} selected={selected} notify={notify} />}
-          {page === 'accounts' && (
-            <AccountsPage accounts={accounts} onChange={refreshAccounts} notify={notify} />
-          )}
-          {page === 'settings' && <SettingsPage info={info} notify={notify} />}
-        </div>
+      <main className="stage">
+        {page === 'home' && (
+          <HomePage
+            installed={installed}
+            accounts={accounts}
+            selected={selected}
+            onSelect={setSelected}
+            notify={notify}
+            goDownload={() => setPage('download')}
+            goAccounts={() => setPage('accounts')}
+            pickVersion={(id) => setPage('download')}
+          />
+        )}
+        {page === 'download' && (
+          <DownloadPage installed={installed} onChange={refreshInstalled} notify={notify} />
+        )}
+        {page === 'versions' && (
+          <VersionsPage installed={installed} onChange={refreshInstalled} notify={notify} />
+        )}
+        {page === 'mods' && <ModsPage selected={selected} notify={notify} />}
+        {page === 'accounts' && (
+          <AccountsPage accounts={accounts} onChange={refreshAccounts} notify={notify} />
+        )}
+        {page === 'settings' && <SettingsPage notify={notify} />}
       </main>
 
       {toast && <div className="toast">{toast}</div>}
@@ -150,23 +114,31 @@ export function App() {
 }
 
 /* ------------------------------------------------------------------ */
-function Empty({ children }) {
-  return <div className="empty">{children}</div>;
-}
-
-function HomePage({ installed, accounts, selected, onSelect, notify, onGoDownload }) {
+function HomePage({ installed, accounts, selected, onSelect, notify, goDownload, goAccounts }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
+  const [latest, setLatest] = useState([]);
   const account = accounts.find((a) => a.selected) || null;
+  const current = installed.find((v) => v.id === selected);
+
+  useEffect(() => {
+    let alive = true;
+    call('versions.remote', 6)
+      .then((list) => alive && setLatest(list))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const launch = async () => {
     if (!selected) {
-      notify('请先安装一个版本');
-      onGoDownload();
+      notify('还没有可用版本，先去下载一个');
+      goDownload();
       return;
     }
     setBusy(true);
-    setStatus('正在构建启动参数…');
+    setStatus('正在启动…');
     try {
       const result = await call('launch', selected, account ? account.username : 'Player');
       setStatus(`已启动，PID ${result.pid}`);
@@ -180,101 +152,73 @@ function HomePage({ installed, accounts, selected, onSelect, notify, onGoDownloa
 
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>启动游戏</h2>
-          <span className="count">{installed.length} 个实例</span>
-          <div className="spacer" />
-          <span className="count">{account ? `离线 · ${account.username}` : '未登录（离线模式）'}</span>
-        </div>
+      <div className="page-head">
+        <h1>主界面</h1>
+        <span className="desc">{account ? `离线账号 ${account.username}` : '未登录'}</span>
+      </div>
 
-        {installed.length === 0 ? (
-          <Empty>
-            还没有安装任何版本。
-            <button className="btn primary sm" style={{ marginLeft: 10 }} onClick={onGoDownload}>
-              去下载
-            </button>
-          </Empty>
-        ) : (
-          <>
-            <div className="row">
-              <div className="grow">
-                <div className="name">选择实例</div>
-                <div className="meta">instances 目录</div>
-              </div>
-              <select value={selected} onChange={(e) => onSelect(e.target.value)}>
+      <div className="home-grid">
+        <div>
+          <div className="card version-card">
+            <div className="version-label">当前版本</div>
+            {installed.length === 0 ? (
+              <div className="version-name">未安装</div>
+            ) : (
+              <select
+                value={selected}
+                onChange={(e) => onSelect(e.target.value)}
+                style={{ marginTop: 6, fontSize: 18, fontWeight: 700, border: 'none', padding: '4px 0', boxShadow: 'none', background: 'transparent' }}
+              >
                 {installed.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.id}
                   </option>
                 ))}
               </select>
+            )}
+            <div className="version-meta" style={{ marginTop: 8 }}>
+              <span className="tag">{current ? current.type : '—'}</span>
+              <span className="tag">{installed.length} 个实例</span>
+              <span className="tag">{status || '就绪'}</span>
             </div>
 
-            <div className="row">
-              <div className="grow">
-                <div className="name">启动游戏</div>
-                <div className="meta">{status || '构建命令并拉起 Java 进程'}</div>
-              </div>
-              <button className="btn primary" onClick={launch} disabled={busy}>
-                {busy ? '启动中…' : '启动'}
+            <button className="launch-btn" onClick={launch} disabled={busy}>
+              {busy ? '启动中…' : '启动游戏'}
+            </button>
+
+            <div className="quick">
+              <button className="quick-btn" onClick={goDownload}>
+                <div className="t">下载新版本</div>
+                <div className="d">原版 / Fabric / Forge</div>
+              </button>
+              <button className="quick-btn" onClick={goAccounts}>
+                <div className="t">账号管理</div>
+                <div className="d">离线 / 微软</div>
               </button>
             </div>
-          </>
-        )}
-      </div>
-
-      <div className="panel">
-        <div className="panel-head">
-          <h2>当前账号</h2>
-        </div>
-        {account ? (
-          <div className="kv">
-            <div className="k">用户名</div>
-            <div className="v">{account.username}</div>
           </div>
-        ) : (
-          <Empty>未登录。到「账号」页添加一个离线账号。</Empty>
-        )}
+        </div>
+
+        <div className="card">
+          <div className="card-title">最新正式版本</div>
+          {latest.length === 0 ? (
+            <div className="empty">正在获取版本清单…</div>
+          ) : (
+            latest.map((v) => (
+              <div className="release-row" key={v.id}>
+                <div className="grow">
+                  <div className="n">{v.id}</div>
+                  <div className="m">{v.release_time}</div>
+                </div>
+                <button className="btn sm" onClick={goDownload}>
+                  安装
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-function VersionsPage({ installed, onChange, notify }) {
-  const remove = async (id) => {
-    try {
-      await call('versions.delete', id);
-      await onChange();
-      notify(`已删除 ${id}`);
-    } catch (err) {
-      notify(`删除失败：${err.message}`);
-    }
-  };
-
-  return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>已安装版本</h2>
-        <span className="count">{installed.length}</span>
-      </div>
-      {installed.length === 0 ? (
-        <Empty>还没有已安装的版本</Empty>
-      ) : (
-        installed.map((v) => (
-          <div className="row" key={v.id}>
-            <div className="grow">
-              <div className="name">{v.id}</div>
-              <div className="meta">{v.type || 'release'}</div>
-            </div>
-            <button className="btn sm" onClick={() => remove(v.id)}>
-              删除
-            </button>
-          </div>
-        ))
-      )}
-    </div>
   );
 }
 
@@ -298,14 +242,13 @@ function DownloadPage({ installed, onChange, notify }) {
     try {
       const list = await call('versions.remote', 120);
       setVersions(list);
-      log(`版本列表已更新，共 ${list.length} 个版本`);
+      log(`版本列表已更新，共 ${list.length} 个`);
     } catch (err) {
-      log(`获取版本列表失败：${err.message}`);
-      notify(`获取版本列表失败：${err.message}`);
+      log(`获取失败：${err.message}`);
     } finally {
       setLoading(false);
     }
-  }, [log, notify]);
+  }, [log]);
 
   useEffect(() => {
     load();
@@ -330,14 +273,11 @@ function DownloadPage({ installed, onChange, notify }) {
     if (!picked) return;
     setBusy(true);
     setProgress({ downloaded: 0, total: 0 });
-    log(`开始安装 ${targetId}（${loader || '原版'}）`);
+    log(`开始安装 ${targetId}`);
     try {
       const result = await call('versions.install', picked.id, loader);
-      if (result.version_id) {
-        log(`加载器安装完成：${result.version_id}（loader ${result.loader_version}）`);
-      } else {
-        log(`安装完成：成功 ${result.ok} 个 / 失败 ${result.failed} 个文件`);
-      }
+      if (result.version_id) log(`加载器安装完成：${result.version_id}（loader ${result.loader_version}）`);
+      else log(`安装完成：成功 ${result.ok} / 失败 ${result.failed}`);
       await onChange();
     } catch (err) {
       log(`安装失败：${err.message}`);
@@ -349,123 +289,157 @@ function DownloadPage({ installed, onChange, notify }) {
   };
 
   return (
-    <div className="download-layout">
-      <div className="panel">
-        <div className="panel-head">
-          <h2>选择版本</h2>
-          <span className="count">{shown.length}</span>
-          <div className="spacer" />
-          <input
-            className="input"
-            placeholder="搜索版本号"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          />
-          <button className="btn ghost sm" onClick={load} disabled={loading}>
-            {loading ? '加载中' : '刷新'}
-          </button>
+    <>
+      <div className="page-head">
+        <h1>下载</h1>
+        <span className="desc">选择版本 → 选择加载器 → 安装</span>
+      </div>
+
+      <div className="download-grid">
+        <div className="card">
+          <div className="row" style={{ paddingTop: 0 }}>
+            <div className="grow">
+              <div className="name">版本列表</div>
+              <div className="meta">{shown.length} 个</div>
+            </div>
+            <input
+              className="input"
+              placeholder="搜索版本号"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              style={{ width: 160 }}
+            />
+            <button className="btn sm" onClick={load} disabled={loading}>
+              {loading ? '加载中' : '刷新'}
+            </button>
+          </div>
+
+          {loading && versions.length === 0 ? (
+            <div className="empty">正在获取版本清单…</div>
+          ) : (
+            <div className="version-list" style={{ marginTop: 8 }}>
+              {shown.map((v) => (
+                <div
+                  key={v.id}
+                  className={`version-item ${picked?.id === v.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setPicked(v);
+                    setLoader('');
+                    setProgress(null);
+                  }}
+                >
+                  <div className="grow">
+                    <div className="n">{v.id}</div>
+                    <div className="m">{v.release_time}</div>
+                  </div>
+                  {installedIds.has(v.id) && <span className="tag ok">已装</span>}
+                  <span className="tag">{v.type}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {loading && versions.length === 0 ? (
-          <Empty>正在获取版本清单…</Empty>
-        ) : shown.length === 0 ? (
-          <Empty>没有匹配的版本</Empty>
-        ) : (
-          <div className="version-list">
-            {shown.map((v) => (
-              <div
-                key={v.id}
-                className={`version-item ${picked?.id === v.id ? 'active' : ''}`}
-                onClick={() => {
-                  setPicked(v);
-                  setLoader('');
-                  setProgress(null);
-                }}
-              >
-                <div className="grow">
-                  <div className="name">{v.id}</div>
-                  <div className="meta">{v.release_time}</div>
+        <div className="card">
+          <div className="card-title">安装配置</div>
+          {!picked ? (
+            <div className="empty">先在左侧选择一个版本</div>
+          ) : (
+            <>
+              <div className="kv"><div className="k">版本</div><div className="v">{picked.id}</div></div>
+              <div className="kv"><div className="k">实例 ID</div><div className="v">{targetId}</div></div>
+
+              <div className="loader-grid" style={{ marginTop: 14 }}>
+                {LOADERS.map((item) => (
+                  <button
+                    key={item.key || 'vanilla'}
+                    className={`loader-card ${loader === item.key ? 'active' : ''}`}
+                    onClick={() => setLoader(item.key)}
+                  >
+                    <div className="t">{item.title}</div>
+                    <div className="d">{item.desc}</div>
+                  </button>
+                ))}
+              </div>
+
+              {progress && (
+                <div style={{ marginTop: 12 }}>
+                  <div className="progress">
+                    <i
+                      style={{
+                        width: `${
+                          progress.total
+                            ? Math.min(100, Math.round((progress.downloaded / progress.total) * 100))
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                  <div className="m" style={{ marginTop: 6, color: 'var(--text-3)', fontSize: 11 }}>
+                    {progress.total ? `${progress.downloaded} / ${progress.total} 个文件` : '准备中…'}
+                  </div>
                 </div>
-                {installedIds.has(v.id) && <span className="tag ok">已装</span>}
-                <span className="tag">{v.type}</span>
+              )}
+
+              <button
+                className="btn primary"
+                style={{ width: '100%', marginTop: 16, height: 44, fontSize: 15 }}
+                onClick={install}
+                disabled={busy}
+              >
+                {busy ? '安装中…' : already ? '重新安装' : '开始安装'}
+              </button>
+
+              <div className="activity">
+                {activity.length === 0 ? '（安装进度会显示在这里）' : activity.join('\n')}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+function VersionsPage({ installed, onChange, notify }) {
+  const remove = async (id) => {
+    try {
+      await call('versions.delete', id);
+      await onChange();
+      notify(`已删除 ${id}`);
+    } catch (err) {
+      notify(`删除失败：${err.message}`);
+    }
+  };
+
+  return (
+    <>
+      <div className="page-head">
+        <h1>版本</h1>
+        <span className="desc">{installed.length} 个已安装实例</span>
+      </div>
+
+      <div className="card">
+        {installed.length === 0 ? (
+          <div className="empty">还没有已安装的版本</div>
+        ) : (
+          <div className="installed-grid">
+            {installed.map((v) => (
+              <div className="installed-card" key={v.id}>
+                <div className="n">{v.id}</div>
+                <div className="m">{v.type || 'release'}</div>
+                <div className="ops">
+                  <button className="btn sm" onClick={() => remove(v.id)}>
+                    删除
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
-
-      <div className="panel">
-        <div className="panel-head">
-          <h2>安装配置</h2>
-        </div>
-
-        {!picked ? (
-          <Empty>先在左侧选择一个版本</Empty>
-        ) : (
-          <>
-            <div className="kv">
-              <div className="k">目标版本</div>
-              <div className="v">{picked.id}</div>
-            </div>
-            <div className="kv">
-              <div className="k">实例 ID</div>
-              <div className="v">{targetId}</div>
-            </div>
-
-            <div style={{ marginTop: 14, marginBottom: 6, fontSize: 12, color: 'var(--text-2)' }}>
-              加载器
-            </div>
-            <div className="loader-grid">
-              {LOADERS.map((item) => (
-                <button
-                  key={item.key || 'vanilla'}
-                  className={`loader-card ${loader === item.key ? 'active' : ''}`}
-                  onClick={() => setLoader(item.key)}
-                >
-                  <div className="t">{item.title}</div>
-                  <div className="d">{item.desc}</div>
-                </button>
-              ))}
-            </div>
-
-            {progress && (
-              <>
-                <div className="progress" style={{ marginBottom: 6 }}>
-                  <i
-                    style={{
-                      width: `${
-                        progress.total
-                          ? Math.min(100, Math.round((progress.downloaded / progress.total) * 100))
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-                <div className="meta">
-                  {progress.total
-                    ? `${progress.downloaded} / ${progress.total} 个文件`
-                    : '准备中…'}
-                </div>
-              </>
-            )}
-
-            <div className="row" style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
-              <div className="grow">
-                <div className="name">{already ? '这个实例已存在' : '开始安装'}</div>
-                <div className="meta">文件会下载到实例目录</div>
-              </div>
-              <button className="btn primary" onClick={install} disabled={busy}>
-                {busy ? '安装中…' : already ? '重新安装' : '安装'}
-              </button>
-            </div>
-
-            <div className="activity">
-              {activity.length === 0 ? '（下载进度会显示在这里）' : activity.join('\n')}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -481,8 +455,7 @@ function ModsPage({ selected, notify }) {
     if (!query.trim()) return;
     setBusy(true);
     try {
-      const list = await call('mods.search', query.trim(), type, selected || '', 'fabric');
-      setResults(list);
+      setResults(await call('mods.search', query.trim(), type, selected || '', 'fabric'));
     } catch (err) {
       notify(`搜索失败：${err.message}`);
     } finally {
@@ -498,7 +471,7 @@ function ModsPage({ selected, notify }) {
     setInstalling(slug);
     try {
       const result = await call('mods.install', slug, selected, type, 'fabric');
-      notify(`已安装：${result.installed ?? result.files ?? 1} 个文件`);
+      notify(`已安装：${result.installed ?? result.files ?? 1}`);
     } catch (err) {
       notify(`安装失败：${err.message}`);
     } finally {
@@ -507,60 +480,53 @@ function ModsPage({ selected, notify }) {
   };
 
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>Modrinth</h2>
-        <span className="count">{results.length}</span>
-        <div className="spacer" />
-        <select value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="mod">模组</option>
-          <option value="plugin">服务器插件</option>
-          <option value="modpack">整合包</option>
-          <option value="resourcepack">资源包</option>
-          <option value="shader">光影</option>
-          <option value="datapack">数据包</option>
-        </select>
-        <input
-          className="input"
-          placeholder="搜索关键词"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && search()}
-        />
-        <button className="btn sm" onClick={search} disabled={busy}>
-          {busy ? '搜索中' : '搜索'}
-        </button>
+    <>
+      <div className="page-head">
+        <h1>模组</h1>
+        <span className="desc">目标实例：{selected || '未选择'}</span>
       </div>
 
-      <div className="meta" style={{ marginBottom: 10 }}>
-        目标实例：{selected || '未选择'}
-      </div>
+      <div className="card">
+        <div className="row" style={{ paddingTop: 0 }}>
+          <select value={type} onChange={(e) => setType(e.target.value)}>
+            <option value="mod">模组</option>
+            <option value="plugin">服务器插件</option>
+            <option value="modpack">整合包</option>
+            <option value="resourcepack">资源包</option>
+            <option value="shader">光影</option>
+            <option value="datapack">数据包</option>
+          </select>
+          <input
+            className="input"
+            placeholder="搜索 Modrinth"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && search()}
+            style={{ flex: 1 }}
+          />
+          <button className="btn primary sm" onClick={search} disabled={busy}>
+            {busy ? '搜索中' : '搜索'}
+          </button>
+        </div>
 
-      {results.length === 0 ? (
-        <Empty>输入关键词搜索 Modrinth 资源</Empty>
-      ) : (
-        results.map((item) => (
-          <div className="row" key={item.slug}>
-            <div className="grow">
-              <div className="name">{item.title}</div>
-              <div className="meta">
-                {item.author} · ⬇ {item.downloads.toLocaleString()}
+        {results.length === 0 ? (
+          <div className="empty">输入关键词搜索资源</div>
+        ) : (
+          results.map((item) => (
+            <div className="row" key={item.slug}>
+              <div className="grow">
+                <div className="name">{item.title}</div>
+                <div className="meta">{item.author} · ⬇ {item.downloads.toLocaleString()}</div>
+                <div className="meta" style={{ marginTop: 3 }}>{item.description}</div>
               </div>
-              <div className="meta" style={{ marginTop: 3 }}>
-                {item.description}
-              </div>
+              <button className="btn sm" onClick={() => install(item.slug)} disabled={installing === item.slug}>
+                {installing === item.slug ? '安装中…' : '安装'}
+              </button>
             </div>
-            <button
-              className="btn sm"
-              onClick={() => install(item.slug)}
-              disabled={installing === item.slug}
-            >
-              {installing === item.slug ? '安装中…' : '安装'}
-            </button>
-          </div>
-        ))
-      )}
-    </div>
+          ))
+        )}
+      </div>
+    </>
   );
 }
 
@@ -579,61 +545,68 @@ function AccountsPage({ accounts, onChange, notify }) {
     }
   };
 
-  const select = async (id) => {
-    await call('accounts.select', id);
-    await onChange();
-  };
-
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>离线账号</h2>
-        <span className="count">{accounts.length}</span>
+    <>
+      <div className="page-head">
+        <h1>账号</h1>
+        <span className="desc">{accounts.length} 个本地账号</span>
       </div>
 
-      {accounts.length === 0 ? (
-        <Empty>还没有账号。添加一个离线用户名即可启动游戏。</Empty>
-      ) : (
-        accounts.map((acc) => (
-          <div className="row" key={acc.id}>
-            <div className="grow">
-              <div className="name">{acc.username}</div>
-              <div className="meta">{acc.id}</div>
+      <div className="card">
+        <div className="card-title">离线账号</div>
+        {accounts.length === 0 ? (
+          <div className="empty">还没有账号，添加一个离线用户名即可启动</div>
+        ) : (
+          accounts.map((acc) => (
+            <div className="row" key={acc.id}>
+              <div className="grow">
+                <div className="name">{acc.username}</div>
+                <div className="meta">{acc.id}</div>
+              </div>
+              {acc.selected ? (
+                <span className="tag ok">当前</span>
+              ) : (
+                <button
+                  className="btn sm"
+                  onClick={async () => {
+                    await call('accounts.select', acc.id);
+                    await onChange();
+                  }}
+                >
+                  设为当前
+                </button>
+              )}
             </div>
-            {acc.selected ? (
-              <span className="tag ok">当前</span>
-            ) : (
-              <button className="btn sm" onClick={() => select(acc.id)}>
-                设为当前
-              </button>
-            )}
-          </div>
-        ))
-      )}
+          ))
+        )}
 
-      <div
-        className="row"
-        style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}
-      >
-        <input
-          className="input"
-          placeholder="3–16 个字符"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && add()}
-        />
-        <button className="btn primary sm" onClick={add} disabled={!name.trim()}>
-          添加
-        </button>
+        <div className="row" style={{ borderTop: '1px solid var(--line)', marginTop: 6, paddingTop: 12 }}>
+          <input
+            className="input"
+            placeholder="3–16 个字符"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && add()}
+            style={{ flex: 1 }}
+          />
+          <button className="btn primary sm" onClick={add} disabled={!name.trim()}>
+            添加
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
 /* ------------------------------------------------------------------ */
-function SettingsPage({ info, notify }) {
+function SettingsPage({ notify }) {
+  const [info, setInfo] = useState(null);
   const [runtimes, setRuntimes] = useState([]);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    call('app.info').then(setInfo).catch(() => {});
+  }, []);
 
   const detect = async () => {
     setBusy(true);
@@ -648,26 +621,30 @@ function SettingsPage({ info, notify }) {
 
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>关于</h2>
-        </div>
+      <div className="page-head">
+        <h1>设置</h1>
+        <span className="desc">运行环境与程序信息</span>
+      </div>
+
+      <div className="card">
+        <div className="card-title">关于</div>
         <div className="kv"><div className="k">版本</div><div className="v">{info ? info.version : '—'}</div></div>
         <div className="kv"><div className="k">数据目录</div><div className="v">{info ? info.dataDir : '—'}</div></div>
         <div className="kv"><div className="k">架构</div><div className="v">Python + PySide6 WebView + React</div></div>
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Java 运行时</h2>
-          <span className="count">{runtimes.length}</span>
-          <div className="spacer" />
+      <div className="card">
+        <div className="row" style={{ paddingTop: 0 }}>
+          <div className="grow">
+            <div className="name">Java 运行时</div>
+            <div className="meta">{runtimes.length} 个</div>
+          </div>
           <button className="btn sm" onClick={detect} disabled={busy}>
             {busy ? '探测中' : '自动探测'}
           </button>
         </div>
         {runtimes.length === 0 ? (
-          <Empty>点击「自动探测」扫描本机 Java（注册表 / JAVA_HOME / PATH）</Empty>
+          <div className="empty">点击「自动探测」扫描本机 Java</div>
         ) : (
           runtimes.map((rt) => (
             <div className="row" key={rt.path}>
