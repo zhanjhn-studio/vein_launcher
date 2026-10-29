@@ -276,6 +276,12 @@ def main() -> None:
     body(doc, "实现状态：契约与模型已定义；服务端、鉴权与 UI 均未实现。启用前需要补齐接口鉴权、"
               "内容审核与分页缓存。")
 
+    doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+    heading(doc, "附录 B　团队记录（预留 3 页）")
+    body(doc, "以下 3 页留白，供项目组记录会议结论、待办与交接说明。", size=10, space_after=4)
+    for _ in range(2):
+        doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+
     doc.save("VeinLauncher_开发者文档_v0.0.2.docx")
 
 
