@@ -26,6 +26,21 @@ RULES = (
 # env: auto（默认，镜像优先）/ mirror（只用镜像）/ official（只用官方）
 MODE = os.environ.get("VEIN_DOWNLOAD_SOURCE", "auto").lower()
 
+from urllib.parse import urlparse
+
+# 已确认证书链不完整的镜像节点（进程内记忆，避免每次先失败再降级）
+_INSECURE_HOSTS: set[str] = set()
+
+
+def is_insecure(url: str) -> bool:
+    return urlparse(url).hostname in _INSECURE_HOSTS
+
+
+def mark_insecure(url: str) -> None:
+    host = urlparse(url).hostname
+    if host:
+        _INSECURE_HOSTS.add(host)
+
 
 def mirror(url: str) -> str:
     """返回该地址对应的镜像地址；无对应规则则原样返回"""
@@ -47,4 +62,4 @@ def candidates(url: str) -> list[str]:
     return ([mirrored, url] if mirrored != url else [url])
 
 
-__all__ = ["mirror", "candidates", "BMCLAPI", "MODE"]
+__all__ = ["mirror", "candidates", "is_insecure", "mark_insecure", "BMCLAPI", "MODE"]

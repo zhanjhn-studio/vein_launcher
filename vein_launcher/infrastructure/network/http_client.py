@@ -19,6 +19,7 @@ import aiohttp
 
 from vein_launcher.common.config.settings import settings_manager
 from vein_launcher.common.exceptions import VeinError
+from vein_launcher.infrastructure.network.mirror import is_insecure, mark_insecure
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ class HttpClient:
         session = await self.session()
         last_error: Optional[BaseException] = None
 
-        insecure = False
+        insecure = is_insecure(url)
         for attempt in range(self._retry_count + 1):
             try:
                 if insecure:
@@ -148,6 +149,7 @@ class HttpClient:
                 text = str(exc)
                 if not insecure and ("CERTIFICATE_VERIFY_FAILED" in text or "SSL" in text):
                     insecure = True
+                    mark_insecure(url)
                     logger.warning("证书校验失败，降级不校验 SSL 重试：%s", url)
                     continue
                 logger.warning("请求异常（第 %d 次）%s -> %s", attempt + 1, url, exc)

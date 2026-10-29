@@ -14,6 +14,7 @@ import aiohttp
 
 from vein_launcher.common.exceptions import DownloadError, SHA1MismatchError
 from vein_launcher.common.utils.path_utils import ensure_dir
+from vein_launcher.infrastructure.network.mirror import is_insecure, mark_insecure
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +117,7 @@ class Downloader:
                     text = str(exc)
                     if not self._insecure and ("CERTIFICATE_VERIFY_FAILED" in text or "SSL" in text):
                         self._insecure = True
+                        mark_insecure(url)
                         logger.warning("证书校验失败，改用不校验会话重下：%s", dest.name)
                         continue
                     if attempt >= self._retries:
@@ -136,7 +138,8 @@ class Downloader:
             resume_from = 0
         headers = {"Range": f"bytes={resume_from}-"} if resume_from else {}
 
-        session = await (self.insecure_session() if self._insecure else self.session())
+        insecure = self._insecure or is_insecure(url)
+        session = await (self.insecure_session() if insecure else self.session())
         async with session.get(url, headers=headers) as response:
             if response.status == 416:
                 part.replace(dest)
