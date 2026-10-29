@@ -42,3 +42,6 @@ vein_launcher/presentation/webui/node_modules/
 
 # 浏览器预览（不提交）
 preview.html
+
+# Word 文档不纳入版本库
+*.docx
