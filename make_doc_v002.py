@@ -83,6 +83,12 @@ def main() -> None:
     section.top_margin = Cm(2.3)
     section.bottom_margin = Cm(2.1)
 
+    header_para = section.header.paragraphs[0]
+    header_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    header_para.add_run().add_picture("assets/logo.png", height=Cm(0.72))
+    header_run = header_para.add_run("    Vein Launcher · 开发者文档 v" + DOC_VERSION)
+    set_font(header_run, size=8.5, color=RGBColor(0x88, 0x88, 0x88))
+
     # 封面
     for _ in range(5):
         doc.add_paragraph()
@@ -108,7 +114,44 @@ def main() -> None:
     body(doc, "文档只记录已经落地的实现与明确的规划边界；未实现的能力会标注「规划」或「未做」，不夸大完成度。")
 
     # 2
-    heading(doc, "2　技术栈")
+    heading(doc, "2　竞品观察与差异化（2026-10 调研）")
+    body(doc, "同期出现的同类项目多数停留在宣传或尚未发布阶段。下表只记录公开可见的信息，"
+              "不评价质量，目的是说明 Vein 选择的能力路线与它们不同在哪里。")
+    table(doc, ["启动器", "日期", "已知信息"], [
+        ["MCLR", "10-28", "Tauri/WebView，作者自述非常早期、零测试、暂不开源"],
+        ["xuyenbmc", "10-24", "启云科技出品，仅一条宣传视频，无官网与仓库"],
+        ["MML", "10-28", "双端 Java 版启动器，简介为空"],
+        ["Minecsay", "10-26", "号称智能 AI 启动器，一句话描述"],
+        ["NebulaLauncher", "10-26", "轻量、模组管理、支持自定义皮肤站"],
+        ["MinecraftLauncher.jar", "10-25", "单 jar 分发，无说明"],
+        ["imc-wang1 的新启动器", "10-25", "网盘分发，称可替代 PCL"],
+        ["自研核心启动器", "10-24", "宣称自研核心、全功能免费、异地联机"],
+        ["青梅猫猫的启动器", "10-22", "仅演示视频，无下载渠道"],
+        ["花哨实验品", "10-25", "作者自述做着玩玩"],
+        ["陪玩机器人启动器", "10-25", "内置陪玩机器人，信息极少"],
+        ["麦块当 MinecraftLauncher", "10-25", "作者称尚未完善"],
+        ["ZenithPC", "10-06 / 10-11", "两次宣布推迟，尚未上线"],
+    ], widths=[4.6, 3.0, 9.0])
+    body(doc, "共性：以概念视频或早期原型为主，缺少可验证的实现证据；对插件、控制层、下载链路"
+              "这些真正影响可用性的部分描述很少。")
+
+    heading(doc, "2.1　Vein 的差异化", level=2)
+    table(doc, ["维度", "常见做法", "Vein 的做法"], [
+        ["技术栈", "Tauri/WebView 原型、或单 jar", "Python 五层架构 + PySide6 WebView + React 19 + TypeScript，"
+                                                     "领域层与界面完全解耦"],
+        ["插件系统", "基本没有，或只做模组管理", "Node.js 独立宿主、JSON-RPC 双向调用、权限声明 + 路径沙箱、"
+                                            "热重载与权限确认弹窗（核心竞争力）"],
+        ["游戏控制", "仅启动进程", "自研 MLC 控制层：启动、存档信息、事件订阅，插件可安全调用"],
+        ["下载链路", "直连官方源，失败即止", "BMCLAPI 镜像优先、失败回退官方、证书异常降级、同目标串行与队列去重、"
+                                        "断点续传 + SHA-1 校验"],
+        ["可观测性", "控制台打印", "按天日志 + error.log + crash.log、Qt 与前端 console 接入、主线程心跳告警"],
+        ["交付透明度", "只有演示视频", "仓库提供 PLAN.md 规划、状态矩阵、方法表；明确标注未实现项"],
+        ["界面", "单一窗口、控件堆叠", "7 项一级导航 + 三栏布局、全局下载栏、连接状态指示器、统一浅色设计系统"],
+    ], widths=[3.2, 6.0, 9.0])
+    body(doc, "差异化的落点是可验证：接口方法、权限表、日志与状态矩阵都能在仓库里对照，"
+              "而不是只停留在宣传语。")
+
+    heading(doc, "3　技术栈")
     table(doc, ["领域", "选型", "说明"], [
         ["语言", "Python 3.13", "后端与系统集成"],
         ["桌面容器", "PySide6 6.12 + QWebEngine", "WebView 承载前端，QWebChannel 通信"],
@@ -120,7 +163,7 @@ def main() -> None:
     ], widths=[3.2, 5.0, 7.2])
 
     # 3
-    heading(doc, "3　分层架构")
+    heading(doc, "4　分层架构")
     body(doc, "依赖方向自上而下：Presentation → Application → Domain ← Infrastructure；跨层通信只走 event_bus。")
     table(doc, ["层", "职责", "示例"], [
         ["Common", "事件总线、配置、日志、i18n、路径工具、异常", "event_bus、settings、logger"],
@@ -131,7 +174,7 @@ def main() -> None:
     ], widths=[3.0, 9.2, 4.2])
 
     # 4
-    heading(doc, "4　前端结构（v0.0.2）")
+    heading(doc, "5　前端结构（v0.0.2）")
     for line in [
         "webui/src/",
         "├── main.tsx       入口：初始化桥并挂载 App",
@@ -147,7 +190,7 @@ def main() -> None:
     body(doc, "布局范式：下载、插件、设置采用「左侧分类 + 中间列表 + 右侧详情」三栏。")
 
     # 5
-    heading(doc, "5　通信协议（JSON-RPC 2.0）")
+    heading(doc, "6　通信协议（JSON-RPC 2.0）")
     code(doc, 'JS  →  Python：bridge.call(id, \'{"jsonrpc":"2.0","id":n,"method":"...","params":{"args":[...]}}\')')
     code(doc, "Python →  JS：window.__veinResult(id, ok, payload)")
     code(doc, "推送通道：__veinProgress / __veinLog / __veinNotify / __veinNavigate")
@@ -166,7 +209,7 @@ def main() -> None:
     ], widths=[5.6, 5.4, 5.4])
 
     # 6
-    heading(doc, "6　下载与镜像")
+    heading(doc, "7　下载与镜像")
     body(doc, "默认镜像优先：Mojang 地址改写为 BMCLAPI；镜像失败自动回退官方源。")
     table(doc, ["官方", "镜像"], [
         ["piston-meta / launchermeta", "bmclapi2.bangbang93.com"],
@@ -179,7 +222,7 @@ def main() -> None:
     bullet(doc, "断点续传：.part + Range，SHA-1 不匹配自动重下。")
 
     # 7
-    heading(doc, "7　插件系统（核心特性）")
+    heading(doc, "8　插件系统（核心特性）")
     body(doc, "Node.js 独立进程 + JSON-RPC + 权限沙箱；插件以 NPM 包结构分发。")
     code(doc, "plugins/<name>/package.json   vein.permissions 声明能力")
     code(doc, "plugins/<name>/index.js      export async function activate(vein)")
@@ -195,7 +238,7 @@ def main() -> None:
     body(doc, "管理能力：启用/禁用、热重载、权限确认弹窗、宿主日志、示例插件（template / game-log）。")
 
     # 8
-    heading(doc, "8　MLC 控制层")
+    heading(doc, "9　MLC 控制层")
     table(doc, ["接口", "说明", "状态"], [
         ["mlc.launch", "启动游戏并返回 PID", "可用"],
         ["mlc.world.info", "读取存档列表", "可用"],
@@ -207,7 +250,7 @@ def main() -> None:
     body(doc, "UI 提供连接状态指示器：由 GAME_RUNNING / GAME_EXITED 事件驱动，实时显示 PID。")
 
     # 9
-    heading(doc, "9　日志系统")
+    heading(doc, "10　日志系统")
     table(doc, ["文件", "内容"], [
         ["logs/YYYY-MM-DD.log", "按天记录 INFO 及以上"],
         ["logs/error.log", "仅 ERROR"],
@@ -217,7 +260,7 @@ def main() -> None:
     bullet(doc, "采集：Python 日志、Qt 消息、前端 console、未捕获异常、主线程心跳（>3s 告警）。")
 
     # 10
-    heading(doc, "10　数据目录")
+    heading(doc, "11　数据目录")
     for line in [
         "%APPDATA%\\VeinLauncher\\",
         "├── config.json",
@@ -230,13 +273,13 @@ def main() -> None:
         code(doc, line)
 
     # 11
-    heading(doc, "11　运行与构建")
+    heading(doc, "12　运行与构建")
     code(doc, "python -m vein_launcher.presentation.main")
     code(doc, "esbuild src/main.tsx --bundle --outfile=dist/app.js --jsx=automatic --minify")
     body(doc, "前端产物 dist/ 已随仓库提交；修改 React 源码后需要重新构建。")
 
     # 12
-    heading(doc, "12　当前状态")
+    heading(doc, "13　当前状态")
     table(doc, ["模块", "状态"], [
         ["版本安装（原版）", "可用，实测 1.20.1 完整（3598 资产 / 64 库）"],
         ["Fabric / Quilt", "可用"],
@@ -252,7 +295,7 @@ def main() -> None:
     ], widths=[6.5, 10.5])
 
     # 13
-    heading(doc, "13　已知限制")
+    heading(doc, "14　已知限制")
     bullet(doc, "安装中断会留下半成品实例，下次安装覆盖。")
     bullet(doc, "日志未实现 30 天自动清理。")
     bullet(doc, "镜像 SSL 不校验仅限镜像域，依赖 SHA-1 保证内容。")
