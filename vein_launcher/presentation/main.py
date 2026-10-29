@@ -159,7 +159,9 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Vein Launcher")
     app.setOrganizationName("Vein Studio")
-    icon = Path(__file__).resolve().parents[2] / "assets" / "logo.png"
+    icon = Path(__file__).resolve().parents[2] / "assets" / "logo.ico"
+    if not icon.is_file():
+        icon = Path(__file__).resolve().parents[2] / "assets" / "logo.png"
     if icon.is_file():
         app.setWindowIcon(QIcon(str(icon)))
 
