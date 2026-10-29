@@ -30,6 +30,10 @@ export function initBridge() {
         window.dispatchEvent(new CustomEvent('vein:log', { detail: String(line) }));
       };
 
+      window.__veinNavigate = (page) => {
+        window.dispatchEvent(new CustomEvent('vein:navigate', { detail: String(page) }));
+      };
+
       window.__veinNotify = (title, message) => {
         window.dispatchEvent(
           new CustomEvent('vein:notify', { detail: { title, message } })

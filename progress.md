@@ -165,3 +165,15 @@ accounts.list|add|select / mods.search / mods.install / java.detect`
   - 主线程心跳：每秒一次，卡顿超过 3 秒立即 WARNING
   - 启动时记录版本、pid、Python/Qt 版本、日志目录
 - 修正 `main.py` 以 `python -m` 运行时 `__name__ == "__main__"` 导致启动日志不落盘。
+
+## 🎨 界面重做（2026-10-29 晚）
+
+- 整体改为浅色主题（#f4f6fa 底 / 白卡片 / 蓝色主色 #2f6fed），12px 圆角、轻阴影
+- 桌面悬浮入口 `presentation/floating.py`：
+  - Logo 小球常驻屏幕顶部，不用时缩到屏幕外，鼠标移到顶端或球上即显现
+  - 点击后四周弹出环形菜单（启动/版本/下载/账号/设置/退出）
+  - 关闭主窗口不再退出程序，而是收起到悬浮球；退出走环形菜单
+  - 支持小球 / 灵动岛两种形态（set_mode）
+- 下载页按 PCL 流程重做：左侧选版本 → 右侧选加载器（原版/Fabric/Quilt/Forge/NeoForge）→ 安装
+  - 下载进度只在程序内的「安装活动」区域显示
+  - 文件日志按天写入 `%APPDATA%\VeinLauncher\logs\YYYY-MM-DD.log`

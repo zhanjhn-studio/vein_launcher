@@ -7,6 +7,7 @@ import logging.handlers
 import os
 import sys
 import threading
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -45,10 +46,8 @@ def setup_logger(name: str = "vein_launcher", level: Optional[int] = None) -> lo
     console.setFormatter(formatter)
     logger.addHandler(console)
 
-    app_log = log_dir() / "app.log"
-    file_handler = logging.handlers.RotatingFileHandler(
-        app_log, maxBytes=MAX_BYTES, backupCount=BACKUP_COUNT, encoding="utf-8"
-    )
+    app_log = log_dir() / f"{datetime.now():%Y-%m-%d}.log"
+    file_handler = logging.FileHandler(app_log, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)

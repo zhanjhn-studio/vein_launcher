@@ -92,6 +92,10 @@ class ApiBridge(QObject):
         """启动后台服务（插件宿主等）"""
         self._runner.submit(self._ctx.startup())
 
+    def navigate(self, page: str) -> None:
+        """让前端切换到指定页面"""
+        self._run_js(f"window.__veinNavigate && window.__veinNavigate({json.dumps(page)})")
+
     def _on_game_log(self, line: str = "", **_) -> None:
         self._run_js(f"window.__veinLog({json.dumps(line, ensure_ascii=False)})")
 

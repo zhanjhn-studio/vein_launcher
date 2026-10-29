@@ -10,6 +10,18 @@ const PAGES = [
   ['settings', '设置', '⚙'],
 ];
 
+const LOADERS = [
+  { key: '', title: '原版', desc: 'Vanilla' },
+  { key: 'fabric', title: 'Fabric', desc: '轻量模组' },
+  { key: 'quilt', title: 'Quilt', desc: 'Fabric 分支' },
+  { key: 'forge', title: 'Forge', desc: '经典模组' },
+  { key: 'neoforge', title: 'NeoForge', desc: '1.20.2+' },
+];
+
+function clock() {
+  return new Date().toLocaleTimeString('zh-CN', { hour12: false });
+}
+
 export function App() {
   const [page, setPage] = useState('home');
   const [toast, setToast] = useState('');
@@ -17,13 +29,11 @@ export function App() {
   const [installed, setInstalled] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [selected, setSelected] = useState('');
-  const [tasks, setTasks] = useState({});
-  const [logs, setLogs] = useState([]);
 
   const notify = useCallback((message) => {
     setToast(String(message));
     window.clearTimeout(notify._timer);
-    notify._timer = window.setTimeout(() => setToast(''), 4000);
+    notify._timer = window.setTimeout(() => setToast(''), 3600);
   }, []);
 
   const refreshInstalled = useCallback(async () => {
@@ -40,7 +50,7 @@ export function App() {
     let alive = true;
     (async () => {
       try {
-        const [meta] = await Promise.all([call('app.info')]);
+        const meta = await call('app.info');
         if (!alive) return;
         setInfo(meta);
         await Promise.all([refreshInstalled(), refreshAccounts()]);
@@ -49,23 +59,13 @@ export function App() {
       }
     })();
 
-    const onProgress = (event) => {
-      const { taskId, downloaded, total } = event.detail;
-      setTasks((prev) => ({ ...prev, [taskId]: { downloaded, total } }));
-    };
-    const onLog = (event) => {
-      setLogs((prev) => [...prev.slice(-199), event.detail]);
-    };
-    const onNotify = (event) => {
-      notify(`${event.detail.title}：${event.detail.message}`);
-    };
-    window.addEventListener('vein:progress', onProgress);
-    window.addEventListener('vein:log', onLog);
+    const onNavigate = (event) => setPage(event.detail);
+    const onNotify = (event) => notify(`${event.detail.title}：${event.detail.message}`);
+    window.addEventListener('vein:navigate', onNavigate);
     window.addEventListener('vein:notify', onNotify);
     return () => {
       alive = false;
-      window.removeEventListener('vein:progress', onProgress);
-      window.removeEventListener('vein:log', onLog);
+      window.removeEventListener('vein:navigate', onNavigate);
       window.removeEventListener('vein:notify', onNotify);
     };
   }, [notify, refreshInstalled, refreshAccounts]);
@@ -109,6 +109,7 @@ export function App() {
           <span className="sub">
             {page === 'home' && (selected || '未选择实例')}
             {page === 'mods' && 'MODRINTH'}
+            {page === 'download' && '选择版本 → 选择加载器 → 安装'}
             {page === 'accounts' && `${accounts.length} 个本地账号`}
           </span>
           <div className="spacer" />
@@ -126,16 +127,16 @@ export function App() {
               selected={selected}
               onSelect={setSelected}
               notify={notify}
-              logs={logs}
+              onGoDownload={() => setPage('download')}
             />
           )}
           {page === 'versions' && (
             <VersionsPage installed={installed} onChange={refreshInstalled} notify={notify} />
           )}
-          {page === 'download' && <DownloadPage tasks={tasks} />}
-          {page === 'mods' && (
-            <ModsPage installed={installed} selected={selected} notify={notify} />
+          {page === 'download' && (
+            <DownloadPage installed={installed} onChange={refreshInstalled} notify={notify} />
           )}
+          {page === 'mods' && <ModsPage installed={installed} selected={selected} notify={notify} />}
           {page === 'accounts' && (
             <AccountsPage accounts={accounts} onChange={refreshAccounts} notify={notify} />
           )}
@@ -153,7 +154,7 @@ function Empty({ children }) {
   return <div className="empty">{children}</div>;
 }
 
-function HomePage({ installed, accounts, selected, onSelect, notify, logs }) {
+function HomePage({ installed, accounts, selected, onSelect, notify, onGoDownload }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const account = accounts.find((a) => a.selected) || null;
@@ -161,6 +162,7 @@ function HomePage({ installed, accounts, selected, onSelect, notify, logs }) {
   const launch = async () => {
     if (!selected) {
       notify('请先安装一个版本');
+      onGoDownload();
       return;
     }
     setBusy(true);
@@ -180,25 +182,30 @@ function HomePage({ installed, accounts, selected, onSelect, notify, logs }) {
     <>
       <div className="panel">
         <div className="panel-head">
-          <h2>启动</h2>
+          <h2>启动游戏</h2>
           <span className="count">{installed.length} 个实例</span>
           <div className="spacer" />
           <span className="count">{account ? `离线 · ${account.username}` : '未登录（离线模式）'}</span>
         </div>
 
         {installed.length === 0 ? (
-          <Empty>还没有安装任何版本。到「版本」页选择一个 Minecraft 版本安装。</Empty>
+          <Empty>
+            还没有安装任何版本。
+            <button className="btn primary sm" style={{ marginLeft: 10 }} onClick={onGoDownload}>
+              去下载
+            </button>
+          </Empty>
         ) : (
           <>
             <div className="row">
               <div className="grow">
                 <div className="name">选择实例</div>
-                <div className="meta">本地 instances 目录</div>
+                <div className="meta">instances 目录</div>
               </div>
               <select value={selected} onChange={(e) => onSelect(e.target.value)}>
                 {installed.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.id} · {v.type}
+                    {v.id}
                   </option>
                 ))}
               </select>
@@ -207,7 +214,7 @@ function HomePage({ installed, accounts, selected, onSelect, notify, logs }) {
             <div className="row">
               <div className="grow">
                 <div className="name">启动游戏</div>
-                <div className="meta">{status || '将调用 Python 端构建命令并拉起 Java 进程'}</div>
+                <div className="meta">{status || '构建命令并拉起 Java 进程'}</div>
               </div>
               <button className="btn primary" onClick={launch} disabled={busy}>
                 {busy ? '启动中…' : '启动'}
@@ -230,160 +237,240 @@ function HomePage({ installed, accounts, selected, onSelect, notify, logs }) {
           <Empty>未登录。到「账号」页添加一个离线账号。</Empty>
         )}
       </div>
-
-      <div className="panel">
-        <div className="panel-head">
-          <h2>游戏日志</h2>
-          <span className="count">{logs.length}</span>
-        </div>
-        {logs.length === 0 ? (
-          <Empty>启动游戏后，Python 会把进程输出实时推送到这里</Empty>
-        ) : (
-          <pre className="log-view">{logs.slice(-120).join('\n')}</pre>
-        )}
-      </div>
     </>
   );
 }
 
 /* ------------------------------------------------------------------ */
 function VersionsPage({ installed, onChange, notify }) {
-  const [versions, setVersions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState('');
-  const [loader, setLoader] = useState('');
-  const [installing, setInstalling] = useState('');
-
-  const load = useCallback(async () => {
-    setLoading(true);
+  const remove = async (id) => {
     try {
-      const list = await call('versions.remote', 80);
-      setVersions(list);
-    } catch (err) {
-      notify(`获取版本列表失败：${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [notify]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const installedIds = useMemo(() => new Set(installed.map((v) => v.id)), [installed]);
-  const shown = versions.filter((v) => !filter || v.id.includes(filter));
-
-  const install = async (id) => {
-    setInstalling(id);
-    try {
-      const result = await call('versions.install', id, loader);
-      if (result.version_id) {
-        notify(`加载器安装完成：${result.version_id}`);
-      } else {
-        notify(`安装完成：${result.ok}/${result.files} 个文件`);
-      }
+      await call('versions.delete', id);
       await onChange();
+      notify(`已删除 ${id}`);
     } catch (err) {
-      notify(`安装失败：${err.message}`);
-    } finally {
-      setInstalling('');
+      notify(`删除失败：${err.message}`);
     }
   };
 
   return (
     <div className="panel">
       <div className="panel-head">
-        <h2>版本列表</h2>
-        <span className="count">{shown.length}</span>
-        <div className="spacer" />
-        <input
-          className="input"
-          placeholder="筛选版本号"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
-        <select value={loader} onChange={(e) => setLoader(e.target.value)}>
-          <option value="">原版</option>
-          <option value="fabric">Fabric</option>
-          <option value="quilt">Quilt</option>
-          <option value="forge">Forge</option>
-          <option value="neoforge">NeoForge</option>
-        </select>
-        <button className="btn ghost sm" onClick={load} disabled={loading}>
-          {loading ? '加载中' : '刷新'}
-        </button>
+        <h2>已安装版本</h2>
+        <span className="count">{installed.length}</span>
       </div>
-
-      {loading && versions.length === 0 ? (
-        <Empty>正在从 Mojang 获取版本清单…</Empty>
-      ) : shown.length === 0 ? (
-        <Empty>没有匹配的版本</Empty>
+      {installed.length === 0 ? (
+        <Empty>还没有已安装的版本</Empty>
       ) : (
-        shown.map((v) => {
-          const isInstalled = installedIds.has(v.id);
-          return (
-            <div className="row" key={v.id}>
-              <div className="grow">
-                <div className="name">{v.id}</div>
-                <div className="meta">
-                  {v.type} · {v.release_time}
-                </div>
-              </div>
-              {isInstalled ? (
-                <span className="tag ok">已安装</span>
-              ) : (
-                <button
-                  className="btn sm"
-                  onClick={() => install(v.id)}
-                  disabled={installing === v.id}
-                >
-                  {installing === v.id ? '安装中…' : '安装'}
-                </button>
-              )}
+        installed.map((v) => (
+          <div className="row" key={v.id}>
+            <div className="grow">
+              <div className="name">{v.id}</div>
+              <div className="meta">{v.type || 'release'}</div>
             </div>
-          );
-        })
+            <button className="btn sm" onClick={() => remove(v.id)}>
+              删除
+            </button>
+          </div>
+        ))
       )}
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-function DownloadPage({ tasks }) {
-  const entries = Object.entries(tasks);
+function DownloadPage({ installed, onChange, notify }) {
+  const [versions, setVersions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState('');
+  const [picked, setPicked] = useState(null);
+  const [loader, setLoader] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(null);
+  const [activity, setActivity] = useState([]);
+
+  const log = useCallback((text) => {
+    setActivity((prev) => [...prev.slice(-199), `[${clock()}] ${text}`]);
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await call('versions.remote', 120);
+      setVersions(list);
+      log(`版本列表已更新，共 ${list.length} 个版本`);
+    } catch (err) {
+      log(`获取版本列表失败：${err.message}`);
+      notify(`获取版本列表失败：${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [log, notify]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    const onProgress = (event) => {
+      const { taskId, downloaded, total } = event.detail;
+      if (!picked || taskId !== picked.id) return;
+      setProgress({ downloaded, total });
+    };
+    window.addEventListener('vein:progress', onProgress);
+    return () => window.removeEventListener('vein:progress', onProgress);
+  }, [picked]);
+
+  const installedIds = useMemo(() => new Set(installed.map((v) => v.id)), [installed]);
+  const shown = versions.filter((v) => !filter || v.id.includes(filter));
+  const targetId = picked ? (loader ? `${loader}-${picked.id}` : picked.id) : '';
+  const already = targetId && installedIds.has(targetId);
+
+  const install = async () => {
+    if (!picked) return;
+    setBusy(true);
+    setProgress({ downloaded: 0, total: 0 });
+    log(`开始安装 ${targetId}（${loader || '原版'}）`);
+    try {
+      const result = await call('versions.install', picked.id, loader);
+      if (result.version_id) {
+        log(`加载器安装完成：${result.version_id}（loader ${result.loader_version}）`);
+      } else {
+        log(`安装完成：成功 ${result.ok} 个 / 失败 ${result.failed} 个文件`);
+      }
+      await onChange();
+    } catch (err) {
+      log(`安装失败：${err.message}`);
+      notify(`安装失败：${err.message}`);
+    } finally {
+      setBusy(false);
+      setProgress(null);
+    }
+  };
+
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>下载任务</h2>
-        <span className="count">{entries.length}</span>
-      </div>
-      {entries.length === 0 ? (
-        <Empty>当前没有下载任务。在「版本」或「模组」页开始安装后，这里会显示进度。</Empty>
-      ) : (
-        entries.map(([id, task]) => {
-          const percent = task.total ? Math.min(100, Math.round((task.downloaded / task.total) * 100)) : 0;
-          return (
-            <div className="row" key={id}>
-              <div className="grow">
-                <div className="name">{id}</div>
-                <div className="meta">
-                  {formatBytes(task.downloaded)} / {formatBytes(task.total)}
+    <div className="download-layout">
+      <div className="panel">
+        <div className="panel-head">
+          <h2>选择版本</h2>
+          <span className="count">{shown.length}</span>
+          <div className="spacer" />
+          <input
+            className="input"
+            placeholder="搜索版本号"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+          <button className="btn ghost sm" onClick={load} disabled={loading}>
+            {loading ? '加载中' : '刷新'}
+          </button>
+        </div>
+
+        {loading && versions.length === 0 ? (
+          <Empty>正在获取版本清单…</Empty>
+        ) : shown.length === 0 ? (
+          <Empty>没有匹配的版本</Empty>
+        ) : (
+          <div className="version-list">
+            {shown.map((v) => (
+              <div
+                key={v.id}
+                className={`version-item ${picked?.id === v.id ? 'active' : ''}`}
+                onClick={() => {
+                  setPicked(v);
+                  setLoader('');
+                  setProgress(null);
+                }}
+              >
+                <div className="grow">
+                  <div className="name">{v.id}</div>
+                  <div className="meta">{v.release_time}</div>
                 </div>
-                <div className="progress">
-                  <i style={{ width: `${percent}%` }} />
-                </div>
+                {installedIds.has(v.id) && <span className="tag ok">已装</span>}
+                <span className="tag">{v.type}</span>
               </div>
-              <span className="tag">{percent}%</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
+          <h2>安装配置</h2>
+        </div>
+
+        {!picked ? (
+          <Empty>先在左侧选择一个版本</Empty>
+        ) : (
+          <>
+            <div className="kv">
+              <div className="k">目标版本</div>
+              <div className="v">{picked.id}</div>
             </div>
-          );
-        })
-      )}
+            <div className="kv">
+              <div className="k">实例 ID</div>
+              <div className="v">{targetId}</div>
+            </div>
+
+            <div style={{ marginTop: 14, marginBottom: 6, fontSize: 12, color: 'var(--text-2)' }}>
+              加载器
+            </div>
+            <div className="loader-grid">
+              {LOADERS.map((item) => (
+                <button
+                  key={item.key || 'vanilla'}
+                  className={`loader-card ${loader === item.key ? 'active' : ''}`}
+                  onClick={() => setLoader(item.key)}
+                >
+                  <div className="t">{item.title}</div>
+                  <div className="d">{item.desc}</div>
+                </button>
+              ))}
+            </div>
+
+            {progress && (
+              <>
+                <div className="progress" style={{ marginBottom: 6 }}>
+                  <i
+                    style={{
+                      width: `${
+                        progress.total
+                          ? Math.min(100, Math.round((progress.downloaded / progress.total) * 100))
+                          : 0
+                      }%`,
+                    }}
+                  />
+                </div>
+                <div className="meta">
+                  {progress.total
+                    ? `${progress.downloaded} / ${progress.total} 个文件`
+                    : '准备中…'}
+                </div>
+              </>
+            )}
+
+            <div className="row" style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
+              <div className="grow">
+                <div className="name">{already ? '这个实例已存在' : '开始安装'}</div>
+                <div className="meta">文件会下载到实例目录</div>
+              </div>
+              <button className="btn primary" onClick={install} disabled={busy}>
+                {busy ? '安装中…' : already ? '重新安装' : '安装'}
+              </button>
+            </div>
+
+            <div className="activity">
+              {activity.length === 0 ? '（下载进度会显示在这里）' : activity.join('\n')}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-function ModsPage({ installed, selected, notify }) {
+function ModsPage({ selected, notify }) {
   const [query, setQuery] = useState('');
   const [type, setType] = useState('mod');
   const [results, setResults] = useState([]);
@@ -405,13 +492,13 @@ function ModsPage({ installed, selected, notify }) {
 
   const install = async (slug) => {
     if (!selected) {
-      notify('请先在「版本」页安装一个实例');
+      notify('请先安装一个实例');
       return;
     }
     setInstalling(slug);
     try {
       const result = await call('mods.install', slug, selected, type, 'fabric');
-      notify(`已安装：${result.installed} 个文件`);
+      notify(`已安装：${result.installed ?? result.files ?? 1} 个文件`);
     } catch (err) {
       notify(`安装失败：${err.message}`);
     } finally {
@@ -524,7 +611,10 @@ function AccountsPage({ accounts, onChange, notify }) {
         ))
       )}
 
-      <div className="row" style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+      <div
+        className="row"
+        style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}
+      >
         <input
           className="input"
           placeholder="3–16 个字符"
@@ -564,7 +654,7 @@ function SettingsPage({ info, notify }) {
         </div>
         <div className="kv"><div className="k">版本</div><div className="v">{info ? info.version : '—'}</div></div>
         <div className="kv"><div className="k">数据目录</div><div className="v">{info ? info.dataDir : '—'}</div></div>
-        <div className="kv"><div className="k">架构</div><div className="v">Python 后端 + React (WebView)</div></div>
+        <div className="kv"><div className="k">架构</div><div className="v">Python + PySide6 WebView + React</div></div>
       </div>
 
       <div className="panel">
@@ -592,17 +682,4 @@ function SettingsPage({ info, notify }) {
       </div>
     </>
   );
-}
-
-/* ------------------------------------------------------------------ */
-function formatBytes(value) {
-  if (!value) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let index = 0;
-  let size = value;
-  while (size >= 1024 && index < units.length - 1) {
-    size /= 1024;
-    index += 1;
-  }
-  return `${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
