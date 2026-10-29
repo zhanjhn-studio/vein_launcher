@@ -14,6 +14,7 @@ from vein_launcher.common.utils.path_utils import ensure_dir, get_libraries_dir,
 from vein_launcher.infrastructure.download.downloader import Downloader
 from vein_launcher.infrastructure.download.queue import DownloadQueue, DownloadTask
 from vein_launcher.infrastructure.network.api_client import MojangApiClient
+from vein_launcher.infrastructure.network.mirror import mirror
 from vein_launcher.infrastructure.storage.file_storage import FileStorage
 
 logger = logging.getLogger(__name__)
@@ -126,7 +127,7 @@ class VersionService:
         if client.get("url"):
             tasks.append(
                 DownloadTask(
-                    url=client["url"],
+                    url=mirror(client["url"]),
                     dest=self._storage.client_jar_path(version_id),
                     sha1=client.get("sha1"),
                     size=client.get("size"),
@@ -171,7 +172,7 @@ class VersionService:
                     continue
                 tasks.append(
                     DownloadTask(
-                        url=artifact["url"],
+                        url=mirror(artifact["url"]),
                         dest=get_libraries_dir() / path,
                         sha1=artifact.get("sha1"),
                         size=artifact.get("size"),
@@ -200,7 +201,7 @@ class VersionService:
                 continue
             tasks.append(
                 DownloadTask(
-                    url=f"{base}/{digest[:2]}/{digest}",
+                    url=mirror(f"{base}/{digest[:2]}/{digest}"),
                     dest=self._storage.asset_object_path(digest),
                     sha1=digest,
                     size=meta.get("size"),

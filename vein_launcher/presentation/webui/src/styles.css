@@ -209,3 +209,36 @@ input, select { font: inherit; color: inherit; }
 .installed-card .n { font-size: 16px; font-weight: 700; }
 .installed-card .m { font: 11px var(--mono); color: var(--text-3); margin-top: 4px; }
 .installed-card .ops { margin-top: 12px; display: flex; gap: 8px; }
+
+/* ---------- 模组卡片 ---------- */
+.mods-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.mod-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--card);
+  transition: border-color .14s, transform .14s;
+}
+.mod-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.mod-icon {
+  width: 100%; height: 116px; object-fit: cover; display: block;
+  background: var(--card-2);
+}
+.mod-icon-fallback {
+  display: grid; place-items: center;
+  font-size: 30px; font-weight: 700; color: var(--accent);
+  background: var(--accent-soft);
+}
+.mod-body { padding: 12px; }
+.mod-title { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mod-desc {
+  font-size: 11.5px; color: var(--text-3); margin-top: 4px; height: 34px;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.mod-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+.mod-downloads { font: 11px var(--mono); color: var(--text-3); }

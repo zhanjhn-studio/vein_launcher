@@ -33,6 +33,7 @@ class ModrinthApiClient:
         game_version: Optional[str] = None,
         loader: Optional[str] = None,
         limit: int = 20,
+        sort: str = "relevance",
     ) -> List[Dict[str, Any]]:
         facets = [[f"project_type:{project_type}"]]
         if loader:
@@ -45,10 +46,28 @@ class ModrinthApiClient:
             params={
                 "query": query or "",
                 "limit": min(max(limit, 1), 100),
+                "index": sort,
                 "facets": json.dumps(facets, separators=(",", ":")),
             },
         )
         return list(data.get("hits", []))
+
+    async def featured(
+        self,
+        project_type: str = "mod",
+        loader: Optional[str] = None,
+        game_version: Optional[str] = None,
+        limit: int = 20,
+    ) -> List[Dict[str, Any]]:
+        """按下载量排序的热门资源（推荐页）"""
+        return await self.search(
+            "",
+            project_type=project_type,
+            game_version=game_version,
+            loader=loader,
+            limit=limit,
+            sort="downloads",
+        )
 
     async def project(self, slug: str) -> Dict[str, Any]:
         return await self._http.get_json(f"{BASE}/project/{quote(slug)}")

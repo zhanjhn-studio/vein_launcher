@@ -81,6 +81,7 @@ class ApiBridge(QObject):
             "accounts.add": self._accounts_add,
             "accounts.select": self._accounts_select,
             "mods.search": self._mods_search,
+            "mods.featured": self._mods_featured,
             "mods.install": self._mods_install,
             "java.detect": self._java_detect,
             "plugins.state": self._plugins_state,
@@ -235,6 +236,16 @@ class ApiBridge(QObject):
             project_type=str(project_type or "mod"),
             game_version=str(mc_version) or None,
             loader=str(loader) or None,
+        )
+        return [self._ctx.modrinth.summary(hit) for hit in hits]
+
+    async def _mods_featured(self, project_type: str = "mod", mc_version: str = "",
+                             loader: str = "", limit: int = 24) -> list:
+        hits = await self._ctx.modrinth.featured(
+            project_type=str(project_type or "mod"),
+            game_version=str(mc_version) or None,
+            loader=str(loader) or None,
+            limit=int(limit),
         )
         return [self._ctx.modrinth.summary(hit) for hit in hits]
 

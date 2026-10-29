@@ -15,6 +15,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from vein_launcher.infrastructure.network.http_client import HttpClient, HttpClientError
+from vein_launcher.infrastructure.network.mirror import candidates, mirror
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +40,19 @@ class MojangApiClient:
 
     # ------------------------------------------------------------------
     async def fetch_manifest(self) -> Dict[str, Any]:
-        """版本清单（内存缓存一次）"""
+        """版本清单（内存缓存一次，镜像优先）"""
         if self._manifest is None:
-            logger.debug("拉取版本清单：%s", MANIFEST_URL)
-            self._manifest = await self._http.get_json(MANIFEST_URL)
+            last: Optional[Exception] = None
+            for url in candidates(MANIFEST_URL):
+                try:
+                    logger.debug("拉取版本清单：%s", url)
+                    self._manifest = await self._http.get_json(url)
+                    break
+                except Exception as exc:  # 镜像失败自动回退官方
+                    last = exc
+                    logger.warning("版本清单源失败 %s：%s", url, exc)
+            if self._manifest is None:
+                raise HttpClientError(f"版本清单获取失败：{last}", url=MANIFEST_URL)
         return self._manifest
 
     async def fetch_version_list(self) -> List[Dict[str, Any]]:
@@ -63,14 +73,14 @@ class MojangApiClient:
                 url = item.get("url")
                 if not url:
                     raise HttpClientError(f"版本缺少下载地址：{version_id}", url="")
-                return await self._http.get_json(url)
+                return await self._http.get_json(mirror(url))
         raise HttpClientError(f"未找到版本：{version_id}", url=MANIFEST_URL)
 
     async def fetch_assets_index(self, url: str) -> Dict[str, Any]:
         """取 assets 索引 JSON（传入 assetIndex.url）"""
         if not url:
             raise HttpClientError("assets 索引地址为空", url="")
-        return await self._http.get_json(url)
+        return await self._http.get_json(mirror(url))
 
 
 __all__ = ["MojangApiClient", "MANIFEST_URL"]

@@ -589,17 +589,39 @@ function VersionsPage({ installed, onChange, notify }) {
 
 /* ------------------------------------------------------------------ */
 function ModsPage({ selected, notify }) {
-  const [query, setQuery] = useState('');
+  const [tab, setTab] = useState('featured');
   const [type, setType] = useState('mod');
-  const [results, setResults] = useState([]);
+  const [query, setQuery] = useState('');
+  const [items, setItems] = useState([]);
   const [busy, setBusy] = useState(false);
   const [installing, setInstalling] = useState('');
+  const [loaded, setLoaded] = useState(false);
+
+  const loadFeatured = useCallback(
+    async (projectType) => {
+      setBusy(true);
+      try {
+        setItems(await call('mods.featured', projectType, selected || '', 'fabric', 24));
+        setLoaded(true);
+      } catch (err) {
+        notify(`获取推荐失败：${err.message}`);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [selected, notify]
+  );
+
+  useEffect(() => {
+    if (tab === 'featured') loadFeatured(type);
+  }, [tab, type, loadFeatured]);
 
   const search = async () => {
     if (!query.trim()) return;
     setBusy(true);
     try {
-      setResults(await call('mods.search', query.trim(), type, selected || '', 'fabric'));
+      setItems(await call('mods.search', query.trim(), type, selected || '', 'fabric'));
+      setLoaded(true);
     } catch (err) {
       notify(`搜索失败：${err.message}`);
     } finally {
@@ -632,6 +654,23 @@ function ModsPage({ selected, notify }) {
 
       <div className="card">
         <div className="row" style={{ paddingTop: 0 }}>
+          <div style={{ display: 'flex', gap: 4, background: 'var(--card-2)', padding: 4, borderRadius: 10 }}>
+            <button
+              className={tab === 'featured' ? 'btn primary sm' : 'btn ghost sm'}
+              style={{ border: 0, boxShadow: 'none' }}
+              onClick={() => setTab('featured')}
+            >
+              推荐
+            </button>
+            <button
+              className={tab === 'search' ? 'btn primary sm' : 'btn ghost sm'}
+              style={{ border: 0, boxShadow: 'none' }}
+              onClick={() => setTab('search')}
+            >
+              搜索
+            </button>
+          </div>
+
           <select value={type} onChange={(e) => setType(e.target.value)}>
             <option value="mod">模组</option>
             <option value="plugin">服务器插件</option>
@@ -640,34 +679,61 @@ function ModsPage({ selected, notify }) {
             <option value="shader">光影</option>
             <option value="datapack">数据包</option>
           </select>
-          <input
-            className="input"
-            placeholder="搜索 Modrinth"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && search()}
-            style={{ flex: 1 }}
-          />
-          <button className="btn primary sm" onClick={search} disabled={busy}>
-            {busy ? '搜索中' : '搜索'}
-          </button>
+
+          {tab === 'search' && (
+            <>
+              <input
+                className="input"
+                placeholder="搜索 Modrinth"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && search()}
+                style={{ flex: 1 }}
+              />
+              <button className="btn primary sm" onClick={search} disabled={busy}>
+                {busy ? '搜索中' : '搜索'}
+              </button>
+            </>
+          )}
+          {tab === 'featured' && (
+            <button className="btn sm" onClick={() => loadFeatured(type)} disabled={busy}>
+              {busy ? '加载中' : '刷新推荐'}
+            </button>
+          )}
         </div>
 
-        {results.length === 0 ? (
-          <div className="empty">输入关键词搜索资源</div>
+        {busy && items.length === 0 ? (
+          <div className="empty">正在加载…</div>
+        ) : items.length === 0 ? (
+          <div className="empty">
+            {tab === 'featured' ? '暂无推荐内容（网络不可达或筛选过窄）' : '输入关键词搜索资源'}
+          </div>
         ) : (
-          results.map((item) => (
-            <div className="row" key={item.slug}>
-              <div className="grow">
-                <div className="name">{item.title}</div>
-                <div className="meta">{item.author} · ⬇ {item.downloads.toLocaleString()}</div>
-                <div className="meta" style={{ marginTop: 3 }}>{item.description}</div>
+          <div className="mods-grid">
+            {items.map((item) => (
+              <div className="mod-card" key={item.slug}>
+                {item.icon ? (
+                  <img className="mod-icon" src={item.icon} alt={item.title} loading="lazy" />
+                ) : (
+                  <div className="mod-icon mod-icon-fallback">{item.title.slice(0, 1)}</div>
+                )}
+                <div className="mod-body">
+                  <div className="mod-title" title={item.title}>{item.title}</div>
+                  <div className="mod-desc" title={item.description}>{item.description}</div>
+                  <div className="mod-foot">
+                    <span className="mod-downloads">⬇ {Number(item.downloads || 0).toLocaleString()}</span>
+                    <button
+                      className="btn primary sm"
+                      onClick={() => install(item.slug)}
+                      disabled={installing === item.slug}
+                    >
+                      {installing === item.slug ? '安装中' : '安装'}
+                    </button>
+                  </div>
+                </div>
               </div>
-              <button className="btn sm" onClick={() => install(item.slug)} disabled={installing === item.slug}>
-                {installing === item.slug ? '安装中…' : '安装'}
-              </button>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </>
