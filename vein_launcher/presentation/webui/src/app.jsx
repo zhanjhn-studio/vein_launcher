@@ -251,6 +251,7 @@ function VersionsPage({ installed, onChange, notify }) {
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('');
+  const [loader, setLoader] = useState('');
   const [installing, setInstalling] = useState('');
 
   const load = useCallback(async () => {
@@ -275,8 +276,12 @@ function VersionsPage({ installed, onChange, notify }) {
   const install = async (id) => {
     setInstalling(id);
     try {
-      const result = await call('versions.install', id);
-      notify(`安装完成：${result.ok}/${result.files} 个文件`);
+      const result = await call('versions.install', id, loader);
+      if (result.version_id) {
+        notify(`加载器安装完成：${result.version_id}`);
+      } else {
+        notify(`安装完成：${result.ok}/${result.files} 个文件`);
+      }
       await onChange();
     } catch (err) {
       notify(`安装失败：${err.message}`);
@@ -297,6 +302,13 @@ function VersionsPage({ installed, onChange, notify }) {
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
+        <select value={loader} onChange={(e) => setLoader(e.target.value)}>
+          <option value="">原版</option>
+          <option value="fabric">Fabric</option>
+          <option value="quilt">Quilt</option>
+          <option value="forge">Forge</option>
+          <option value="neoforge">NeoForge</option>
+        </select>
         <button className="btn ghost sm" onClick={load} disabled={loading}>
           {loading ? '加载中' : '刷新'}
         </button>
@@ -415,6 +427,7 @@ function ModsPage({ installed, selected, notify }) {
         <div className="spacer" />
         <select value={type} onChange={(e) => setType(e.target.value)}>
           <option value="mod">模组</option>
+          <option value="plugin">服务器插件</option>
           <option value="modpack">整合包</option>
           <option value="resourcepack">资源包</option>
           <option value="shader">光影</option>

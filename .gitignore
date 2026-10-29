@@ -39,3 +39,6 @@ logs/
 
 # 前端依赖
 vein_launcher/presentation/webui/node_modules/
+
+# 浏览器预览（不提交）
+preview.html

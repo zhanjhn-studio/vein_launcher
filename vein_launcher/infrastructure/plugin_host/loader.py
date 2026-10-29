@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -91,25 +90,6 @@ class PluginLoader:
             description=data.get("description", ""),
             activate_on_startup=bool(vein.get("activateOnStartup", False)),
         )
-
-    # ------------------------------------------------------------------
-    def install_demo(self, source: Path) -> Optional[InstalledPlugin]:
-        """把内置 demo 插件复制到插件目录（已存在则跳过）"""
-        source = Path(source)
-        if not source.is_dir():
-            return None
-        try:
-            manifest = self.parse_manifest(source)
-        except PluginLoadError:
-            return None
-
-        target = self.root / sanitize(manifest.name)
-        if target.exists():
-            return InstalledPlugin(manifest, target)
-
-        shutil.copytree(source, target, ignore=shutil.ignore_patterns("node_modules", ".git", "data"))
-        logger.info("已安装 demo 插件：%s", manifest.name)
-        return InstalledPlugin(manifest, target)
 
 
 __all__ = [

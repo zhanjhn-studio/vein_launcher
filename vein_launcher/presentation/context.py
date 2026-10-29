@@ -8,6 +8,8 @@ from typing import Optional
 
 from vein_launcher.application.services.account_service import AccountService
 from vein_launcher.application.services.launcher_service import LauncherService
+from vein_launcher.application.services.loader_service import LoaderService
+from vein_launcher.application.services.modpack_service import ModpackService
 from vein_launcher.application.services.plugin_service import PluginService
 from vein_launcher.application.services.version_service import VersionService
 from vein_launcher.common.utils.path_utils import ensure_dir, get_app_data_dir, get_version_dir
@@ -45,6 +47,8 @@ class AppContext:
         self.accounts.load()
         self.modrinth = ModrinthApiClient()
         self.detector = JavaDetector()
+        self.loaders = LoaderService(self.versions, detector=self.detector)
+        self.modpacks = ModpackService()
 
         # MLC 控制层 + 插件宿主（核心特色）
         self.mlc = MlcService(self.launcher)
@@ -70,6 +74,7 @@ class AppContext:
 
     async def close(self) -> None:
         await self.plugins.stop()
+        await self.loaders.close()
         await self.versions.close()
         await self.modrinth.close()
 

@@ -1,10 +1,10 @@
-"""MLC 服务（demo）
+"""MLC 服务
 
 接口（与插件宿主共享）：
     mlc.launch            启动游戏
     mlc.world.create      创建世界（当前仅创建存档目录）
     mlc.world.info        列出存档信息
-    mlc.player.info       玩家数据（需要游戏侧 mod 配合，demo 返回 unsupported）
+    mlc.player.info       玩家数据（需要游戏侧 mod 配合，当前 unsupported）
     mlc.event.subscribe   订阅事件（日志 / 退出 / 下载进度）
     mlc.mod.load          加载模组（当前返回 unsupported）
     mlc.plugin.search     搜索已安装插件
@@ -29,7 +29,7 @@ EVENT_MAP = {
     "download.progress": EventNames.DOWNLOAD_TASK_PROGRESS,
 }
 
-UNSUPPORTED = {"supported": False, "reason": "需要游戏侧 mod 协作，demo 阶段未实现"}
+UNSUPPORTED = {"supported": False, "reason": "需要游戏侧 mod 协作，尚未实现"}
 
 
 class MlcService:

@@ -14,6 +14,7 @@ import asyncio
 import json
 import logging
 import threading
+from pathlib import Path
 from typing import Any, Callable, Optional
 
 from PySide6.QtCore import QObject, Slot
@@ -149,7 +150,13 @@ class ApiBridge(QObject):
     async def _versions_installed(self) -> list:
         return self._ctx.versions.list_installed()
 
-    async def _versions_install(self, version_id: str) -> dict:
+    async def _versions_install(
+        self, version_id: str, loader: str = "", loader_version: str = ""
+    ) -> dict:
+        if loader:
+            return await self._ctx.loaders.install(
+                str(loader), str(version_id), str(loader_version) or None
+            )
         return await self._ctx.versions.install(
             str(version_id),
             progress=lambda phase, done, total: self._progress(str(version_id), done, total),
@@ -187,6 +194,13 @@ class ApiBridge(QObject):
         file = self._ctx.modrinth.file_of(versions[0])
         if not file:
             raise RuntimeError("文件信息缺失")
+
+        if str(project_type) == "modpack":
+            import tempfile
+
+            archive = Path(tempfile.mkdtemp(prefix="vein_pack_")) / file["name"]
+            await self._ctx.modrinth_download(file["url"], archive, file.get("sha1"))
+            return await self._ctx.modpacks.install(archive, str(instance))
 
         target_dir = self._ctx.instance_sub_dir(str(instance), str(project_type))
         target_dir.mkdir(parents=True, exist_ok=True)

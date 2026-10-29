@@ -23,8 +23,6 @@ from vein_launcher.mlc.service import MlcService
 
 logger = logging.getLogger(__name__)
 
-DEMO_PLUGIN = Path(__file__).resolve().parents[3] / "plugins_examples" / "demo"
-
 
 class PluginService:
     """插件生命周期与能力注入"""
@@ -148,10 +146,6 @@ class PluginService:
     # ------------------------------------------------------------------
     async def start(self) -> None:
         """安装 demo、启动宿主、激活插件"""
-        demo = self._loader.install_demo(DEMO_PLUGIN)
-        if demo is None:
-            logger.warning("未找到内置 demo 插件：%s", DEMO_PLUGIN)
-
         plugins = self._loader.scan()
         if not plugins:
             logger.info("没有可用插件")
@@ -201,4 +195,4 @@ class PluginService:
         return handler
 
 
-__all__ = ["PluginService", "DEMO_PLUGIN"]
+__all__ = ["PluginService"]

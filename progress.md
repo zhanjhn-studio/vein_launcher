@@ -1,4 +1,4 @@
-# 项目进度
+﻿# 项目进度
 
 ## Vein Launcher - Minecraft Java 启动器
 
@@ -99,7 +99,7 @@ Node.js 仍作为独立的插件宿主（双向 RPC）。
 
 ---
 
-## 🧠 MLC 控制层（demo）
+## 🧠 MLC 控制层
 
 `vein_launcher/mlc/service.py`，接口与插件宿主共享：
 
