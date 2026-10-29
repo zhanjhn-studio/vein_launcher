@@ -1,4 +1,4 @@
-"""基础设施层 - 单文件下载器（断点续传 + SHA-1 校验）"""
+"""基础设施层 - 单文件下载器（断点续传 + SHA-1 校验 + 同目标串行）"""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import logging
 import os
+import weakref
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -18,6 +19,18 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = 64 * 1024
 ProgressCallback = Callable[[int, int], None]  # downloaded, total
+
+# 同一目标文件的并发下载会互相踩踏（WinError 32 / SHA-1 失败），按目标串行
+_LOCKS: "weakref.WeakValueDictionary[str, asyncio.Lock]" = weakref.WeakValueDictionary()
+
+
+def _lock_for(dest: Path) -> asyncio.Lock:
+    key = str(dest.resolve())
+    lock = _LOCKS.get(key)
+    if lock is None:
+        lock = asyncio.Lock()
+        _LOCKS[key] = lock
+    return lock
 
 
 class Downloader:
@@ -64,30 +77,42 @@ class Downloader:
         dest = Path(dest)
         ensure_dir(dest.parent)
 
-        if dest.is_file() and self._verify_sync(dest, sha1, size):
-            logger.debug("已存在且校验通过：%s", dest)
-            return dest
-
-        last_error: Optional[BaseException] = None
-        for attempt in range(self._retries + 1):
-            try:
-                await self._transfer(url, dest, sha1, size, progress)
+        async with _lock_for(dest):
+            # 拿到锁后再检查一次，避免并发任务重复下载同一文件
+            if dest.is_file() and self._verify_sync(dest, sha1, size):
+                logger.debug("已存在且校验通过：%s", dest)
                 return dest
-            except asyncio.CancelledError:
-                raise
-            except SHA1MismatchError:
-                raise
-            except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as exc:
-                last_error = exc
-                logger.warning("下载失败（%d/%d）%s -> %s", attempt + 1, self._retries + 1, url, exc)
-                if attempt < self._retries:
+
+            last_error: Optional[BaseException] = None
+            for attempt in range(self._retries + 1):
+                try:
+                    await self._transfer(url, dest, sha1, size, progress)
+                    return dest
+                except asyncio.CancelledError:
+                    raise
+                except SHA1MismatchError as exc:
+                    last_error = exc
+                    if attempt >= self._retries:
+                        break
+                    logger.debug("SHA-1 不匹配，重下（%d/%d）：%s", attempt + 1, self._retries + 1, dest.name)
+                except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as exc:
+                    last_error = exc
+                    if attempt >= self._retries:
+                        logger.warning("下载失败 %s：%s", url, exc)
+                        break
+                    logger.debug("下载重试（%d/%d）%s：%s", attempt + 1, self._retries + 1, dest.name, exc)
                     await asyncio.sleep(min(2 ** attempt, 8))
-        raise DownloadError(f"下载失败：{last_error}", url=url)
+
+            raise DownloadError(f"下载失败：{last_error}", url=url)
 
     async def _transfer(self, url: str, dest: Path, sha1: Optional[str],
                         size: Optional[int], progress: Optional[ProgressCallback]) -> None:
+        ensure_dir(dest.parent)
         part = dest.with_name(dest.name + ".part")
-        resume_from = part.stat().st_size if part.exists() else 0
+        try:
+            resume_from = part.stat().st_size if part.exists() else 0
+        except FileNotFoundError:
+            resume_from = 0
         headers = {"Range": f"bytes={resume_from}-"} if resume_from else {}
 
         session = await self.session()
@@ -100,14 +125,14 @@ class Downloader:
 
             if response.status == 200:
                 resume_from = 0
-                if part.exists():
-                    part.unlink()
+                part.unlink(missing_ok=True)
 
             total = resume_from + int(response.headers.get("Content-Length", 0) or 0)
             hasher = hashlib.sha1()
             if resume_from:
                 await asyncio.to_thread(self._hash_prefix, part, hasher)
 
+            ensure_dir(part.parent)
             written = resume_from
             with part.open("ab") as fh:
                 async for chunk in response.content.iter_chunked(CHUNK_SIZE):
@@ -135,13 +160,16 @@ class Downloader:
 
     @classmethod
     def _verify_sync(cls, path: Path, sha1: Optional[str], size: Optional[int]) -> bool:
-        if sha1:
-            hasher = hashlib.sha1()
-            cls._hash_prefix(path, hasher)
-            return hasher.hexdigest().lower() == sha1.lower()
-        if size is not None:
-            return path.stat().st_size == size
-        return True
+        try:
+            if sha1:
+                hasher = hashlib.sha1()
+                cls._hash_prefix(path, hasher)
+                return hasher.hexdigest().lower() == sha1.lower()
+            if size is not None:
+                return path.stat().st_size == size
+            return True
+        except OSError:
+            return False
 
 
 __all__ = ["Downloader", "ProgressCallback"]

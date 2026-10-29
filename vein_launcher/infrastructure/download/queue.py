@@ -94,12 +94,23 @@ class DownloadQueue:
                 )
 
     async def run(self, tasks: List[DownloadTask]) -> QueueResult:
-        """并发执行全部任务"""
-        self._total = len(tasks)
+        """并发执行全部任务（同一目标只下一次）"""
+        unique: List[DownloadTask] = []
+        seen = set()
+        for task in tasks:
+            key = str(task.dest)
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(task)
+        if len(unique) != len(tasks):
+            logger.debug("队列去重：%d -> %d", len(tasks), len(unique))
+
+        self._total = len(unique)
         self._completed = 0
         semaphore = asyncio.Semaphore(self._max_concurrent)
-        await asyncio.gather(*(self._run_one(task, semaphore) for task in tasks))
-        return QueueResult(tasks=tasks)
+        await asyncio.gather(*(self._run_one(task, semaphore) for task in unique))
+        return QueueResult(tasks=unique)
 
 
 __all__ = ["DownloadQueue", "DownloadTask", "QueueResult"]

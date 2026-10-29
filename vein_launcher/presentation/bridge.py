@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from PySide6.QtCore import QObject, Signal, Slot
+from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
 from vein_launcher.common.events.event_bus import event_bus
 from vein_launcher.common.events.events import EventNames
@@ -67,6 +67,7 @@ class ApiBridge(QObject):
         self._runner = AsyncRunner()
         self._page_ready = False
         self._js_queue: list[str] = []
+        self._install_lock = asyncio.Lock()
         self._js_request.connect(self._execute_js)
         page.loadFinished.connect(self._on_page_loaded)
         self._handlers: dict[str, Callable[..., Any]] = {
@@ -162,7 +163,14 @@ class ApiBridge(QObject):
         self._js_request.emit(script)
 
     def _execute_js(self, script: str) -> None:
-        self._page.runJavaScript(script)
+        # 延后到事件循环下一拍执行：避免在 QWebChannel 的输入同步调用栈里直接调 WebEngine
+        QTimer.singleShot(0, lambda: self._run_js_now(script))
+
+    def _run_js_now(self, script: str) -> None:
+        try:
+            self._page.runJavaScript(script)
+        except RuntimeError:
+            logger.debug("页面已销毁，丢弃脚本：%s", script[:80])
 
     def _on_page_loaded(self, ok: bool) -> None:
         self._page_ready = bool(ok)
@@ -195,14 +203,15 @@ class ApiBridge(QObject):
     async def _versions_install(
         self, version_id: str, loader: str = "", loader_version: str = ""
     ) -> dict:
-        if loader:
-            return await self._ctx.loaders.install(
-                str(loader), str(version_id), str(loader_version) or None
+        async with self._install_lock:
+            if loader:
+                return await self._ctx.loaders.install(
+                    str(loader), str(version_id), str(loader_version) or None
+                )
+            return await self._ctx.versions.install(
+                str(version_id),
+                progress=lambda phase, done, total: self._progress(str(version_id), done, total),
             )
-        return await self._ctx.versions.install(
-            str(version_id),
-            progress=lambda phase, done, total: self._progress(str(version_id), done, total),
-        )
 
     async def _versions_delete(self, version_id: str) -> dict:
         return {"deleted": self._ctx.versions.delete(str(version_id))}
