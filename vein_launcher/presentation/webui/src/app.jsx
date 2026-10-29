@@ -420,8 +420,8 @@ function DownloadPage({ installed, onChange, notify }) {
     log(`开始安装 ${targetId}`);
     try {
       const result = await call('versions.install', picked.id, loader);
-      if (result.version_id) log(`加载器安装完成：${result.version_id}（loader ${result.loader_version}）`);
-      else log(`安装完成：成功 ${result.ok} / 失败 ${result.failed}`);
+      if (result.loader_version) log(`加载器安装完成：${result.version_id}（loader ${result.loader_version}）`);
+      else log(`安装完成：成功 ${result.ok} / 失败 ${result.failed}（共 ${result.files ?? '?'}）`);
       await onChange();
     } catch (err) {
       log(`安装失败：${err.message}`);

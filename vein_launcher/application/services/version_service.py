@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import shutil
 import zipfile
 from pathlib import Path
@@ -194,19 +195,31 @@ class VersionService:
         )
 
         base = "https://resources.download.minecraft.net"
+        virtual = bool(index.get("virtual") or index.get("map_to_resources"))
         tasks: List[DownloadTask] = []
-        for meta in (index.get("objects") or {}).values():
+        for name, meta in (index.get("objects") or {}).items():
             digest = meta.get("hash")
             if not digest:
                 continue
+            url = mirror(f"{base}/{digest[:2]}/{digest}")
             tasks.append(
                 DownloadTask(
-                    url=mirror(f"{base}/{digest[:2]}/{digest}"),
+                    url=url,
                     dest=self._storage.asset_object_path(digest),
                     sha1=digest,
                     size=meta.get("size"),
                 )
             )
+            # 旧式索引（键为路径名）需要把对象额外落到 virtual/<id>/ 下
+            if virtual:
+                tasks.append(
+                    DownloadTask(
+                        url=url,
+                        dest=get_assets_dir() / "virtual" / index_id / name,
+                        sha1=digest,
+                        size=meta.get("size"),
+                    )
+                )
         return tasks
 
     # ------------------------------------------------------------------
