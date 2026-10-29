@@ -126,10 +126,23 @@ class MainWindow(QMainWindow):
             super().closeEvent(event)
 
 
-def main() -> int:
-    faulthandler.enable()
+def _enable_crash_handler(logger_root: logging.Logger):
+    """faulthandler 写到独立文件：Chromium 的首次机会 COM 异常(0x8001010d)不再刷屏控制台"""
+    try:
+        crash_file = log_dir() / "crash.log"
+        handle = open(crash_file, "a", encoding="utf-8", buffering=1)
+        faulthandler.enable(file=handle, all_threads=True)
+        logger_root.debug("faulthandler 输出：%s", crash_file)
+        return handle
+    except OSError:
+        logger_root.exception("crash.log 打开失败，回退到默认 faulthandler")
+        faulthandler.enable()
+        return None
 
+
+def main() -> int:
     logger_root = setup_logger()
+    _crash_handle = _enable_crash_handler(logger_root)
     install_excepthook(logger_root)
     install_qt_message_handler(logger_root)
 
