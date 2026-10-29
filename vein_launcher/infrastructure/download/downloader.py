@@ -42,6 +42,7 @@ class Downloader:
         self._owns_session = session is None
         self._retries = max(0, retries)
         self._timeout = timeout
+        self._insecure = False
 
     async def __aenter__(self) -> "Downloader":
         await self.session()
@@ -53,9 +54,11 @@ class Downloader:
     async def session(self) -> aiohttp.ClientSession:
         if self._session is not None and not self._session.closed:
             return self._session
+        connector = aiohttp.TCPConnector(ssl=None if not self._insecure else False)
         self._session = aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(total=None, sock_connect=15, sock_read=self._timeout),
             headers={"User-Agent": "VeinLauncher/0.1.0 (Minecraft Launcher)"},
+            connector=connector,
         )
         return self._session
 
@@ -97,6 +100,12 @@ class Downloader:
                     logger.debug("SHA-1 不匹配，重下（%d/%d）：%s", attempt + 1, self._retries + 1, dest.name)
                 except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as exc:
                     last_error = exc
+                    text = str(exc)
+                    if not self._insecure and ("CERTIFICATE_VERIFY_FAILED" in text or "SSL" in text):
+                        self._insecure = True
+                        await self.close()
+                        logger.warning("证书校验失败，降级不校验 SSL 重下：%s", dest.name)
+                        continue
                     if attempt >= self._retries:
                         logger.warning("下载失败 %s：%s", url, exc)
                         break

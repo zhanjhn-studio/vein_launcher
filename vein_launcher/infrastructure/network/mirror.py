@@ -44,7 +44,7 @@ def candidates(url: str) -> list[str]:
         return [url]
     if MODE == "mirror":
         return [mirrored]
-    return [mirrored] if mirrored != url else [url]
+    return ([mirrored, url] if mirrored != url else [url])
 
 
 __all__ = ["mirror", "candidates", "BMCLAPI", "MODE"]

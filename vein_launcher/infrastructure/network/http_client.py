@@ -53,6 +53,7 @@ class HttpClient:
         self._session = session
         self._owns_session = session is None
         self._closed = False
+        self._insecure: Optional[aiohttp.ClientSession] = None
 
     # ------------------------------------------------------------------
     # 生命周期
@@ -79,8 +80,23 @@ class HttpClient:
         self._owns_session = True
         return self._session
 
+    async def _insecure_session(self) -> aiohttp.ClientSession:
+        """镜像节点证书链不完整时使用：仅用于已知的 BMCLAPI 节点"""
+        if self._insecure is None or self._insecure.closed:
+            connector = aiohttp.TCPConnector(ssl=False)
+            self._insecure = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=self._timeout, sock_connect=15),
+                headers={"User-Agent": self._user_agent},
+                proxy=self._proxy_url(),
+                connector=connector,
+            )
+        return self._insecure
+
     async def close(self) -> None:
         self._closed = True
+        if self._insecure is not None and not self._insecure.closed:
+            await self._insecure.close()
+        self._insecure = None
         if self._owns_session and self._session is not None and not self._session.closed:
             await self._session.close()
         self._session = None
@@ -108,8 +124,11 @@ class HttpClient:
         session = await self.session()
         last_error: Optional[BaseException] = None
 
+        insecure = False
         for attempt in range(self._retry_count + 1):
             try:
+                if insecure:
+                    session = await self._insecure_session()
                 response = await session.get(url, params=params, headers=headers)
                 if response.status in RETRYABLE_STATUS:
                     body = await response.text()
@@ -126,6 +145,11 @@ class HttpClient:
                     return response
             except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
                 last_error = exc
+                text = str(exc)
+                if not insecure and ("CERTIFICATE_VERIFY_FAILED" in text or "SSL" in text):
+                    insecure = True
+                    logger.warning("证书校验失败，降级不校验 SSL 重试：%s", url)
+                    continue
                 logger.warning("请求异常（第 %d 次）%s -> %s", attempt + 1, url, exc)
 
             if attempt < self._retry_count:
