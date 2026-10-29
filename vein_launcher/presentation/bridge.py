@@ -68,6 +68,9 @@ class ApiBridge(QObject):
         self._page_ready = False
         self._js_queue: list[str] = []
         self._install_lock = asyncio.Lock()
+        self._downloads: dict[str, dict] = {}
+        self._mlc_connected = False
+        self._mlc_pid: Optional[int] = None
         self._js_request.connect(self._execute_js)
         page.loadFinished.connect(self._on_page_loaded)
         self._handlers: dict[str, Callable[..., Any]] = {
@@ -84,6 +87,10 @@ class ApiBridge(QObject):
             "mods.featured": self._mods_featured,
             "mods.install": self._mods_install,
             "java.detect": self._java_detect,
+            "downloads.list": self._downloads_list,
+            "mlc.worlds": self._mlc_worlds,
+            "app.openDataDir": self._open_data_dir,
+            "mlc.state": self._mlc_state,
             "plugins.state": self._plugins_state,
             "plugins.setEnabled": self._plugins_set_enabled,
             "plugins.reload": self._plugins_reload,
@@ -94,6 +101,8 @@ class ApiBridge(QObject):
 
         event_bus.subscribe(EventNames.GAME_LOG_UPDATE, self._on_game_log)
         event_bus.subscribe("ui.notify", self._on_ui_notify)
+        event_bus.subscribe(EventNames.GAME_RUNNING, self._on_game_running)
+        event_bus.subscribe(EventNames.GAME_EXITED, self._on_game_exited)
 
     # ------------------------------------------------------------------
     def start(self) -> None:
@@ -119,7 +128,13 @@ class ApiBridge(QObject):
         try:
             data = json.loads(payload or "{}")
             method = data.get("method", "")
-            args = list(data.get("args") or [])
+            params = data.get("params") or {}
+            if isinstance(params, dict):
+                args = list(params.get("args") or [])
+            else:
+                args = list(params)
+            if not args:
+                args = list(data.get("args") or [])
         except json.JSONDecodeError as exc:
             self._fail(request_id, f"参数解析失败：{exc}")
             return
@@ -152,6 +167,10 @@ class ApiBridge(QObject):
         self._run_js(f"window.__veinResult({json.dumps(request_id)}, false, {json.dumps(message, ensure_ascii=False)})")
 
     def _progress(self, task_id: str, done: int, total: int) -> None:
+        entry = self._downloads.get(task_id)
+        if entry is not None:
+            entry["done"] = done
+            entry["total"] = total
         self._run_js(f"window.__veinProgress({json.dumps(task_id)}, {done}, {total})")
 
     def _run_js(self, script: str) -> None:
@@ -204,15 +223,36 @@ class ApiBridge(QObject):
     async def _versions_install(
         self, version_id: str, loader: str = "", loader_version: str = ""
     ) -> dict:
-        async with self._install_lock:
-            if loader:
-                return await self._ctx.loaders.install(
-                    str(loader), str(version_id), str(loader_version) or None
+        task_id = f"{loader}-{version_id}" if loader else str(version_id)
+        self._downloads[task_id] = {
+            "id": task_id,
+            "name": task_id,
+            "done": 0,
+            "total": 0,
+            "active": True,
+            "error": None,
+        }
+        try:
+            async with self._install_lock:
+                if loader:
+                    return await self._ctx.loaders.install(
+                        str(loader), str(version_id), str(loader_version) or None
+                    )
+                return await self._ctx.versions.install(
+                    str(version_id),
+                    progress=lambda phase, done, total: self._progress(
+                        str(version_id), done, total
+                    ),
                 )
-            return await self._ctx.versions.install(
-                str(version_id),
-                progress=lambda phase, done, total: self._progress(str(version_id), done, total),
-            )
+        except Exception as exc:
+            entry = self._downloads.get(task_id)
+            if entry:
+                entry.update(active=False, error=str(exc))
+            raise
+        finally:
+            entry = self._downloads.get(task_id)
+            if entry and entry.get("error") is None:
+                entry["active"] = False
 
     async def _versions_delete(self, version_id: str) -> dict:
         return {"deleted": self._ctx.versions.delete(str(version_id))}
@@ -298,6 +338,33 @@ class ApiBridge(QObject):
 
     async def _plugins_install_example(self, name: str) -> dict:
         return self._ctx.plugins.install_example(str(name))
+
+    async def _downloads_list(self) -> list:
+        return list(self._downloads.values())
+
+    async def _mlc_worlds(self, version_id: str = "") -> dict:
+        return self._ctx.mlc.world_info(str(version_id))
+
+    async def _open_data_dir(self) -> dict:
+        import subprocess
+
+        path = str(self._ctx.data_dir)
+        subprocess.Popen(["explorer", path])
+        return {"path": path}
+
+    async def _mlc_state(self) -> dict:
+        return {
+            "connected": self._mlc_connected,
+            "pid": self._mlc_pid,
+        }
+
+    def _on_game_running(self, pid: int = 0, **_) -> None:
+        self._mlc_connected = True
+        self._mlc_pid = int(pid) or None
+
+    def _on_game_exited(self, exit_code: int = 0, **_) -> None:
+        self._mlc_connected = False
+        self._mlc_pid = None
 
     async def _open_log_dir(self) -> dict:
         import subprocess
