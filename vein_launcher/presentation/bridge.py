@@ -18,6 +18,8 @@ from typing import Any, Callable, Optional
 
 from PySide6.QtCore import QObject, Slot
 
+from vein_launcher.common.events.event_bus import event_bus
+from vein_launcher.common.events.events import EventNames
 from vein_launcher.presentation.context import AppContext
 
 logger = logging.getLogger(__name__)
@@ -61,7 +63,7 @@ class ApiBridge(QObject):
         self._handlers: dict[str, Callable[..., Any]] = {
             "app.info": self._app_info,
             "versions.remote": self._versions_remote,
-            "versions.installed": self._versions_installed,
+            "versions.info": self._versions_installed,
             "versions.install": self._versions_install,
             "versions.delete": self._versions_delete,
             "launch": self._launch,
@@ -72,6 +74,23 @@ class ApiBridge(QObject):
             "mods.install": self._mods_install,
             "java.detect": self._java_detect,
         }
+
+        event_bus.subscribe(EventNames.GAME_LOG_UPDATE, self._on_game_log)
+        event_bus.subscribe("ui.notify", self._on_ui_notify)
+
+    # ------------------------------------------------------------------
+    def start(self) -> None:
+        """启动后台服务（插件宿主等）"""
+        self._runner.submit(self._ctx.startup())
+
+    def _on_game_log(self, line: str = "", **_) -> None:
+        self._run_js(f"window.__veinLog({json.dumps(line, ensure_ascii=False)})")
+
+    def _on_ui_notify(self, title: str = "", message: str = "", **_) -> None:
+        self._run_js(
+            f"window.__veinNotify({json.dumps(title, ensure_ascii=False)},"
+            f"{json.dumps(message, ensure_ascii=False)})"
+        )
 
     # ------------------------------------------------------------------
     @Slot(str, str)

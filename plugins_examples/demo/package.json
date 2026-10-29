@@ -1,0 +1,13 @@
+{
+  "name": "vein-plugin-demo",
+  "version": "0.1.0",
+  "description": "Vein Launcher 插件 demo：验证双向 RPC、MLC 事件与沙箱",
+  "author": "Vein Studio",
+  "type": "module",
+  "main": "index.js",
+  "vein": {
+    "displayName": "示例插件",
+    "activateOnStartup": true,
+    "permissions": ["file.read", "file.write", "config.read", "ui.notify", "mlc.world"]
+  }
+}

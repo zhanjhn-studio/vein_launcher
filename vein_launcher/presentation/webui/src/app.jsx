@@ -18,6 +18,7 @@ export function App() {
   const [accounts, setAccounts] = useState([]);
   const [selected, setSelected] = useState('');
   const [tasks, setTasks] = useState({});
+  const [logs, setLogs] = useState([]);
 
   const notify = useCallback((message) => {
     setToast(String(message));
@@ -26,7 +27,7 @@ export function App() {
   }, []);
 
   const refreshInstalled = useCallback(async () => {
-    const list = await call('versions.installed');
+    const list = await call('versions.info');
     setInstalled(list);
     setSelected((prev) => (prev && list.some((v) => v.id === prev) ? prev : list[0]?.id || ''));
   }, []);
@@ -52,10 +53,20 @@ export function App() {
       const { taskId, downloaded, total } = event.detail;
       setTasks((prev) => ({ ...prev, [taskId]: { downloaded, total } }));
     };
+    const onLog = (event) => {
+      setLogs((prev) => [...prev.slice(-199), event.detail]);
+    };
+    const onNotify = (event) => {
+      notify(`${event.detail.title}：${event.detail.message}`);
+    };
     window.addEventListener('vein:progress', onProgress);
+    window.addEventListener('vein:log', onLog);
+    window.addEventListener('vein:notify', onNotify);
     return () => {
       alive = false;
       window.removeEventListener('vein:progress', onProgress);
+      window.removeEventListener('vein:log', onLog);
+      window.removeEventListener('vein:notify', onNotify);
     };
   }, [notify, refreshInstalled, refreshAccounts]);
 
@@ -115,6 +126,7 @@ export function App() {
               selected={selected}
               onSelect={setSelected}
               notify={notify}
+              logs={logs}
             />
           )}
           {page === 'versions' && (
@@ -141,7 +153,7 @@ function Empty({ children }) {
   return <div className="empty">{children}</div>;
 }
 
-function HomePage({ installed, accounts, selected, onSelect, notify }) {
+function HomePage({ installed, accounts, selected, onSelect, notify, logs }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const account = accounts.find((a) => a.selected) || null;
@@ -216,6 +228,18 @@ function HomePage({ installed, accounts, selected, onSelect, notify }) {
           </div>
         ) : (
           <Empty>未登录。到「账号」页添加一个离线账号。</Empty>
+        )}
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
+          <h2>游戏日志</h2>
+          <span className="count">{logs.length}</span>
+        </div>
+        {logs.length === 0 ? (
+          <Empty>启动游戏后，Python 会把进程输出实时推送到这里</Empty>
+        ) : (
+          <pre className="log-view">{logs.slice(-120).join('\n')}</pre>
         )}
       </div>
     </>

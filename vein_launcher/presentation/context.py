@@ -8,12 +8,14 @@ from typing import Optional
 
 from vein_launcher.application.services.account_service import AccountService
 from vein_launcher.application.services.launcher_service import LauncherService
+from vein_launcher.application.services.plugin_service import PluginService
 from vein_launcher.application.services.version_service import VersionService
 from vein_launcher.common.utils.path_utils import ensure_dir, get_app_data_dir, get_version_dir
 from vein_launcher.infrastructure.download.downloader import Downloader
 from vein_launcher.infrastructure.network.api_client import MojangApiClient
 from vein_launcher.infrastructure.network.modrinth_api import ModrinthApiClient
 from vein_launcher.infrastructure.process.java_detector import JavaDetector
+from vein_launcher.mlc.service import MlcService
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,7 @@ SUBDIRS = {
     "resourcepack": "resourcepacks",
     "shader": "shaderpacks",
     "datapack": "datapacks",
+    "plugin": "plugins",
     "modpack": "modpacks",
 }
 
@@ -43,6 +46,11 @@ class AppContext:
         self.modrinth = ModrinthApiClient()
         self.detector = JavaDetector()
 
+        # MLC 控制层 + 插件宿主（核心特色）
+        self.mlc = MlcService(self.launcher)
+        self.mlc.install_bridge()
+        self.plugins = PluginService(self.mlc, self.launcher)
+
     # ------------------------------------------------------------------
     @staticmethod
     def instance_sub_dir(instance_id: str, project_type: str) -> Path:
@@ -54,7 +62,14 @@ class AppContext:
             await downloader.download(url, dest, sha1=sha1 or None)
 
     # ------------------------------------------------------------------
+    async def startup(self) -> None:
+        try:
+            await self.plugins.start()
+        except Exception as exc:
+            logger.error("插件宿主启动失败：%s", exc)
+
     async def close(self) -> None:
+        await self.plugins.stop()
         await self.versions.close()
         await self.modrinth.close()
 

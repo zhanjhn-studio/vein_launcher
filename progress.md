@@ -99,9 +99,54 @@ Node.js 仍作为独立的插件宿主（双向 RPC）。
 
 ---
 
+## 🧠 MLC 控制层（demo）
+
+`vein_launcher/mlc/service.py`，接口与插件宿主共享：
+
+| 接口 | 说明 | 状态 |
+|------|------|------|
+| mlc.launch | 启动游戏并返回 PID | 可用 |
+| mlc.world.info | 读取实例存档列表 | 可用 |
+| mlc.world.create | 创建存档目录（世界生成仍需游戏内完成） | 可用 |
+| mlc.event.subscribe | 订阅 game.log / game.exit / download.progress | 可用 |
+| mlc.player.info | 玩家坐标等 | 未实现（需游戏侧 mod） |
+| mlc.mod.load | 运行时加载模组 | 未实现 |
+| mlc.plugin.search | 搜索已安装插件 | 可用 |
+
+## 🔌 插件宿主（核心特色）
+
+- `infrastructure/plugin_host/runtime/node_host.js`：Node 侧 JSON-RPC、`vein` API 注入、异常隔离
+- `infrastructure/plugin_host/host.py`：Python 侧进程与协议、能力转发
+- `capabilities.py`：能力注册 + 权限校验（未声明即拒绝）
+- `loader.py`：扫描 plugins/、解析清单、内置 demo 自动安装
+- `application/services/plugin_service.py`：能力实现（文件/下载/游戏/配置/UI/HTTP/MLC）+ 事件桥
+- `plugins_examples/demo/`：demo 插件
+
+**端到端实测**：宿主启动 → demo 激活 → 读取配置 → 写沙箱文件 → 调用 MLC world.info
+→ 越权读取 `C:\Windows\win.ini` 被拒绝 → 就绪。
+
+## 🌉 通信桥（与规格对齐）
+
+`versions.info / versions.remote / versions.install / versions.delete / launch /
+accounts.list|add|select / mods.search / mods.install / java.detect`
+
+推送通道：`window.__veinProgress`（下载进度）、`window.__veinLog`（游戏日志）、
+`window.__veinNotify`（插件通知）。
+
+---
+
+## 待完成（按规格）
+
+1. Forge / Fabric / NeoForge 加载器安装与整合包
+2. 服务器插件（Paper 等）、光影、数据包的下载入口
+3. 微软账号登录
+4. CurseForge 在界面中的启用（需 API Key）
+5. 广场模块：仅在文档中预留，本轮不实现
+
 ## 变更记录
 
 ### 2026-10-29
 - 上一轮交付整体作废（UI 风格不符预期、超出需求自行加功能）
 - 工作区回滚至 Domain 基线，移除 infrastructure/application/presentation 等全部产出
-- 重新从 `infrastructure/network/http_client.py` 开始，一次一个文件
+- 重新从 `infrastructure/network/http_client.py` 开始
+- 交付 MLC demo、插件宿主与 demo 插件、通信桥对齐、React 界面日志面板

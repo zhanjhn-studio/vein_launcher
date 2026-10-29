@@ -42,6 +42,7 @@ class MainWindow(QMainWindow):
         if not index.is_file():
             logger.error("前端未构建：%s", index)
         self.view.load(QUrl.fromLocalFile(str(index)))
+        self.bridge.start()
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt 约定
         logger.info("窗口关闭")

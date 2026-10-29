@@ -26,6 +26,16 @@ export function initBridge() {
         );
       };
 
+      window.__veinLog = (line) => {
+        window.dispatchEvent(new CustomEvent('vein:log', { detail: String(line) }));
+      };
+
+      window.__veinNotify = (title, message) => {
+        window.dispatchEvent(
+          new CustomEvent('vein:notify', { detail: { title, message } })
+        );
+      };
+
       resolve();
     });
   });
