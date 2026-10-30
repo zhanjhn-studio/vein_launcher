@@ -160,6 +160,21 @@ def _hide_console() -> None:
         pass
 
 
+def _schedule_auto_exit(app: QApplication) -> None:
+    """测试模式自毁：VEIN_AUTO_EXIT=10 → 10 秒后自动退出（默认不开）"""
+    raw = os.environ.get("VEIN_AUTO_EXIT")
+    if not raw:
+        return
+    try:
+        seconds = float(raw)
+    except ValueError:
+        return
+    if seconds <= 0:
+        return
+    logger.info("测试模式：%.0f 秒后自动退出", seconds)
+    QTimer.singleShot(int(seconds * 1000), app.quit)
+
+
 def main() -> int:
     _hide_console()
     logger_root = setup_logger()
@@ -192,6 +207,7 @@ def main() -> int:
     window = MainWindow(context)
     window.show()
     logger.info("窗口已显示")
+    _schedule_auto_exit(app)
 
     code = app.exec()
     logger.info("退出，code=%s", code)
