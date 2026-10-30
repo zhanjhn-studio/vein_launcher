@@ -10,7 +10,10 @@
 import readline from "node:readline";
 import process from "node:process";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 import { pathToFileURL } from "node:url";
+import { evalLua, makeBuilder, sanitize } from "./lua.js";
 
 // stdout 只允许 JSON-RPC；插件里的 console 全部转 stderr
 const toErr = (...args) => process.stderr.write(args.join(" ") + "\n");
@@ -22,7 +25,7 @@ console.debug = toErr;
 
 let nextId = 0;
 const pending = new Map();
-const plugins = new Map(); // id -> {api, exports}
+const plugins = new Map(); // id -> {api, exports, action}
 const listeners = new Map(); // topic -> Set<{pluginId, handler}>
 
 const send = (message) => process.stdout.write(JSON.stringify(message) + "\n");
@@ -74,6 +77,25 @@ function buildApi(pluginId, manifest, dataDir) {
     },
     ui: {
       async notify(title, message) { guard("ui.notify"); return callHost(pluginId, "ui.notify", [title, message]); },
+      async render(tree) {
+        guard("ui.lua");
+        const clean = sanitize(tree);
+        if (!clean) throw new Error("UI 结构不合法或被裁剪为空");
+        return callHost(pluginId, "ui.render", [clean]);
+      },
+      async lua(relPath) {
+        guard("ui.lua");
+        const dir = plugins.get(pluginId)?.dir;
+        if (!dir) throw new Error("插件目录未知");
+        const { readFile } = await import("node:fs/promises");
+        const source = await readFile(path.join(dir, String(relPath)), "utf8");
+        const tree = evalLua(source, makeBuilder());
+        return api.ui.render(tree);
+      },
+      onAction(handler) {
+        const record = plugins.get(pluginId);
+        if (record) record.action = handler;
+      },
     },
     download: {
       async queueTask(url, savePath) { guard("download.queue"); return callHost(pluginId, "download.queueTask", [url, savePath]); },
@@ -108,9 +130,11 @@ function buildApi(pluginId, manifest, dataDir) {
 }
 
 async function loadPlugin({ pluginId, entry, manifest, dataDir }) {
+  const pluginDir = dirname(path.resolve(entry));
   if (plugins.has(pluginId)) await unloadPlugin(pluginId);
 
   const api = buildApi(pluginId, manifest, dataDir);
+  plugins.set(pluginId, { api, exports: null, action: null, dir: pluginDir });
   const module = await Promise.race([
     import(pathToFileURL(path.resolve(entry)).href),
     new Promise((_, reject) => setTimeout(() => reject(new Error("插件加载超时(10s)")), 10000)),
@@ -123,7 +147,9 @@ async function loadPlugin({ pluginId, entry, manifest, dataDir }) {
     api.log("插件未导出 activate(ctx)，按声明式插件处理", "warn");
   }
 
-  plugins.set(pluginId, { api, exports: exportsObj });
+  const record = plugins.get(pluginId) || { api, action: null, dir: pluginDir };
+  record.exports = exportsObj;
+  plugins.set(pluginId, record);
   api.log(`已激活 v${manifest.version}`);
   return { ok: true };
 }
@@ -145,6 +171,20 @@ async function unloadPlugin(pluginId) {
 }
 
 function dispatch(topic, payload) {
+  if (topic === "plugin.action") {
+    const target = payload?.pluginId;
+    for (const [pid, record] of plugins) {
+      if (target && pid !== target) continue;
+      if (record.action) {
+        try {
+          record.action(payload?.action, payload?.payload);
+        } catch (err) {
+          notify("plugin.error", { pluginId: pid, error: String(err) });
+        }
+      }
+    }
+    return;
+  }
   const bucket = listeners.get(topic);
   if (!bucket) return;
   for (const { pluginId, handler } of [...bucket]) {

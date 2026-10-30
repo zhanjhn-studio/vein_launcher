@@ -11,6 +11,7 @@ import {
   ToolboxPage,
 } from './pages';
 import { DownloadBar, Toast } from './ui';
+import { PluginUiHost } from './pluginUi';
 import { initI18n, t, useI18n } from './i18n';
 
 const NAV = [
@@ -167,6 +168,7 @@ export function App() {
       </main>
 
       <DownloadBar />
+      <PluginUiHost />
       <Toast text={toast} />
     </div>
   );

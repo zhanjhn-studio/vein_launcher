@@ -1,0 +1,12 @@
+{
+  "name": "vein-plugin-lua-ui",
+  "version": "0.1.0",
+  "description": "LuaUI 示例：用 Lua 子集声明界面，由插件沙箱渲染到 Shadow DOM",
+  "type": "module",
+  "main": "index.js",
+  "vein": {
+    "displayName": "Lua UI 示例",
+    "activateOnStartup": true,
+    "permissions": ["ui.lua"]
+  }
+}

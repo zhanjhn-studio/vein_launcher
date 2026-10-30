@@ -122,6 +122,7 @@ class ApiBridge(QObject):
             "plugins.setEnabled": self._plugins_set_enabled,
             "plugins.reload": self._plugins_reload,
             "plugins.logs": self._plugins_logs,
+            "plugins.uiAction": self._plugins_ui_action,
             "plugins.installExample": self._plugins_install_example,
             "logs.openDir": self._open_log_dir,
         }
@@ -130,6 +131,7 @@ class ApiBridge(QObject):
         event_bus.subscribe("ui.notify", self._on_ui_notify)
         event_bus.subscribe(EventNames.GAME_RUNNING, self._on_game_running)
         event_bus.subscribe(EventNames.GAME_EXITED, self._on_game_exited)
+        event_bus.subscribe("plugin.ui", self._on_plugin_ui)
 
     # ------------------------------------------------------------------
     def start(self) -> None:
@@ -401,6 +403,14 @@ class ApiBridge(QObject):
     async def _plugins_reload(self, name: str) -> dict:
         return await self._ctx.plugins.reload(str(name))
 
+    async def _plugins_ui_action(self, plugin_id: str, action: str, payload: Any = None) -> dict:
+        if self._ctx.plugins.host.running:
+            await self._ctx.plugins.host.emit(
+                "plugin.action",
+                {"pluginId": str(plugin_id), "action": str(action), "payload": payload},
+            )
+        return {"ok": True}
+
     async def _plugins_logs(self, limit: int = 200) -> list:
         return self._ctx.plugins.logs(int(limit))
 
@@ -499,6 +509,10 @@ class ApiBridge(QObject):
             "connected": self._mlc_connected,
             "pid": self._mlc_pid,
         }
+
+    def _on_plugin_ui(self, plugin_id: str = "", tree: Any = None) -> None:
+        payload = json.dumps({"pluginId": plugin_id, "tree": tree}, ensure_ascii=False)
+        self._run_js(f"window.__veinUi && window.__veinUi({payload})")
 
     def _on_game_running(self, pid: int = 0, **_) -> None:
         self._mlc_connected = True

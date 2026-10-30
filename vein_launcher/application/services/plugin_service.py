@@ -118,6 +118,10 @@ class PluginService:
             settings_manager.save()
             return True
 
+        async def ui_render(plugin_id: str, tree: Any) -> bool:
+            event_bus.publish("plugin.ui", plugin_id=plugin_id, tree=tree)
+            return True
+
         async def ui_notify(plugin_id: str, title: str, message: str) -> bool:
             event_bus.publish("ui.notify", title=title, message=message)
             return True
@@ -158,6 +162,7 @@ class PluginService:
         reg.register("config.read", "config.read", config_read)
         reg.register("config.write", "config.write", config_write)
         reg.register("ui.notify", "ui.notify", ui_notify)
+        reg.register("ui.render", "ui.lua", ui_render)
         reg.register("network.http.getJson", "network.http", http_json)
         reg.register("download.queueTask", "download.queue", queue_task)
         reg.register("game.launch", "game.launch", game_launch)
