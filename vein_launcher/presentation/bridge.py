@@ -90,6 +90,9 @@ class ApiBridge(QObject):
             "versions.info": self._versions_installed,
             "versions.install": self._versions_install,
             "versions.delete": self._versions_delete,
+            "versions.files": self._versions_files,
+            "versions.fileDelete": self._versions_file_delete,
+            "versions.openFolder": self._versions_open_folder,
             "launch": self._launch,
             "accounts.list": self._accounts_list,
             "accounts.add": self._accounts_add,
@@ -243,8 +246,24 @@ class ApiBridge(QObject):
     async def _versions_installed(self) -> list:
         return self._ctx.versions.list_installed()
 
+    async def _versions_files(self, instance: str, sub: str = "") -> list:
+        return self._ctx.versions.list_files(str(instance), str(sub or ""))
+
+    async def _versions_file_delete(self, instance: str, rel: str) -> dict:
+        return {"deleted": self._ctx.versions.delete_file(str(instance), str(rel))}
+
+    async def _versions_open_folder(self, instance: str) -> dict:
+        import subprocess
+
+        from vein_launcher.common.utils.path_utils import get_version_dir
+
+        path = str(get_version_dir(str(instance)))
+        subprocess.Popen(["explorer", path])
+        return {"path": path}
+
     async def _versions_install(
-        self, version_id: str, loader: str = "", loader_version: str = ""
+        self, version_id: str, loader: str = "", loader_version: str = "",
+        custom_name: str = "",
     ) -> dict:
         task_id = f"{loader}-{version_id}" if loader else str(version_id)
         self._downloads[task_id] = {
@@ -258,15 +277,23 @@ class ApiBridge(QObject):
         try:
             async with self._install_lock:
                 if loader:
-                    return await self._ctx.loaders.install(
+                    result = await self._ctx.loaders.install(
                         str(loader), str(version_id), str(loader_version) or None
                     )
-                return await self._ctx.versions.install(
-                    str(version_id),
-                    progress=lambda phase, done, total: self._progress(
-                        str(version_id), done, total
-                    ),
-                )
+                    source = result.get("version_id", f"{loader}-{version_id}")
+                else:
+                    result = await self._ctx.versions.install(
+                        str(version_id),
+                        progress=lambda phase, done, total: self._progress(
+                            str(version_id), done, total
+                        ),
+                    )
+                    source = str(version_id)
+
+                if custom_name:
+                    target = await self._ctx.versions.copy_instance(source, str(custom_name))
+                    result = {**result, "version_id": target, "custom": True}
+                return result
         except Exception as exc:
             entry = self._downloads.get(task_id)
             if entry:

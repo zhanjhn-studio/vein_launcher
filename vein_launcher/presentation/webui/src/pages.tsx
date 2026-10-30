@@ -129,6 +129,9 @@ export function DownloadPage({
   const [busy, setBusy] = useState(false);
   const [activity, setActivity] = useState<string[]>([]);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [custom, setCustom] = useState('');
+  const [fileTarget, setFileTarget] = useState('');
+  const [files, setFiles] = useState<{ name: string; dir: boolean; size: number; rel: string }[]>([]);
 
   const log = useCallback((text: string) => {
     const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
@@ -170,6 +173,26 @@ export function DownloadPage({
     []
   );
 
+  const loadFiles = async (instance: string) => {
+    try {
+      setFiles(await rpc<{ name: string; dir: boolean; size: number; rel: string }[]>('versions.files', [instance, '']));
+    } catch {
+      setFiles([]);
+    }
+  };
+
+  useEffect(() => {
+    if (!picked) return;
+    const candidate = custom.trim() || (loader ? `${loader}-${(picked as VersionInfo).id}` : (picked as VersionInfo).id);
+    if (installed.some((v) => v.id === candidate)) {
+      setFileTarget(candidate);
+      loadFiles(candidate);
+    } else {
+      setFileTarget('');
+      setFiles([]);
+    }
+  }, [picked, loader, custom, installed]);
+
   const installedIds = useMemo(() => new Set(installed.map((v) => v.id)), [installed]);
   const targetId = picked ? (loader ? `${loader}-${(picked as VersionInfo).id}` : (picked as VersionInfo).id) : '';
 
@@ -178,16 +201,22 @@ export function DownloadPage({
     setBusy(true);
     log(`开始安装 ${targetId}`);
     try {
-      const result = await rpc<{ loader_version?: string; ok?: number; failed?: number; files?: number }>(
-        'versions.install',
-        [(picked as VersionInfo).id, loader]
-      );
+      const result = await rpc<{
+        loader_version?: string;
+        ok?: number;
+        failed?: number;
+        files?: number;
+        version_id?: string;
+      }>('versions.install', [(picked as VersionInfo).id, loader, '', custom.trim()]);
       log(
         result.loader_version
           ? `加载器安装完成：${targetId}（${result.loader_version}）`
           : `安装完成：成功 ${result.ok ?? 0} / 失败 ${result.failed ?? 0}`
       );
+      const finalId = result.version_id || targetId;
+      setFileTarget(finalId);
       await onInstalled();
+      loadFiles(finalId);
     } catch (err) {
       log(`安装失败：${(err as Error).message}`);
       notify(`安装失败：${(err as Error).message}`);
@@ -283,10 +312,47 @@ export function DownloadPage({
                   <i style={{ width: `${progress.total ? Math.round((progress.done / progress.total) * 100) : 0}%` }} />
                 </div>
               )}
-              <button className="btn primary block" onClick={installVersion} disabled={busy}>
+              <div className="kv"><span>版本类型</span><b>{(picked as VersionInfo).type ?? 'release'}</b></div>
+              <div className="kv"><span>发布时间</span><b>{(picked as VersionInfo).release_time ?? '—'}</b></div>
+
+              <label className="muted" style={{ marginTop: 6 }}>自定义版本名（可选，留空则用 {targetId}）</label>
+              <input
+                className="input"
+                placeholder={targetId}
+                value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+              />
+
+              <button className="btn primary block" style={{ marginTop: 10 }} onClick={installVersion} disabled={busy}>
                 {busy ? '安装中…' : '开始安装'}
               </button>
               <div className="activity">{activity.join('\n') || '（进度会显示在这里）'}</div>
+
+              {fileTarget && (
+                <>
+                  <div className="pane-head" style={{ padding: '14px 0 8px', border: 0 }}>
+                    <span>版本文件 · {fileTarget}</span>
+                    <div className="row-actions" style={{ marginTop: 0 }}>
+                      <button className="btn sm" onClick={() => loadFiles(fileTarget)}>刷新</button>
+                      <button className="btn sm" onClick={() => rpc('versions.openFolder', [fileTarget]).catch(() => {})}>
+                        打开目录
+                      </button>
+                    </div>
+                  </div>
+                  {files.length === 0 ? (
+                    <div className="empty">目录为空或尚未安装完成</div>
+                  ) : (
+                    files.map((f) => (
+                      <div className="row-item" key={f.rel}>
+                        <span className="title">{f.dir ? '📁 ' : ''}{f.name}</span>
+                        <span className="sub">
+                          {f.dir ? 'folder' : `${Math.max(1, Math.round(f.size / 1024))} KB`}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </>
+              )}
             </div>
           ) : (
             <Empty>选择左侧版本查看安装选项</Empty>

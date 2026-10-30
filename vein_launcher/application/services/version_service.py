@@ -11,7 +11,12 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from vein_launcher.common.exceptions import VersionNotFoundError
-from vein_launcher.common.utils.path_utils import ensure_dir, get_libraries_dir, get_version_dir
+from vein_launcher.common.utils.path_utils import (
+    ensure_dir,
+    get_libraries_dir,
+    get_version_dir,
+    safe_join,
+)
 from vein_launcher.infrastructure.download.downloader import Downloader
 from vein_launcher.infrastructure.download.queue import DownloadQueue, DownloadTask
 from vein_launcher.infrastructure.network.api_client import MojangApiClient
@@ -158,6 +163,59 @@ class VersionService:
             "failed": result.failed,
             "errors": [t.error for t in tasks if t.error][:10],
         }
+
+    async def copy_instance(self, source_id: str, target_name: str) -> str:
+        """以已安装版本为父，生成一个自定义名字的实例（不重复下载）"""
+        target_name = target_name.strip()
+        if not target_name:
+            raise VeinError("版本名不能为空")
+        safe = "".join(c for c in target_name if c not in '\\/:*?"<>|').strip()
+        if not safe:
+            raise VeinError("版本名包含非法字符")
+        target_dir = get_version_dir(safe)
+        if target_dir.exists():
+            raise VeinError(f"实例已存在：{safe}")
+
+        merged = await self.merged(source_id)
+        merged["id"] = safe
+        merged["inheritsFrom"] = source_id
+        ensure_dir(target_dir)
+        (target_dir / f"{safe}.json").write_text(
+            json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        logger.info("创建自定义实例：%s（继承 %s）", safe, source_id)
+        return safe
+
+    def list_files(self, instance_id: str, sub: str = "") -> list:
+        base = get_version_dir(instance_id)
+        target = safe_join(base, *([p for p in sub.split("/") if p] or ["."]))
+        if not target.exists():
+            return []
+        entries = []
+        for child in sorted(target.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+            try:
+                size = child.stat().st_size if child.is_file() else 0
+            except OSError:
+                size = 0
+            entries.append({
+                "name": child.name,
+                "dir": child.is_dir(),
+                "size": size,
+                "rel": str(child.relative_to(base)).replace("\\", "/"),
+            })
+        return entries
+
+    def delete_file(self, instance_id: str, rel: str) -> bool:
+        base = get_version_dir(instance_id)
+        target = safe_join(base, *rel.split("/"))
+        if target == base or not target.exists():
+            return False
+        if target.is_dir():
+            shutil.rmtree(target)
+        else:
+            target.unlink()
+        logger.info("删除实例文件：%s", target)
+        return True
 
     # ------------------------------------------------------------------
     def _library_tasks(self, merged: Dict[str, Any]) -> List[DownloadTask]:
