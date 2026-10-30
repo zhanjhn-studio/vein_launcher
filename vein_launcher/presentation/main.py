@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import faulthandler
 import logging
+import os
 import sys
 import time
 from pathlib import Path
@@ -141,7 +142,26 @@ def _enable_crash_handler(logger_root: logging.Logger):
         return None
 
 
+def _hide_console() -> None:
+    """隐藏启动器自身的控制台窗口（打包后配合 --noconsole 更彻底）"""
+    if sys.platform != "win32":
+        return
+    if os.environ.get("VEIN_SHOW_CONSOLE") == "1":
+        return
+    try:
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        user32 = ctypes.windll.user32
+        hwnd = kernel32.GetConsoleWindow()
+        if hwnd:
+            user32.ShowWindow(hwnd, 0)  # SW_HIDE
+    except Exception:
+        pass
+
+
 def main() -> int:
+    _hide_console()
     logger_root = setup_logger()
     _crash_handle = _enable_crash_handler(logger_root)
     install_excepthook(logger_root)

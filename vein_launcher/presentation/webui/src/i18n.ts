@@ -105,6 +105,7 @@ export async function initI18n(): Promise<void> {
     lang = 'en';
   }
   notify();
+  window.dispatchEvent(new Event('vein:lang'));
 }
 
 export function currentLang(): Lang {
@@ -115,6 +116,7 @@ export function setLang(next: Lang): void {
   lang = next;
   rpc('i18n.set', [next === 'zh' ? 'zh_CN' : 'en_US']).catch(() => {});
   notify();
+  window.dispatchEvent(new Event('vein:lang'));
 }
 
 export function t(source: string): string {
