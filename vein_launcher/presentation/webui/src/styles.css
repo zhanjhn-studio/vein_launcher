@@ -335,9 +335,9 @@ select { cursor: pointer; }
 /* ---------- Layui 图标字体（仅图标，不含 layui 重置样式） ---------- */
 @font-face {
   font-family: "layui-icon";
-  src: url("../../../common/layui/layui-v2.13.9/layui/font/iconfont.woff2") format("woff2"),
-       url("../../../common/layui/layui-v2.13.9/layui/font/iconfont.woff") format("woff"),
-       url("../../../common/layui/layui-v2.13.9/layui/font/iconfont.ttf") format("truetype");
+  src: url("vendor/layui/font/iconfont.woff2") format("woff2"),
+       url("vendor/layui/font/iconfont.woff") format("woff"),
+       url("vendor/layui/font/iconfont.ttf") format("truetype");
   font-display: block;
 }
 .layui-icon {

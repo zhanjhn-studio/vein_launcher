@@ -12,7 +12,7 @@ import type {
   VersionInfo,
 } from './types';
 import { CategoryList, Empty, PermissionDialog, StatusDot, ThreePane } from './ui';
-import { layuiVersion, layerMsg } from './layui';
+import { layuiVersion, layerMsg, openLayuiPreview } from './layui';
 
 const CATEGORIES: { key: Category; label: string; hint?: string }[] = [
   { key: 'vanilla', label: '游戏本体' },
@@ -678,6 +678,12 @@ export function ToolboxPage({ notify }: { notify: (text: string) => void }) {
               }
             >
               测试 Layui 弹层
+            </button>
+            <button
+              className="btn sm"
+              onClick={() => openLayuiPreview().catch(() => notify("layui 组件加载失败"))}
+            >
+              Layui 组件预览
             </button>
             <span className="muted">layui {layuiVersion()}</span>
           </div>
