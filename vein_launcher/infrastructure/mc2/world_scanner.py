@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from vein_launcher.common.utils.path_utils import get_version_dir
-from vein_launcher.infrastructure.mc2 import nbt
+from vein_launcher.infrastructure.mc2 import nbt, region
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +67,15 @@ class WorldScanner:
             "structures": None,
             "note": "seed & level.dat only; biome/structure scan pending",
         }
+
+    def scan(self, instance: str, folder: str) -> Dict[str, Any]:
+        """扫描指定存档的群系与结构（region/*.mca）"""
+        world_dir = self._root / instance / "saves" / folder
+        if not world_dir.is_dir():
+            raise FileNotFoundError(f"存档不存在：{world_dir}")
+        detail = region.scan_world(world_dir)
+        base = self.read_world(instance, world_dir) or {}
+        return {**base, "scan": detail}
 
     # ------------------------------------------------------------------
     def instance_names(self) -> List[str]:

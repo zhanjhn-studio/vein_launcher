@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import gzip
+import io
 import struct
 from pathlib import Path
 from typing import Any, BinaryIO, Dict, Tuple
@@ -76,6 +77,14 @@ def _read_payload(reader: _Reader, tag: int) -> Any:
         length = reader.unpack(">i", 4)
         return [reader.unpack(">q", 8) for _ in range(max(0, length))]
     raise ValueError(f"未知 NBT 标签：{tag}")
+
+
+def loads(raw: bytes) -> Any:
+    """从已解压的 NBT 字节解析"""
+    reader = _Reader(io.BytesIO(raw))
+    root_type = reader.unpack(">b", 1)
+    reader.string()  # 根标签名
+    return _read_payload(reader, root_type)
 
 
 def load(path: Path) -> Tuple[str, Any]:

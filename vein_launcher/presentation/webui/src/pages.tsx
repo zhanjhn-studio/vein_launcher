@@ -548,7 +548,7 @@ export function MlcPage({
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState('');
   const [saveWorlds, setSaveWorlds] = useState<
-    { name: string; seed: number; version: string; instance: string; path: string }[]
+    { name: string; seed: number; version: string; instance: string; path: string; folder: string }[]
   >([]);
 
   useEffect(() => {
@@ -596,10 +596,26 @@ export function MlcPage({
     }
   };
 
+  const [scan, setScan] = useState<any>(null);
+
+  const scanWorld = async (instance: string, folder: string) => {
+    setBusy('scan');
+    setScan(null);
+    try {
+      const data = await rpc<any>('mc2.scan', [instance, folder]);
+      setScan(data);
+      setResult(`mc2.scan → ${folder}`);
+    } catch (err) {
+      setResult(`mc2.scan 失败：${(err as Error).message}`);
+    } finally {
+      setBusy('');
+    }
+  };
+
   const loadWorlds = async () => {
     setBusy('mc2');
     try {
-      const list = await rpc<{ name: string; seed: number; version: string; instance: string; path: string }[]>(
+      const list = await rpc<{ name: string; seed: number; version: string; instance: string; path: string; folder: string }[]>(
         'mc2.worlds',
         ['']
       );
@@ -652,15 +668,45 @@ export function MlcPage({
           <div className="empty">No saves found. Launch the game once to create a world.</div>
         ) : (
           saveWorlds.map((w) => (
-            <div className="row-item" key={w.path}>
+            <button
+              className="row-item"
+              key={w.path}
+              onClick={() => scanWorld(w.instance, w.folder)}
+              disabled={busy === 'scan'}
+            >
               <span className="title">{w.name}</span>
               <span className="sub">
                 seed {w.seed} · {w.version || '—'} · {w.instance}
               </span>
-            </div>
+            </button>
           ))
         )}
       </div>
+
+      {scan && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="card-title">
+            MC2 scan · {scan.name} · seed {scan.seed}
+          </div>
+          {Object.entries(scan.scan?.dimensions ?? {}).map(([dim, info]: [string, any]) => (
+            <div key={dim} style={{ marginTop: 10 }}>
+              <div className="kv">
+                <span>{dim}</span>
+                <b>{info.chunks} chunks · {info.files} region files</b>
+              </div>
+              <div className="muted" style={{ marginTop: 4 }}>
+                biomes: {info.biomes.length ? info.biomes.join(', ') : '—'}
+              </div>
+              <div className="muted" style={{ marginTop: 2 }}>
+                structures: {info.structures.length ? info.structures.join(', ') : '—'}
+              </div>
+            </div>
+          ))}
+          {Object.keys(scan.scan?.dimensions ?? {}).length === 0 && (
+            <div className="empty">No region files found in this world.</div>
+          )}
+        </div>
+      )}
 
       <div className="card" style={{ marginTop: 16 }}>
         <div className="card-title">{t('事件流')}</div>

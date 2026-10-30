@@ -112,6 +112,7 @@ class ApiBridge(QObject):
             "update.check": self._update_check,
             "mc2.worlds": self._mc2_worlds,
             "mc2.refresh": self._mc2_worlds,
+            "mc2.scan": self._mc2_scan,
             "app.openUrl": self._open_url,
             "app.pickDirectory": self._pick_directory,
             "minecraft.getDir": self._minecraft_get_dir,
@@ -468,6 +469,9 @@ class ApiBridge(QObject):
             "url": update.get("url", ""),
             "notes": update.get("notes", ""),
         }
+
+    async def _mc2_scan(self, instance: str, folder: str) -> dict:
+        return await asyncio.to_thread(self._ctx.mc2.scan, str(instance), str(folder))
 
     async def _mc2_worlds(self, instance: str = "") -> list:
         return self._ctx.mc2.list_worlds(str(instance) or None)
