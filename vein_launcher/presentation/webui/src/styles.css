@@ -356,3 +356,31 @@ select { cursor: pointer; }
 .layui-icon-link:before { content: "\e64c"; }
 .layui-icon-set:before { content: "\e716"; }
 .layui-icon-util:before { content: "\e631"; }
+
+/* ---------- 公告 / 强制更新 ---------- */
+.notice-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin: 10px 22px 0; padding: 9px 14px;
+  background: #fff8e6; border: 1px solid #f1dfae; border-radius: 12px;
+  color: #7a5c12; font-size: 12.5px;
+}
+.notice-bar .layui-icon-notice { color: #d29922; }
+.notice-bar em { font-style: normal; color: #9a7a2c; opacity: .85; }
+.notice-bar .btn.sm { margin-left: auto; }
+.notice-close { border: 0; background: transparent; color: #b09a5f; }
+
+.force-mask {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(20, 28, 42, .55); backdrop-filter: blur(4px);
+  display: grid; place-items: center;
+}
+.force-modal {
+  width: 520px; background: var(--surface); border-radius: 18px;
+  padding: 24px; box-shadow: var(--shadow-md);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.force-modal h2 { font-size: 19px; }
+.force-item {
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  background: var(--surface-2); display: flex; flex-direction: column; gap: 4px;
+}

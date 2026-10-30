@@ -21,6 +21,8 @@ from vein_launcher.common.utils.path_utils import (
 from vein_launcher.infrastructure.download.downloader import Downloader
 from vein_launcher.infrastructure.network.api_client import MojangApiClient
 from vein_launcher.infrastructure.network.modrinth_api import ModrinthApiClient
+from vein_launcher.infrastructure.mc2.world_scanner import WorldScanner
+from vein_launcher.infrastructure.network.announcement_client import AnnouncementClient
 from vein_launcher.infrastructure.process.java_detector import JavaDetector
 from vein_launcher.mlc.service import MlcService
 
@@ -53,6 +55,10 @@ class AppContext:
         self.accounts.load()
         self.modrinth = ModrinthApiClient()
         self.detector = JavaDetector()
+        self.announcements = AnnouncementClient(
+            self.data_dir / "config" / "announcements.json"
+        )
+        self.mc2 = WorldScanner(self.data_dir / "minecraft" / "instances")
         self.loaders = LoaderService(self.versions, detector=self.detector)
         self.modpacks = ModpackService()
 

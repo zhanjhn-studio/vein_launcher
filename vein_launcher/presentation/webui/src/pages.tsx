@@ -481,6 +481,9 @@ export function MlcPage({
   const [result, setResult] = useState<string>('');
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState('');
+  const [saveWorlds, setSaveWorlds] = useState<
+    { name: string; seed: number; version: string; instance: string; path: string }[]
+  >([]);
 
   useEffect(() => {
     const tick = async () => {
@@ -527,6 +530,22 @@ export function MlcPage({
     }
   };
 
+  const loadWorlds = async () => {
+    setBusy('mc2');
+    try {
+      const list = await rpc<{ name: string; seed: number; version: string; instance: string; path: string }[]>(
+        'mc2.worlds',
+        ['']
+      );
+      setSaveWorlds(list);
+      setResult(`mc2.worlds → ${list.length} 个存档`);
+    } catch (err) {
+      setResult(`mc2.worlds 失败：${(err as Error).message}`);
+    } finally {
+      setBusy('');
+    }
+  };
+
   return (
     <div className="page">
       <div className="pane-head">
@@ -556,6 +575,27 @@ export function MlcPage({
           <pre className="activity">{result || '（调用结果会显示在这里）'}</pre>
         </div>
       </div>
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="pane-head" style={{ padding: '0 0 10px', border: 0 }}>
+          <span>MC2 · World data</span>
+          <button className="btn sm" onClick={loadWorlds} disabled={busy === 'mc2'}>
+            {busy === 'mc2' ? '…' : 'Scan saves'}
+          </button>
+        </div>
+        {saveWorlds.length === 0 ? (
+          <div className="empty">No saves found. Launch the game once to create a world.</div>
+        ) : (
+          saveWorlds.map((w) => (
+            <div className="row-item" key={w.path}>
+              <span className="title">{w.name}</span>
+              <span className="sub">
+                seed {w.seed} · {w.version || '—'} · {w.instance}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+
       <div className="card" style={{ marginTop: 16 }}>
         <div className="card-title">{t('事件流')}</div>
         <div className="activity">{logs.join('\n') || '游戏启动后这里会显示 MLC 事件'}</div>

@@ -27,6 +27,16 @@ from vein_launcher.presentation.context import AppContext
 logger = logging.getLogger(__name__)
 
 
+def _is_older(current: str, minimum: str) -> bool:
+    import re
+
+    def parse(v: str):
+        return [int(x) for x in re.findall(r"\d+", v)[:3]] or [0, 0, 0]
+
+    return parse(current) < parse(minimum)
+
+
+
 class AsyncRunner:
     """后台 asyncio 事件循环"""
 
@@ -92,6 +102,11 @@ class ApiBridge(QObject):
             "app.openDataDir": self._open_data_dir,
             "i18n.get": self._i18n_get,
             "i18n.set": self._i18n_set,
+            "announcements.get": self._announcements_get,
+            "update.check": self._update_check,
+            "mc2.worlds": self._mc2_worlds,
+            "mc2.refresh": self._mc2_worlds,
+            "app.openUrl": self._open_url,
             "mlc.state": self._mlc_state,
             "plugins.state": self._plugins_state,
             "plugins.setEnabled": self._plugins_set_enabled,
@@ -355,6 +370,41 @@ class ApiBridge(QObject):
         ok = translator.set_language(str(lang))
         translator.save_choice()
         return {"ok": ok, "lang": translator.current_lang}
+
+    async def _announcements_get(self, force: bool = False) -> dict:
+        data = await self._ctx.announcements.fetch(bool(force))
+        current = self._ctx.version
+        min_version = str(data.get("min_version") or "")
+        heavy = [a for a in data.get("announcements", []) if a.get("level") == "heavy"]
+        return {
+            "version": data.get("version", ""),
+            "current": current,
+            "announcements": data.get("announcements", []),
+            "update": data.get("update", {}),
+            "force_update": bool(heavy) or bool(min_version and _is_older(current, min_version)),
+            "min_version": min_version,
+        }
+
+    async def _update_check(self) -> dict:
+        data = await self._ctx.announcements.fetch()
+        update = data.get("update") or {}
+        return {
+            "current": self._ctx.version,
+            "latest": update.get("version", ""),
+            "url": update.get("url", ""),
+            "notes": update.get("notes", ""),
+        }
+
+    async def _mc2_worlds(self, instance: str = "") -> list:
+        return self._ctx.mc2.list_worlds(str(instance) or None)
+
+    async def _open_url(self, url: str) -> dict:
+        import webbrowser
+
+        if not str(url).startswith(("http://", "https://")):
+            raise ValueError("仅允许 http(s) 链接")
+        webbrowser.open(str(url))
+        return {"ok": True}
 
     async def _mlc_worlds(self, version_id: str = "") -> dict:
         return self._ctx.mlc.world_info(str(version_id))
