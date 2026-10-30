@@ -120,7 +120,9 @@ export function DownloadPage({
   onInstalled: () => Promise<void>;
   notify: (text: string) => void;
 }) {
-  const [category, setCategory] = useState<Category>('vanilla');
+  const [category, setCategory] = useState<Category>(
+    (sessionStorage.getItem('vl.download.category') as Category) || 'vanilla'
+  );
   const [items, setItems] = useState<VersionInfo[]>([]);
   const [mods, setMods] = useState<ModItem[]>([]);
   const [picked, setPicked] = useState<VersionInfo | ModItem | null>(null);

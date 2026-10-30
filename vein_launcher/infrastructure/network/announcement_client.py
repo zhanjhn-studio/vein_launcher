@@ -27,9 +27,9 @@ from vein_launcher.infrastructure.network.http_client import HttpClient
 logger = logging.getLogger(__name__)
 
 SOURCES = (
+    "https://zhanjhn.github.io/vl/public.js",
     "https://zhanjhn.github.io/public.js",
     "https://zhanjhn.github.io/announcement.json",
-    "https://zhanjhn.github.io/data.json",
 )
 CACHE_TTL = 3600
 

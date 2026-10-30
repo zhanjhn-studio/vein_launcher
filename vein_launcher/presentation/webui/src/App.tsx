@@ -39,9 +39,34 @@ interface AnnouncementPayload {
   update: { version?: string; url?: string; notes?: string };
 }
 
+const KNOWN_PAGES = new Set([
+  'launch', 'download', 'plugins', 'mlc', 'multiplayer', 'settings', 'toolbox',
+]);
+
+function pageFromHash(): string {
+  const raw = window.location.hash.replace(/^#\/?/, '').trim();
+  return KNOWN_PAGES.has(raw) ? raw : 'launch';
+}
+
+function useHashRoute(): [string, (page: string) => void] {
+  const [page, setPageState] = useState(pageFromHash);
+  useEffect(() => {
+    const sync = () => setPageState(pageFromHash());
+    window.addEventListener('hashchange', sync);
+    if (!window.location.hash) window.location.hash = '#/launch';
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
+  const navigate = (next: string) => {
+    const target = KNOWN_PAGES.has(next) ? next : 'launch';
+    if (pageFromHash() !== target) window.location.hash = `#/${target}`;
+    setPageState(target);
+  };
+  return [page, navigate];
+}
+
 export function App() {
   useI18n();
-  const [page, setPage] = useState('launch');
+  const [page, setPage] = useHashRoute();
   const [toast, setToast] = useState('');
   const [installed, setInstalled] = useState<VersionInfo[]>([]);
   const [accounts, setAccounts] = useState<AccountInfo[]>([]);
