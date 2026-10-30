@@ -24,6 +24,7 @@ from vein_launcher.infrastructure.network.modrinth_api import ModrinthApiClient
 from vein_launcher.infrastructure.mc2.world_scanner import WorldScanner
 from vein_launcher.infrastructure.network.announcement_client import AnnouncementClient
 from vein_launcher.infrastructure.process.java_detector import JavaDetector
+from vein_launcher.infrastructure.process.java_manager import JavaManager
 from vein_launcher.mlc.service import MlcService
 
 logger = logging.getLogger(__name__)
@@ -55,6 +56,7 @@ class AppContext:
         self.accounts.load()
         self.modrinth = ModrinthApiClient()
         self.detector = JavaDetector()
+        self.java = JavaManager(self.detector)
         self.announcements = AnnouncementClient(
             self.data_dir / "config" / "announcements.json"
         )

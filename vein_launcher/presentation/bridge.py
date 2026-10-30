@@ -98,6 +98,8 @@ class ApiBridge(QObject):
             "mods.featured": self._mods_featured,
             "mods.install": self._mods_install,
             "java.detect": self._java_detect,
+            "java.ensure": self._java_ensure,
+            "java.resolve": self._java_resolve,
             "downloads.list": self._downloads_list,
             "mlc.worlds": self._mlc_worlds,
             "app.openDataDir": self._open_data_dir,
@@ -278,9 +280,26 @@ class ApiBridge(QObject):
     async def _versions_delete(self, version_id: str) -> dict:
         return {"deleted": self._ctx.versions.delete(str(version_id))}
 
+    async def _java_ensure(self, major: int = 17) -> dict:
+        return await self._ctx.java.ensure(int(major), progress=lambda phase, done, total: None)
+
+    async def _java_resolve(self, major: int = 17) -> dict:
+        return await self._ctx.java.ensure(int(major), download=False)
+
     async def _launch(self, version_id: str, username: str = "Player") -> dict:
-        pid = await self._ctx.launcher.launch(str(version_id), str(username))
-        return {"pid": pid}
+        merged = await self._ctx.versions.merged(str(version_id))
+        major = int((merged.get("javaVersion") or {}).get("majorVersion", 8))
+        java_path = None
+        try:
+            ensured = await self._ctx.java.ensure(major)
+            java_path = ensured.get("path")
+            logger.info("启动使用 Java %s：%s", major, java_path)
+        except Exception as exc:
+            logger.warning("Java 自动匹配失败，回退系统探测：%s", exc)
+        pid = await self._ctx.launcher.launch(
+            str(version_id), str(username), java_path=java_path
+        )
+        return {"pid": pid, "java": java_path}
 
     async def _accounts_list(self) -> list:
         return self._ctx.accounts.list()

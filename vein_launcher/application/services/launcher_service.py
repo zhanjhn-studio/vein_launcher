@@ -44,11 +44,12 @@ class LauncherService:
         version_id: str,
         username: str = "Player",
         java: Optional[JavaRuntime] = None,
+        java_path: Optional[str] = None,
     ) -> List[str]:
         merged = await self._versions.merged(version_id)
         cfg = settings_manager.get()
 
-        if java is None:
+        if java is None and java_path is None:
             required = int((merged.get("javaVersion") or {}).get("majorVersion", 8))
             runtimes = await self._detector.detect()
             java = await self._detector.select(required, runtimes)
@@ -82,8 +83,9 @@ class LauncherService:
         jvm_args = self._render((merged.get("arguments") or {}).get("jvm", []), replacements)
         game_args = self._render((merged.get("arguments") or {}).get("game", []), replacements)
 
+        java_bin = java_path or (str(java.path) if java else "")
         command = [
-            str(java.path),
+            java_bin,
             f"-Xms{cfg.launch.memory_min}M",
             f"-Xmx{cfg.launch.memory_max}M",
             *cfg.launch.jvm_args,
@@ -96,8 +98,9 @@ class LauncherService:
         command += game_args
         return command
 
-    async def launch(self, version_id: str, username: str = "Player") -> int:
-        command = await self.build_command(version_id, username)
+    async def launch(self, version_id: str, username: str = "Player",
+                     java_path: Optional[str] = None) -> int:
+        command = await self.build_command(version_id, username, java_path=java_path)
         return await self._process.launch(command, cwd=get_version_dir(version_id))
 
     # ------------------------------------------------------------------

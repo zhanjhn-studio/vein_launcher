@@ -620,6 +620,8 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [runtimes, setRuntimes] = useState<JavaRuntime[]>([]);
   const [mcDir, setMcDir] = useState('');
+  const [javaBusy, setJavaBusy] = useState(0);
+  const [javaMsg, setJavaMsg] = useState('');
 
   useEffect(() => {
     rpc<{ path: string }>('minecraft.getDir')
@@ -668,6 +670,32 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
             <>
               <h2>Java 运行时</h2>
               <button className="btn" onClick={detect}>{t('自动探测')}</button>
+              <div className="row-actions" style={{ marginTop: 10 }}>
+                {[8, 17, 21].map((major) => (
+                  <button
+                    key={major}
+                    className="btn sm"
+                    disabled={javaBusy === major}
+                    onClick={async () => {
+                      setJavaBusy(major);
+                      setJavaMsg(`Installing Java ${major}…`);
+                      try {
+                        const r = await rpc<{ path: string; downloaded: boolean }>('java.ensure', [
+                          major,
+                        ]);
+                        setJavaMsg(`Java ${major}: ${r.path} (${r.downloaded ? 'downloaded' : 'existing'})`);
+                      } catch (err) {
+                        setJavaMsg(`Java ${major} failed: ${(err as Error).message}`);
+                      } finally {
+                        setJavaBusy(0);
+                      }
+                    }}
+                  >
+                    {javaBusy === major ? '…' : `Install Java ${major}`}
+                  </button>
+                ))}
+              </div>
+              {javaMsg && <p className="muted">{javaMsg}</p>}
               {runtimes.length === 0 ? (
                 <Empty>点击探测扫描本机 Java</Empty>
               ) : (
