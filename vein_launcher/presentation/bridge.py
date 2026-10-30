@@ -90,6 +90,8 @@ class ApiBridge(QObject):
             "downloads.list": self._downloads_list,
             "mlc.worlds": self._mlc_worlds,
             "app.openDataDir": self._open_data_dir,
+            "i18n.get": self._i18n_get,
+            "i18n.set": self._i18n_set,
             "mlc.state": self._mlc_state,
             "plugins.state": self._plugins_state,
             "plugins.setEnabled": self._plugins_set_enabled,
@@ -341,6 +343,18 @@ class ApiBridge(QObject):
 
     async def _downloads_list(self) -> list:
         return list(self._downloads.values())
+
+    async def _i18n_get(self) -> dict:
+        from vein_launcher.common.i18n.translator import translator
+
+        return {"lang": translator.current_lang, "languages": translator.languages}
+
+    async def _i18n_set(self, lang: str) -> dict:
+        from vein_launcher.common.i18n.translator import translator
+
+        ok = translator.set_language(str(lang))
+        translator.save_choice()
+        return {"ok": ok, "lang": translator.current_lang}
 
     async def _mlc_worlds(self, version_id: str = "") -> dict:
         return self._ctx.mlc.world_info(str(version_id))

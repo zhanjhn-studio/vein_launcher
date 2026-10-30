@@ -11,6 +11,7 @@ import {
   ToolboxPage,
 } from './pages';
 import { DownloadBar, Toast } from './ui';
+import { initI18n, t, useI18n } from './i18n';
 
 const NAV = [
   { key: 'launch', label: '启动', icon: 'layui-icon-play' },
@@ -23,6 +24,7 @@ const NAV = [
 ];
 
 export function App() {
+  useI18n();
   const [page, setPage] = useState('launch');
   const [toast, setToast] = useState('');
   const [installed, setInstalled] = useState<VersionInfo[]>([]);
@@ -42,6 +44,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    initI18n();
     refreshInstalled().catch(() => {});
     rpc<AccountInfo[]>('accounts.list').then(setAccounts).catch(() => {});
     const offNav = on<string>('vein:navigate', (p) => setPage(p));
@@ -69,7 +72,7 @@ export function App() {
               onClick={() => setPage(item.key)}
             >
               <i className={`ico layui-icon ${item.icon}`} />
-              {item.label}
+              {t(item.label)}
             </button>
           ))}
         </nav>

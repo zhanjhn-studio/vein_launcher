@@ -84,9 +84,9 @@ class SettingsManager:
     def _get_config_path(self) -> Path:
         """获取配置文件路径"""
         # Windows: %APPDATA%\VeinLauncher\config.json
-        import os
-        base = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
-        config_dir = Path(base) / "VeinLauncher"
+        from vein_launcher.common.utils.path_utils import get_config_dir
+
+        config_dir = get_config_dir()
         config_dir.mkdir(parents=True, exist_ok=True)
         return config_dir / "config.json"
     

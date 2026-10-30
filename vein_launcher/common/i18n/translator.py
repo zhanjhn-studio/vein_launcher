@@ -1,79 +1,94 @@
-"""国际化 (i18n) 翻译器"""
+"""国际化 (i18n) 翻译器
+
+默认英文（en_US）；语言选择持久化到 <root>/config/language.json。
+"""
+
+from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
+
+DEFAULT_LANG = "en_US"
+SUPPORTED = {"en_US": "English", "zh_CN": "简体中文"}
 
 
 class Translator:
-    """多语言翻译器"""
-    
-    def __init__(self):
-        self._languages: dict[str, dict] = {}
-        self._current_lang: str = "zh_CN"
+    def __init__(self) -> None:
+        self._languages: Dict[str, dict] = {}
+        self._current_lang: str = DEFAULT_LANG
         self._load_all_languages()
-    
+        self._restore_choice()
+
+    # ------------------------------------------------------------------
+    def _locale_dir(self) -> Path:
+        return Path(__file__).parent / "locales"
+
     def _load_all_languages(self) -> None:
-        """加载所有语言文件"""
-        locale_dir = Path(__file__).parent / "locales"
-        
-        for lang_file in locale_dir.glob("*.json"):
-            lang_code = lang_file.stem  # zh_CN, en_US
+        for lang_file in self._locale_dir().glob("*.json"):
             try:
-                data = json.loads(lang_file.read_text(encoding="utf-8"))
-                self._languages[lang_code] = data
-            except Exception as e:
-                print(f"Failed to load {lang_file}: {e}")
-    
+                self._languages[lang_file.stem] = json.loads(
+                    lang_file.read_text(encoding="utf-8")
+                )
+            except (OSError, json.JSONDecodeError):
+                continue
+
+    def _choice_file(self) -> Path:
+        from vein_launcher.common.utils.path_utils import get_config_dir
+
+        return get_config_dir() / "language.json"
+
+    def _restore_choice(self) -> None:
+        try:
+            data = json.loads(self._choice_file().read_text(encoding="utf-8"))
+            lang = data.get("lang")
+            if lang in self._languages:
+                self._current_lang = lang
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    def save_choice(self) -> None:
+        try:
+            path = self._choice_file()
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps({"lang": self._current_lang}, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except OSError:
+            pass
+
+    # ------------------------------------------------------------------
+    @property
+    def current_lang(self) -> str:
+        return self._current_lang
+
+    @property
+    def languages(self) -> Dict[str, str]:
+        return {code: SUPPORTED.get(code, code) for code in self._languages}
+
     def set_language(self, lang_code: str) -> bool:
-        """切换语言"""
         if lang_code in self._languages:
             self._current_lang = lang_code
             return True
         return False
-    
+
     def get(self, key: str, default: Optional[str] = None) -> str:
-        """
-        获取翻译文本
-        
-        Args:
-            key: 键名，支持点号分隔如 "nav.home"
-            default: 如果找不到翻译时返回的默认值
-            
-        Returns:
-            翻译后的文本
-        """
         langs = self._languages.get(self._current_lang, {})
-        
-        # 按点号分割键名，逐层访问字典
-        parts = key.split(".")
         result = langs
-        
-        try:
-            for part in parts:
-                if isinstance(result, dict):
-                    result = result[part]
-                else:
-                    # 找不到时返回默认值或原始键
-                    return default if default is not None else key
-            
-            return str(result) if result is not None else key
-        except (KeyError, TypeError):
-            return default if default is not None else key
-    
+        for part in key.split("."):
+            if isinstance(result, dict) and part in result:
+                result = result[part]
+            else:
+                return default if default is not None else key
+        return str(result) if result is not None else key
+
     def t(self, key: str, default: Optional[str] = None) -> str:
-        """翻译别名（方便使用）"""
         return self.get(key, default)
 
 
-# 全局单例
 translator = Translator()
 
+
 def _(key: str, default: Optional[str] = None) -> str:
-    """
-    翻译快捷函数（类似 gettext 的 _() 语法）
-    
-    示例：
-        label = _("nav.home")
-    """
     return translator.get(key, default)

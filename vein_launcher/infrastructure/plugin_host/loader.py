@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from vein_launcher.common.exceptions import VeinError
-from vein_launcher.common.utils.path_utils import ensure_dir, get_app_data_dir
+from vein_launcher.common.utils.path_utils import ensure_dir, get_plugin_dir
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class PluginLoadError(VeinError):
 
 
 def plugins_root() -> Path:
-    return ensure_dir(get_app_data_dir() / "plugins")
+    return ensure_dir(get_plugin_dir())
 
 
 def sanitize(name: str) -> str:

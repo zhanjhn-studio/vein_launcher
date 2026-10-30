@@ -13,6 +13,7 @@ import type {
 } from './types';
 import { CategoryList, Empty, PermissionDialog, StatusDot, ThreePane } from './ui';
 import { layuiVersion, layerMsg, openLayuiPreview } from './layui';
+import { currentLang, setLang, t } from './i18n';
 
 const CATEGORIES: { key: Category; label: string; hint?: string }[] = [
   { key: 'vanilla', label: '游戏本体' },
@@ -97,7 +98,7 @@ export function LaunchPage({
           </button>
         </div>
         <div className="hero-right">
-          <div className="card-title">游戏日志</div>
+          <div className="card-title">{t('游戏日志')}</div>
           {logs.length === 0 ? (
             <Empty>启动后这里会实时显示游戏输出</Empty>
           ) : (
@@ -255,7 +256,7 @@ export function DownloadPage({
                     <span className="sub">⬇ {m.downloads.toLocaleString()}</span>
                   </button>
                 ))}
-            {!busy && items.length === 0 && mods.length === 0 && <Empty>暂无内容</Empty>}
+            {!busy && items.length === 0 && mods.length === 0 && <Empty>{t('暂无内容')}</Empty>}
           </div>
         </>
       }
@@ -386,11 +387,11 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
         middle={
           <>
             <div className="pane-head">
-              <span>插件</span>
+              <span>{t('插件')}</span>
               <StatusDot on={state.host.running} label={state.host.running ? `宿主 ${state.host.pid}` : '宿主未启动'} />
             </div>
             <div className="list">
-              {shown.length === 0 && <Empty>还没有插件</Empty>}
+              {shown.length === 0 && <Empty>t('还没有插件')</Empty>}
               {shown.map((p) => (
                 <button
                   key={p.name}
@@ -410,7 +411,7 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
               <h2>{current.displayName}</h2>
               <div className="muted">{current.description || current.name}</div>
               <div className="perm-block">
-                <div className="card-title">权限</div>
+                <div className="card-title">{t('权限')}</div>
                 {current.permissions.length === 0 ? (
                   <span className="muted">未声明权限</span>
                 ) : (
@@ -538,7 +539,7 @@ export function MlcPage({
       </div>
       <div className="cards">
         <div className="card">
-          <div className="card-title">连接</div>
+          <div className="card-title">{t('连接')}</div>
           <div className="kv"><span>状态</span><b>{state.connected ? '运行中' : '空闲'}</b></div>
           <div className="kv"><span>实例</span><b>{selected || '—'}</b></div>
           <div className="row-actions">
@@ -551,12 +552,12 @@ export function MlcPage({
           </div>
         </div>
         <div className="card">
-          <div className="card-title">调用返回</div>
+          <div className="card-title">{t('调用返回')}</div>
           <pre className="activity">{result || '（调用结果会显示在这里）'}</pre>
         </div>
       </div>
       <div className="card" style={{ marginTop: 16 }}>
-        <div className="card-title">事件流（mlc.game.log）</div>
+        <div className="card-title">{t('事件流')}</div>
         <div className="activity">{logs.join('\n') || '游戏启动后这里会显示 MLC 事件'}</div>
       </div>
     </div>
@@ -599,6 +600,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
             { key: 'about', label: '关于' },
             { key: 'java', label: 'Java' },
             { key: 'logs', label: '日志' },
+            { key: 'language', label: '语言 / Language' },
           ]}
           active={section}
           onPick={setSection}
@@ -609,7 +611,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
           {section === 'about' && (
             <>
               <h2>关于</h2>
-              <div className="kv"><span>版本</span><b>{info?.version ?? '—'}</b></div>
+              <div className="kv"><span>{t('版本列表')}</span><b>{info?.version ?? '—'}</b></div>
               <div className="kv"><span>数据目录</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
               <div className="kv"><span>架构</span><b>Python + PySide6 WebView + React + TS</b></div>
             </>
@@ -617,7 +619,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
           {section === 'java' && (
             <>
               <h2>Java 运行时</h2>
-              <button className="btn" onClick={detect}>自动探测</button>
+              <button className="btn" onClick={detect}>{t('自动探测')}</button>
               {runtimes.length === 0 ? (
                 <Empty>点击探测扫描本机 Java</Empty>
               ) : (
@@ -628,6 +630,26 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                   </div>
                 ))
               )}
+            </>
+          )}
+          {section === 'language' && (
+            <>
+              <h2>Language / 语言</h2>
+              <p className="muted">The launcher defaults to English. Switching applies immediately and is saved.</p>
+              <div className="row-actions">
+                <button
+                  className={currentLang() === 'en' ? 'btn primary' : 'btn'}
+                  onClick={() => setLang('en')}
+                >
+                  English
+                </button>
+                <button
+                  className={currentLang() === 'zh' ? 'btn primary' : 'btn'}
+                  onClick={() => setLang('zh')}
+                >
+                  简体中文
+                </button>
+              </div>
             </>
           )}
           {section === 'logs' && (
@@ -655,20 +677,20 @@ export function ToolboxPage({ notify }: { notify: (text: string) => void }) {
 
   return (
     <div className="page">
-      <div className="page-head"><h1>工具箱</h1><span className="muted">快捷操作</span></div>
+      <div className="page-head"><h1>{t('工具箱')}</h1><span className="muted">快捷操作</span></div>
       <div className="cards">
         <div className="card">
-          <div className="card-title">目录</div>
+          <div className="card-title">{t('目录')}</div>
           <div className="kv"><span>数据目录</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
           <div className="row-actions">
-            <button className="btn" onClick={() => rpc('logs.openDir').catch(() => {})}>打开日志目录</button>
+            <button className="btn" onClick={() => rpc('logs.openDir').catch(() => {})}>{t('打开日志目录')}</button>
             <button className="btn" onClick={() => rpc('app.openDataDir').catch((e) => notify((e as Error).message))}>
               打开数据目录
             </button>
           </div>
         </div>
         <div className="card">
-          <div className="card-title">说明</div>
+          <div className="card-title">{t('说明')}</div>
           <p className="muted">下载缓存位于 assets/objects，下载中断会保留 .part 便于续传。</p>
           <div className="row-actions" style={{ marginTop: 10, alignItems: "center" }}>
             <button

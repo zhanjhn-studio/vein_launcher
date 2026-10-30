@@ -12,7 +12,12 @@ from vein_launcher.application.services.loader_service import LoaderService
 from vein_launcher.application.services.modpack_service import ModpackService
 from vein_launcher.application.services.plugin_service import PluginService
 from vein_launcher.application.services.version_service import VersionService
-from vein_launcher.common.utils.path_utils import ensure_dir, get_app_data_dir, get_version_dir
+from vein_launcher.common.utils.path_utils import (
+    bootstrap_layout,
+    ensure_dir,
+    get_root_dir,
+    get_version_dir,
+)
 from vein_launcher.infrastructure.download.downloader import Downloader
 from vein_launcher.infrastructure.network.api_client import MojangApiClient
 from vein_launcher.infrastructure.network.modrinth_api import ModrinthApiClient
@@ -38,7 +43,8 @@ class AppContext:
 
     def __init__(self) -> None:
         self.version = VERSION
-        self.data_dir = ensure_dir(get_app_data_dir())
+        bootstrap_layout()
+        self.data_dir = get_root_dir()
 
         self.versions_api = MojangApiClient()
         self.versions = VersionService(api=self.versions_api)
