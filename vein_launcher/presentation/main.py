@@ -75,6 +75,7 @@ class MainWindow(QMainWindow):
 
         self.channel = QWebChannel(page)
         self.bridge = ApiBridge(context, page, self)
+        self.bridge._pick_request.connect(self._on_pick_directory)
         self.channel.registerObject("bridge", self.bridge)
         page.setWebChannel(self.channel)
 
@@ -113,6 +114,18 @@ class MainWindow(QMainWindow):
             logger.info("页面加载完成")
         else:
             logger.error("页面加载失败")
+
+    def _on_pick_directory(self, holder: dict) -> None:
+        """在 UI 线程弹出目录选择框（供 bridge 的 app.pickDirectory 使用）"""
+        from PySide6.QtWidgets import QFileDialog
+
+        start = str(Path.home())
+        current = holder.get("default") or start
+        chosen = QFileDialog.getExistingDirectory(
+            self, holder.get("title", "Select folder"), current
+        )
+        holder["result"] = chosen or ""
+        holder["event"].set()
 
     def _on_renderer_crashed(self, status, exit_code: int) -> None:
         logger.critical("渲染进程终止：status=%s exit_code=%s", status, exit_code)
@@ -211,6 +224,37 @@ def main() -> int:
 
     code = app.exec()
     logger.info("退出，code=%s", code)
+
+    if os.environ.get("VEIN_RESET_ON_EXIT") == "1":
+        import shutil
+        import time as _time
+
+        from vein_launcher.common.utils.path_utils import get_root_dir
+
+        root = get_root_dir()
+        logger.info("测试清理：删除数据根目录 %s", root)
+
+        # Windows 下必须先把日志/崩溃文件句柄关掉，否则目录删不干净
+        faulthandler.disable()
+        if _crash_handle is not None:
+            try:
+                _crash_handle.close()
+            except OSError:
+                pass
+        for handler in list(logger_root.handlers):
+            try:
+                handler.close()
+            except OSError:
+                pass
+            logger_root.removeHandler(handler)
+
+        for attempt in range(3):
+            shutil.rmtree(root, ignore_errors=True)
+            if not root.exists():
+                break
+            _time.sleep(0.4)
+        if root.exists():
+            print(f"failed to remove {root}")  # 只在本机调试；正常无控制台
     return code
 
 

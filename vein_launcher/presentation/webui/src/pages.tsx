@@ -619,6 +619,13 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [section, setSection] = useState('about');
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [runtimes, setRuntimes] = useState<JavaRuntime[]>([]);
+  const [mcDir, setMcDir] = useState('');
+
+  useEffect(() => {
+    rpc<{ path: string }>('minecraft.getDir')
+      .then((r) => setMcDir(r.path))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     rpc<AppInfo>('app.info').then(setInfo).catch(() => {});
@@ -639,6 +646,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
           items={[
             { key: 'about', label: '关于' },
             { key: 'java', label: 'Java' },
+            { key: 'game', label: '游戏目录' },
             { key: 'logs', label: '日志' },
             { key: 'language', label: '语言 / Language' },
           ]}
@@ -670,6 +678,44 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                   </div>
                 ))
               )}
+            </>
+          )}
+          {section === 'game' && (
+            <>
+              <h2>Game folder (.minecraft)</h2>
+              <p className="muted">
+                Use an existing .minecraft directory, or keep the launcher-managed one.
+              </p>
+              <div className="kv">
+                <span>Current</span>
+                <b className="mono">{mcDir || '—'}</b>
+              </div>
+              <div className="row-actions">
+                <button
+                  className="btn"
+                  onClick={async () => {
+                    const picked = await rpc<{ path: string }>('app.pickDirectory', [
+                      'Select .minecraft folder',
+                    ]);
+                    if (!picked.path) return;
+                    const applied = await rpc<{ path: string }>('minecraft.setDir', [picked.path]);
+                    setMcDir(applied.path);
+                    notify(`Game folder: ${applied.path}`);
+                  }}
+                >
+                  Choose…
+                </button>
+                <button
+                  className="btn"
+                  onClick={async () => {
+                    const applied = await rpc<{ path: string }>('minecraft.setDir', ['']);
+                    setMcDir(applied.path);
+                    notify('Reverted to launcher-managed folder');
+                  }}
+                >
+                  Use default
+                </button>
+              </div>
             </>
           )}
           {section === 'language' && (

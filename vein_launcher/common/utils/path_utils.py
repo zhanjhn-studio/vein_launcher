@@ -14,6 +14,7 @@ VeinLauncher/
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import shutil
@@ -57,8 +58,40 @@ def get_config_dir() -> Path:
     return get_root_dir() / "config"
 
 
+def _minecraft_override_file() -> Path:
+    return get_config_dir() / "minecraft_dir.json"
+
+
 def get_minecraft_dir() -> Path:
+    """默认 <root>/minecraft；用户可在设置里指定自己的 .minecraft 目录"""
+    override = _minecraft_override_file()
+    if override.is_file():
+        try:
+            data = json.loads(override.read_text(encoding="utf-8"))
+            path = Path(str(data.get("path", "")).strip())
+            if path and path.is_dir():
+                return path
+        except (OSError, json.JSONDecodeError):
+            pass
     return get_root_dir() / "minecraft"
+
+
+def set_minecraft_dir(path: str | None) -> Path:
+    """设置或清除 .minecraft 目录；传空则恢复默认"""
+    override = _minecraft_override_file()
+    if not path:
+        override.unlink(missing_ok=True)
+        return get_root_dir() / "minecraft"
+    target = Path(path).expanduser()
+    if not target.is_dir():
+        raise ValueError(f"目录不存在：{target}")
+    for sub in ("instances", "assets", "libraries"):
+        ensure_dir(target / sub) if sub == "instances" else None
+    override.parent.mkdir(parents=True, exist_ok=True)
+    override.write_text(
+        json.dumps({"path": str(target)}, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return target
 
 
 def get_downloads_dir() -> Path:

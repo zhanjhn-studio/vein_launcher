@@ -91,4 +91,17 @@ class AppContext:
         await self.modrinth.close()
 
 
-__all__ = ["AppContext", "VERSION", "SUBDIRS"]
+async def reset_data_root() -> bool:
+    """测试用：删除整个 VeinLauncher 数据根目录"""
+    import shutil
+
+    from vein_launcher.common.utils.path_utils import get_root_dir
+
+    root = get_root_dir()
+    if not root.exists():
+        return False
+    shutil.rmtree(root, ignore_errors=True)
+    return not root.exists()
+
+
+__all__ = ["AppContext", "VERSION", "SUBDIRS", "reset_data_root"]

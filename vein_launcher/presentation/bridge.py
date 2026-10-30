@@ -69,6 +69,7 @@ class ApiBridge(QObject):
 
     # 线程安全的 JS 执行通道：后台线程 emit，UI 线程执行
     _js_request = Signal(str)
+    _pick_request = Signal(object)
 
     def __init__(self, context: AppContext, page, parent: Optional[QObject] = None):
         super().__init__(parent)
@@ -107,6 +108,9 @@ class ApiBridge(QObject):
             "mc2.worlds": self._mc2_worlds,
             "mc2.refresh": self._mc2_worlds,
             "app.openUrl": self._open_url,
+            "app.pickDirectory": self._pick_directory,
+            "minecraft.getDir": self._minecraft_get_dir,
+            "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
             "plugins.state": self._plugins_state,
             "plugins.setEnabled": self._plugins_set_enabled,
@@ -370,6 +374,30 @@ class ApiBridge(QObject):
         ok = translator.set_language(str(lang))
         translator.save_choice()
         return {"ok": ok, "lang": translator.current_lang}
+
+    async def _pick_directory(self, title: str = "Select folder") -> dict:
+        import threading
+
+        holder = {"title": str(title), "result": "", "event": threading.Event()}
+        self._pick_request.emit(holder)
+        await asyncio.to_thread(holder["event"].wait, 60)
+        return {"path": holder.get("result", "")}
+
+    async def _minecraft_get_dir(self) -> dict:
+        from vein_launcher.common.utils.path_utils import get_minecraft_dir
+
+        return {"path": str(get_minecraft_dir())}
+
+    async def _minecraft_set_dir(self, path: str = "") -> dict:
+        from vein_launcher.common.utils.path_utils import (
+            bootstrap_layout,
+            get_minecraft_dir,
+            set_minecraft_dir,
+        )
+
+        target = set_minecraft_dir(str(path) or None)
+        bootstrap_layout()
+        return {"path": str(get_minecraft_dir()), "ok": target.is_dir()}
 
     async def _announcements_get(self, force: bool = False) -> dict:
         data = await self._ctx.announcements.fetch(bool(force))
