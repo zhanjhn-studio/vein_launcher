@@ -45,3 +45,9 @@ preview.html
 
 # Word 文档不纳入版本库
 *.docx
+
+# 非项目文件
+make_*.py
+assets/_slide.png
+01_*.png
+preview.html
