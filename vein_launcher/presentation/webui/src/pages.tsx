@@ -12,6 +12,7 @@ import type {
   VersionInfo,
 } from './types';
 import { CategoryList, Empty, PermissionDialog, StatusDot, ThreePane } from './ui';
+import { layuiVersion, layerMsg } from './layui';
 
 const CATEGORIES: { key: Category; label: string; hint?: string }[] = [
   { key: 'vanilla', label: '游戏本体' },
@@ -669,6 +670,17 @@ export function ToolboxPage({ notify }: { notify: (text: string) => void }) {
         <div className="card">
           <div className="card-title">说明</div>
           <p className="muted">下载缓存位于 assets/objects，下载中断会保留 .part 便于续传。</p>
+          <div className="row-actions" style={{ marginTop: 10, alignItems: "center" }}>
+            <button
+              className="btn sm"
+              onClick={() =>
+                layerMsg(`Layui ${layuiVersion()} 已就绪`).catch(() => notify("layui 加载失败"))
+              }
+            >
+              测试 Layui 弹层
+            </button>
+            <span className="muted">layui {layuiVersion()}</span>
+          </div>
         </div>
       </div>
     </div>
