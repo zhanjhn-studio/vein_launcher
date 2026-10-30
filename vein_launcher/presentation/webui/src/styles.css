@@ -331,3 +331,28 @@ select { cursor: pointer; }
   .hero { grid-template-columns: 1fr; }
   .cards { grid-template-columns: 1fr; }
 }
+
+/* ---------- Layui 图标字体（仅图标，不含 layui 重置样式） ---------- */
+@font-face {
+  font-family: "layui-icon";
+  src: url("../../../common/layui/layui-v2.13.9/layui/font/iconfont.woff2") format("woff2"),
+       url("../../../common/layui/layui-v2.13.9/layui/font/iconfont.woff") format("woff"),
+       url("../../../common/layui/layui-v2.13.9/layui/font/iconfont.ttf") format("truetype");
+  font-display: block;
+}
+.layui-icon {
+  font-family: "layui-icon" !important;
+  font-style: normal;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-block;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.layui-icon-play:before { content: "\e652"; }
+.layui-icon-download-circle:before { content: "\e601"; }
+.layui-icon-app:before { content: "\e653"; }
+.layui-icon-console:before { content: "\e665"; }
+.layui-icon-link:before { content: "\e64c"; }
+.layui-icon-set:before { content: "\e716"; }
+.layui-icon-util:before { content: "\e631"; }

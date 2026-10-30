@@ -13,13 +13,13 @@ import {
 import { DownloadBar, Toast } from './ui';
 
 const NAV = [
-  { key: 'launch', label: '启动', icon: '▶' },
-  { key: 'download', label: '下载', icon: '↓' },
-  { key: 'plugins', label: '插件', icon: '⌘', star: true },
-  { key: 'mlc', label: 'MLC', icon: '◈' },
-  { key: 'multiplayer', label: '联机', icon: '⇄' },
-  { key: 'settings', label: '设置', icon: '⚙' },
-  { key: 'toolbox', label: '工具箱', icon: '▦' },
+  { key: 'launch', label: '启动', icon: 'layui-icon-play' },
+  { key: 'download', label: '下载', icon: 'layui-icon-download-circle' },
+  { key: 'plugins', label: '插件', icon: 'layui-icon-app', star: true },
+  { key: 'mlc', label: 'MLC', icon: 'layui-icon-console' },
+  { key: 'multiplayer', label: '联机', icon: 'layui-icon-link' },
+  { key: 'settings', label: '设置', icon: 'layui-icon-set' },
+  { key: 'toolbox', label: '工具箱', icon: 'layui-icon-util' },
 ];
 
 export function App() {
@@ -68,7 +68,7 @@ export function App() {
               className={`nav-btn ${page === item.key ? 'active' : ''} ${item.star ? 'star' : ''}`}
               onClick={() => setPage(item.key)}
             >
-              <span className="ico">{item.icon}</span>
+              <i className={`ico layui-icon ${item.icon}`} />
               {item.label}
             </button>
           ))}
