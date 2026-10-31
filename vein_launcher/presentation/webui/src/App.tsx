@@ -109,6 +109,11 @@ export function App() {
 
   return (
     <div className="shell">
+      <div className="aurora" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </div>
       {forced && !dismissed && (
         <div className="force-mask">
           <div className="force-modal">

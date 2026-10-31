@@ -29,7 +29,7 @@ from vein_launcher.mlc.service import MlcService
 
 logger = logging.getLogger(__name__)
 
-VERSION = "0.0.1"
+VERSION = "0.0.3"
 
 SUBDIRS = {
     "mod": "mods",
