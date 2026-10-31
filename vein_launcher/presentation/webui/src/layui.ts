@@ -92,6 +92,7 @@ export async function layerOpen(title: string, html: string, width = '560px', he
     title,
     area: [width, height],
     shadeClose: true,
+    className: 'vl-layer',
     content: html,
   });
 }

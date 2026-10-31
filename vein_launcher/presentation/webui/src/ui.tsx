@@ -146,3 +146,61 @@ export function Toast({ text }: { text: string }) {
   if (!text) return null;
   return <div className="toast">{text}</div>;
 }
+
+
+export function LogPanel({
+  lines,
+  title = 'Game log',
+  height = 320,
+}: {
+  lines: string[];
+  title?: string;
+  height?: number;
+}) {
+  const [open, setOpen] = useState(true);
+  const levelOf = (line: string): string => {
+    if (/\b(ERROR|FATAL|Exception|Traceback)\b/i.test(line)) return 'error';
+    if (/\b(WARN|WARNING)\b/i.test(line)) return 'warn';
+    if (/\b(INFO|DEBUG)\b/i.test(line)) return 'info';
+    return '';
+  };
+  return (
+    <section className="log-panel">
+      <div className="log-head">
+        <span className="title">{title}</span>
+        <span className="spacer" />
+        <span className="muted">{lines.length}</span>
+        <button className="btn sm ghost" onClick={() => setOpen((v) => !v)}>
+          {open ? '收起' : '展开'}
+        </button>
+      </div>
+      {open && (
+        <div className="log-body" style={{ height }}>
+          {lines.length === 0 ? (
+            <div className="log-empty">启动游戏后日志会在这里实时滚动</div>
+          ) : (
+            lines.map((line, index) => (
+              <div className={`log-line ${levelOf(line)}`} key={index}>
+                {line}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+export function Skeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div className="skeleton skeleton-row" key={i} />
+      ))}
+    </div>
+  );
+}
+
+export function Spinner() {
+  return <span className="spinner" />;
+}
