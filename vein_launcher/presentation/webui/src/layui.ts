@@ -11,7 +11,7 @@ const moduleCache = new Map<string, Promise<any>>();
 
 export function layuiVersion(): string {
   const layui = (window as any).layui;
-  return layui?.v ? String(layui.v) : '未加载';
+  return layui?.v ? String(layui.v) : 'not loaded';
 }
 
 function waitForLayui(timeoutMs = 5000): Promise<any> {
@@ -24,7 +24,7 @@ function waitForLayui(timeoutMs = 5000): Promise<any> {
         return;
       }
       if (Date.now() - started > timeoutMs) {
-        reject(new Error('layui.js 未加载（检查 vendor/layui/layui.js）'));
+        reject(new Error('layui.js not loaded (check vendor/layui/layui.js)'));
         return;
       }
       window.setTimeout(tick, 50);
@@ -103,31 +103,31 @@ export async function openLayuiPreview(): Promise<void> {
     <div style="padding:16px">
       <form class="layui-form">
         <div class="layui-form-item">
-          <label class="layui-form-label">昵称</label>
+          <label class="layui-form-label">Nickname</label>
           <div class="layui-input-block">
             <input type="text" name="name" lay-verify="required" placeholder="layui Form component"
                    autocomplete="off" class="layui-input">
           </div>
         </div>
         <div class="layui-form-item">
-          <label class="layui-form-label">开关</label>
+          <label class="layui-form-label">Toggle</label>
           <div class="layui-input-block">
-            <input type="checkbox" name="enable" lay-skin="switch" lay-text="Enable|停用" checked>
+            <input type="checkbox" name="enable" lay-skin="switch" lay-text="On|Off" checked>
           </div>
         </div>
         <div class="layui-form-item">
           <div class="layui-input-block">
-            <button class="layui-btn" lay-submit>提交</button>
+            <button class="layui-btn" lay-submit>Submit</button>
             <button type="reset" class="layui-btn layui-btn-primary">Reset</button>
           </div>
         </div>
       </form>
       <table class="layui-table" lay-size="sm">
-        <thead><tr><th>模块</th><th>Status</th></tr></thead>
+        <thead><tr><th>Module</th><th>Status</th></tr></thead>
         <tbody>
-          <tr><td>layer</td><td>可用</td></tr>
-          <tr><td>form</td><td>可用</td></tr>
-          <tr><td>element</td><td>可用</td></tr>
+          <tr><td>layer</td><td>ready</td></tr>
+          <tr><td>form</td><td>ready</td></tr>
+          <tr><td>element</td><td>ready</td></tr>
         </tbody>
       </table>
     </div>`;

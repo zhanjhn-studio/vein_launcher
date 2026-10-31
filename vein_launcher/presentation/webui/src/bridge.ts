@@ -13,7 +13,7 @@ export function initBridge(): Promise<void> {
   return new Promise((resolve, reject) => {
     const QWebChannel = (window as any).QWebChannel;
     if (typeof QWebChannel === 'undefined') {
-      reject(new Error('QWebChannel 未加载'));
+      reject(new Error('QWebChannel not loaded'));
       return;
     }
     new QWebChannel((window as any).qt.webChannelTransport, (channel: any) => {
@@ -25,7 +25,7 @@ export function initBridge(): Promise<void> {
         if (!entry) return;
         pending.delete(id);
         if (ok) entry.resolve(payload);
-        else entry.reject(new Error(String(payload ?? '调用Failed')));
+        else entry.reject(new Error(String(payload ?? 'RPC failed')));
       };
 
       (window as any).__veinProgress = (taskId: string, done: number, total: number) =>
@@ -45,7 +45,7 @@ export function rpc<T>(method: string, args: unknown[] = []): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const bridge = (window as any).__bridge;
     if (!bridge) {
-      reject(new Error('桥未Ready'));
+      reject(new Error('Bridge not ready'));
       return;
     }
     const id = ++seq;

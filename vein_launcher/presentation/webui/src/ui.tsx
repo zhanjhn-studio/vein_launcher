@@ -109,7 +109,7 @@ export function DownloadBar() {
         const list = await rpc<DownloadTask[]>('downloads.list');
         if (alive) setTasks(list);
       } catch {
-        /* Host不可用时静默 */
+        /* Silent when host is unavailable */
       }
     };
     tick();
@@ -177,7 +177,7 @@ export function LogPanel({
       {open && (
         <div className="log-body" style={{ height }}>
           {lines.length === 0 ? (
-            <div className="log-empty">Launch game后，Logs会在这里实时滚动</div>
+            <div className="log-empty">Game log will stream here after launch.</div>
           ) : (
             lines.map((line, index) => (
               <div className={`log-line ${levelOf(line)}`} key={index}>

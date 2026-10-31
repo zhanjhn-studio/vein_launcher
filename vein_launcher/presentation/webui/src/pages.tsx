@@ -149,12 +149,12 @@ export function DownloadPage({
         const list = await rpc<VersionInfo[]>('versions.remote', [200]);
         setItems(list);
         setMods([]);
-        log(`Versions ${list.length} 个`);
+        log(`Versions ${list.length}`);
       } else {
         const list = await rpc<ModItem[]>('mods.featured', [category, '', 'fabric', 40]);
         setMods(list);
         setItems([]);
-        log(`${category} Featured ${list.length} 个`);
+        log(`${category} featured ${list.length}`);
       }
     } catch (err) {
       log(`Load failed：${(err as Error).message}`);
@@ -558,7 +558,7 @@ export function MlcPage({
       try {
         setState(await rpc<MlcState>('mlc.state'));
       } catch {
-        /* 忽略 */
+        /* ignore */
       }
     };
     tick();

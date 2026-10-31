@@ -1,10 +1,10 @@
--- LuaUI 示例：只使用受支持的声明式子集
--- 可用组件：panel / row / text / button / input / table / badge / image / divider
+-- LuaUI sample: declarative subset only
+-- Components: panel / row / text / button / input / table / badge / image / divider
 
 return ui.panel{
   title = "Lua UI sandbox",
   children = {
-    ui.text{ value = "这段界面由插件用 Lua 声明，在 Shadow DOM 内渲染。" },
+    ui.text{ value = "This panel is declared in Lua and rendered inside a closed Shadow DOM." },
     ui.divider{},
     ui.row{
       children = {
@@ -13,11 +13,11 @@ return ui.panel{
       }
     },
     ui.table{
-      columns = { "能力", "状态" },
+      columns = { "Capability", "Status" },
       rows = {
         { "ui.render", "ok" },
         { "ui.lua", "ok" },
-        { "文件系统", "受限" }
+        { "file system", "sandboxed" }
       }
     }
   }
