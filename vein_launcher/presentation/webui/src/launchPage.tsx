@@ -9,12 +9,14 @@ export function LaunchPage({
   selected,
   onSelect,
   notify,
+  announcements = [],
 }: {
   installed: VersionInfo[];
   accounts: AccountInfo[];
   selected: string;
   onSelect: (id: string) => void;
   notify: (text: string) => void;
+  announcements?: { id?: string; title: string; content?: string }[];
 }) {
   const [busy, setBusy] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
@@ -96,7 +98,22 @@ export function LaunchPage({
           </div>
         </div>
 
-        <LogPanel lines={logs} height={520} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="card announce-board">
+            <div className="card-title">Announcements</div>
+            {announcements.length === 0 ? (
+              <div className="empty">No announcements</div>
+            ) : (
+              announcements.map((item, index) => (
+                <div className="announce-item" key={item.id ?? index}>
+                  <b>{item.title}</b>
+                  {item.content && <p className="muted">{item.content}</p>}
+                </div>
+              ))
+            )}
+          </div>
+          <LogPanel lines={logs} height={360} />
+        </div>
       </div>
     </div>
   );

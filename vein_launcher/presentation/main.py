@@ -218,9 +218,14 @@ class MainWindow(QMainWindow):
 
         start = str(Path.home())
         current = holder.get("default") or start
-        chosen = QFileDialog.getExistingDirectory(
-            self, holder.get("title", "Select folder"), current
-        )
+        if holder.get("mode") == "file":
+            chosen, _ = QFileDialog.getOpenFileName(
+                self, holder.get("title", "Select file"), current, holder.get("filters", "")
+            )
+        else:
+            chosen = QFileDialog.getExistingDirectory(
+                self, holder.get("title", "Select folder"), current
+            )
         holder["result"] = chosen or ""
         holder["event"].set()
 

@@ -115,6 +115,12 @@ class ApiBridge(QObject):
             "mc2.scan": self._mc2_scan,
             "app.openUrl": self._open_url,
             "app.pickDirectory": self._pick_directory,
+            "app.pickFile": self._pick_file,
+            "optifine.install": self._optifine_install,
+            "accounts.remove": self._accounts_remove,
+            "accounts.msClientId": self._ms_client_id,
+            "accounts.msStart": self._ms_start,
+            "accounts.msLogin": self._ms_login,
             "minecraft.getDir": self._minecraft_get_dir,
             "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
@@ -439,6 +445,92 @@ class ApiBridge(QObject):
         self._pick_request.emit(holder)
         await asyncio.to_thread(holder["event"].wait, 60)
         return {"path": holder.get("result", "")}
+
+    async def _pick_file(self, title: str = "Select file", filters: str = "") -> dict:
+        import threading
+
+        holder = {
+            "title": str(title),
+            "result": "",
+            "event": threading.Event(),
+            "mode": "file",
+            "filters": filters or "All files (*.*)",
+        }
+        self._pick_request.emit(holder)
+        await asyncio.to_thread(holder["event"].wait, 120)
+        return {"path": holder.get("result", "")}
+
+    async def _optifine_install(self, installer: str) -> dict:
+        import asyncio as _asyncio
+
+        from vein_launcher.common.utils.path_utils import get_minecraft_dir
+
+        jar = Path(str(installer))
+        if not jar.is_file():
+            raise ValueError("Installer not found")
+        ensured = await self._ctx.java.ensure(17)
+        java = ensured.get("path")
+        if not java:
+            raise RuntimeError("Java not available")
+        proc = await _asyncio.create_subprocess_exec(
+            java,
+            "-jar",
+            str(jar),
+            cwd=str(get_minecraft_dir()),
+            stdout=_asyncio.subprocess.DEVNULL,
+            stderr=_asyncio.subprocess.PIPE,
+        )
+        _, err = await proc.communicate()
+        logger.info("OptiFine installer exit=%s", proc.returncode)
+        if proc.returncode != 0:
+            message = (err or b"").decode("utf-8", "replace")[-400:]
+            raise RuntimeError(f"OptiFine installer failed: {message}")
+        return {"ok": True, "versions": self._ctx.versions.list_installed()}
+
+    async def _accounts_remove(self, account_id: str) -> dict:
+        return {"ok": self._ctx.accounts.remove(str(account_id))}
+
+    def _ms_config(self) -> Path:
+        from vein_launcher.common.utils.path_utils import get_config_dir
+
+        return get_config_dir() / "ms_client_id.json"
+
+    def _ms_read_client_id(self) -> str:
+        import json as _json
+
+        try:
+            return str(_json.loads(self._ms_config().read_text(encoding="utf-8")).get("client_id", ""))
+        except Exception:
+            return ""
+
+    async def _ms_client_id(self, client_id: str = "") -> dict:
+        import json as _json
+
+        if client_id:
+            self._ms_config().parent.mkdir(parents=True, exist_ok=True)
+            self._ms_config().write_text(
+                _json.dumps({"client_id": str(client_id)}, indent=2), encoding="utf-8"
+            )
+        return {"client_id": self._ms_read_client_id()}
+
+    async def _ms_start(self) -> dict:
+        from vein_launcher.infrastructure.network import microsoft_auth
+
+        info = await microsoft_auth.start_device_code(self._ms_read_client_id())
+        return {
+            "device_code": info.get("device_code", ""),
+            "user_code": info.get("user_code", ""),
+            "verification_uri": info.get("verification_uri", ""),
+            "expires_in": info.get("expires_in", 0),
+        }
+
+    async def _ms_login(self, device_code: str) -> dict:
+        from vein_launcher.infrastructure.network import microsoft_auth
+
+        profile = await microsoft_auth.login_with_device_code(
+            self._ms_read_client_id(), str(device_code)
+        )
+        return self._ctx.accounts.add_microsoft(profile)
 
     async def _minecraft_get_dir(self) -> dict:
         from vein_launcher.common.utils.path_utils import get_minecraft_dir

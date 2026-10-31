@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { on, rpc } from './bridge';
 import type { ModItem, VersionInfo } from './types';
 
-type Category = 'version' | 'mod' | 'modpack' | 'datapack' | 'shader' | 'resourcepack';
+type Category = 'version' | 'mod' | 'modpack' | 'datapack' | 'shader' | 'resourcepack' | 'optifine';
 
 const CATEGORIES: { key: Category; label: string; desc: string; icon: string; project?: string }[] = [
   { key: 'version', label: 'Vanilla & Loaders', desc: 'Install game versions with Fabric, Forge, Quilt, NeoForge', icon: 'grass_block.png' },
@@ -11,6 +11,7 @@ const CATEGORIES: { key: Category; label: string; desc: string; icon: string; pr
   { key: 'resourcepack', label: 'Resource packs', desc: 'Textures and resource packs', icon: 'writable_book.png', project: 'resourcepack' },
   { key: 'shader', label: 'Shaders', desc: 'Shader packs for Iris / OptiFine', icon: 'grass_block.png', project: 'shader' },
   { key: 'datapack', label: 'Datapacks', desc: 'Datapacks for worlds and servers', icon: 'chest.png', project: 'datapack' },
+  { key: 'optifine', label: 'OptiFine', desc: 'Run the OptiFine installer against your game folder', icon: 'anvil.png' },
 ];
 
 const LOADERS = [
@@ -49,6 +50,7 @@ export function DownloadPage({
   const [targetInstance, setTargetInstance] = useState('');
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [installing, setInstalling] = useState('');
+  const [optiLog, setOptiLog] = useState('');
 
   useEffect(() => {
     rpc<RemoteVersion[]>('versions.remote', [200]).then(setVersions).catch(() => {});
@@ -64,6 +66,27 @@ export function DownloadPage({
 
   const percent = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
   const projectType = CATEGORIES.find((c) => c.key === category)?.project;
+
+  const runOptifine = async () => {
+    const picked = await rpc<{ path: string }>('app.pickFile', [
+      'Select OptiFine installer (.jar)',
+      'OptiFine installer (*.jar);;All files (*.*)',
+    ]);
+    if (!picked.path) return;
+    setBusy('install');
+    setInstalling('OptiFine installer');
+    setOptiLog('Running installer…');
+    try {
+      const result = await rpc<{ ok: boolean }>('optifine.install', [picked.path]);
+      setOptiLog(result.ok ? 'Installer finished. Refresh versions if it created one.' : 'Failed');
+      await onInstalled();
+    } catch (err) {
+      setOptiLog(`Failed: ${(err as Error).message}`);
+    } finally {
+      setBusy('');
+      setInstalling('');
+    }
+  };
 
   const openCategory = (key: Category) => {
     setCategory(key);
@@ -230,7 +253,25 @@ export function DownloadPage({
         </button>
       </div>
 
-      {category === 'version' ? (
+      {category === 'optifine' ? (
+        <div className="card">
+          <div className="card-title">OptiFine installer</div>
+          <p className="muted">
+            OptiFine is not redistributable, so bring your own installer. The launcher runs it against
+            your game folder with Java and then rescans installed versions.
+          </p>
+          <div className="kv">
+            <span>Game folder</span>
+            <b>use 设置 → Game folder</b>
+          </div>
+          <div className="row-actions">
+            <button className="btn primary" onClick={runOptifine} disabled={busy === 'install'}>
+              {busy === 'install' ? 'Running…' : 'Choose installer & run'}
+            </button>
+          </div>
+          {optiLog && <div className="activity">{optiLog}</div>}
+        </div>
+      ) : category === 'version' ? (
         <div className="dl-grid">
           <div className="card">
             <div className="card-title">Game versions</div>

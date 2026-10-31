@@ -168,6 +168,7 @@ export function App() {
               selected={selected}
               onSelect={setSelected}
               notify={notify}
+              announcements={lightNews}
             />
           )}
           {page === 'download' && (

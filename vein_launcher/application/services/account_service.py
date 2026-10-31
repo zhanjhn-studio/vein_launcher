@@ -81,6 +81,31 @@ class AccountService:
         self.save()
         return {"id": account.account_id, "username": account.username}
 
+    def add_microsoft(self, profile: Dict[str, Any]) -> Dict[str, Any]:
+        username = str(profile.get("username") or "Player")
+        account = OfflineAccount(account_id=str(uuid.uuid4()), username=username)
+        self._manager.add_account(account)
+        self._manager.select_account(account.account_id)
+        self.save()
+        token_file = Path(self._path).parent / "ms_token.json"
+        try:
+            token_file.write_text(
+                json.dumps(
+                    {
+                        "username": username,
+                        "uuid": profile.get("uuid", ""),
+                        "access_token": profile.get("access_token", ""),
+                        "refresh_token": profile.get("refresh_token", ""),
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+        except OSError:
+            pass
+        return {"id": account.account_id, "username": username, "type": "microsoft"}
+
     def select(self, account_id: str) -> bool:
         ok = self._manager.select_account(account_id)
         if ok:
