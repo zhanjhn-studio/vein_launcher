@@ -52,20 +52,34 @@ class WorldScanner:
             return None
         level_data = data.get("Data", data) if isinstance(data, dict) else {}
         version = level_data.get("Version") or {}
+        worldgen = level_data.get("WorldGenSettings") or {}
+        # 1.13+ 种子存在 WorldGenSettings.seed；旧版存 RandomSeed
+        seed = level_data.get("RandomSeed")
+        if seed in (None, 0):
+            seed = worldgen.get("seed", 0)
+        difficulty = level_data.get("Difficulty")
+        if isinstance(difficulty, bytes):
+            difficulty = int.from_bytes(difficulty, "big")
         return {
             "instance": instance,
             "name": level_data.get("LevelName", world_dir.name),
             "folder": world_dir.name,
             "path": str(world_dir),
-            "seed": level_data.get("RandomSeed", 0),
+            "seed": int(seed or 0),
             "version": version.get("Name", ""),
             "game_type": level_data.get("GameType", -1),
+            "difficulty": difficulty,
             "hardcore": bool(level_data.get("hardcore", 0)),
             "last_played": level_data.get("LastPlayed", 0),
             "day_time": level_data.get("DayTime", 0),
+            "spawn": [
+                level_data.get("SpawnX", 0),
+                level_data.get("SpawnY", 0),
+                level_data.get("SpawnZ", 0),
+            ],
             "biomes": None,
             "structures": None,
-            "note": "seed & level.dat only; biome/structure scan pending",
+            "note": "level.dat parsed; biome/structure from region scan",
         }
 
     def scan(self, instance: str, folder: str) -> Dict[str, Any]:

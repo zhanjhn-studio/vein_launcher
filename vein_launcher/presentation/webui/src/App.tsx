@@ -16,13 +16,13 @@ import { initI18n, t, useI18n } from './i18n';
 import { initTheme, Theme } from './theme';
 
 const NAV = [
-  { key: 'launch', label: 'Launch', icon: 'layui-icon-play' },
-  { key: 'download', label: 'Download', icon: 'layui-icon-download-circle' },
-  { key: 'plugins', label: 'Plugins', icon: 'layui-icon-app', star: true },
-  { key: 'mlc', label: 'MLC', icon: 'layui-icon-console' },
-  { key: 'multiplayer', label: 'Multiplayer', icon: 'layui-icon-link' },
-  { key: 'settings', label: 'Settings', icon: 'layui-icon-set' },
-  { key: 'toolbox', label: 'Toolbox', icon: 'layui-icon-util' },
+  { key: 'launch', label: 'Launch', icon: 'layui-icon-play', iconImg: 'arrow.png' },
+  { key: 'download', label: 'Download', icon: 'layui-icon-download-circle', iconImg: 'hopper.png' },
+  { key: 'plugins', label: 'Plugins', icon: 'layui-icon-app', iconImg: 'command_block.png', star: true },
+  { key: 'mlc', label: 'MLC', icon: 'layui-icon-console', iconImg: 'chest.png' },
+  { key: 'multiplayer', label: 'Multiplayer', icon: 'layui-icon-link', iconImg: 'oak_sign.png' },
+  { key: 'settings', label: 'Settings', icon: 'layui-icon-set', iconImg: 'crafting_table.png' },
+  { key: 'toolbox', label: 'Toolbox', icon: 'layui-icon-util', iconImg: 'bucket.png' },
 ];
 
 interface Announcement {
@@ -123,7 +123,7 @@ export function App() {
               className={`side-btn ${page === item.key ? 'active' : ''} ${item.star ? 'star' : ''}`}
               onClick={() => setPage(item.key)}
             >
-              <i className={`ico layui-icon ${item.icon}`} />
+              <img className="side-ico" src={`icons/${item.iconImg}`} alt="" />
               <span className="txt">{t(item.label)}</span>
             </button>
           ))}
@@ -135,6 +135,7 @@ export function App() {
 
       <main className="main">
         <header className="main-head">
+          <img className="head-ico" src={`icons/${current.iconImg}`} alt="" />
           <h1>{t(current.label)}</h1>
           <span className="sub">Vein Launcher 0.0.3</span>
           <div className="spacer" />

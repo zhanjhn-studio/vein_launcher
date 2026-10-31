@@ -26,11 +26,11 @@ const CATEGORIES: { key: Category; label: string; hint?: string }[] = [
 ];
 
 const LOADERS = [
-  { key: '', title: 'Vanilla', desc: 'Vanilla' },
-  { key: 'fabric', title: 'Fabric', desc: 'Light mods' },
-  { key: 'quilt', title: 'Quilt', desc: 'Fabric Branch' },
-  { key: 'forge', title: 'Forge', desc: 'Classic mods' },
-  { key: 'neoforge', title: 'NeoForge', desc: '1.20.2+' },
+  { key: '', title: 'Vanilla', desc: 'Vanilla', iconImg: 'grass_block.png' },
+  { key: 'fabric', title: 'Fabric', desc: 'Light mods', iconImg: 'loom.png' },
+  { key: 'quilt', title: 'Quilt', desc: 'Fabric Branch', iconImg: 'string.png' },
+  { key: 'forge', title: 'Forge', desc: 'Classic mods', iconImg: 'anvil.png' },
+  { key: 'neoforge', title: 'NeoForge', desc: '1.20.2+', iconImg: 'anvil.png' },
 ];
 
 // ---------------------------------------------------------------- Launch
@@ -304,6 +304,7 @@ export function DownloadPage({
                     className={`loader-card ${loader === l.key ? 'active' : ''}`}
                     onClick={() => setLoader(l.key)}
                   >
+                    <img className="loader-ico" src={`icons/${l.iconImg}`} alt="" />
                     <b>{l.title}</b>
                     <small>{l.desc}</small>
                   </button>
