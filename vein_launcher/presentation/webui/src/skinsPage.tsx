@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { rpc } from './bridge';
-import { Empty, LayuiCheckbox, LayuiProgress } from './ui';
+import { Empty, LayuiCheckbox, LayuiProgress, RemoteIcon } from './ui';
 import type { AccountInfo } from './types';
 
 interface SkinState {
@@ -332,7 +332,7 @@ export function SkinsPage({ notify }: { notify: (text: string) => void }) {
           <div className="library-grid">
             {libItems.map((item) => (
               <div className="library-card" key={item.tid}>
-                <img src={item.preview} alt={item.name} loading="lazy" />
+                <RemoteIcon src={item.preview} alt={item.name} fallback="icons/writable_book.png" />
                 <b title={item.name}>{item.name}</b>
                 <span>
                   {item.type === 'slim' ? 'Slim' : 'Classic'}

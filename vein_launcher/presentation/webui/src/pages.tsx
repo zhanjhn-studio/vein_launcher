@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { on, rpc } from './bridge';
-import { LayuiProgress } from './ui';
+import { LayuiProgress, RemoteIcon } from './ui';
 import type {
   AccountInfo,
   AppInfo,
@@ -366,7 +366,7 @@ export function DownloadPage({
         ) : pickedMod ? (
           <div className="detail">
             <div className="mod-head">
-              {pickedMod.icon && <img src={pickedMod.icon} alt="" onError={(e) => (e.currentTarget.style.display = 'none')} />}
+              <RemoteIcon src={pickedMod.icon} className="mod-icon" fallback="icons/crafting_table.png" />
               <div>
                 <h2>{pickedMod.title}</h2>
                 <div className="muted">{pickedMod.author} · ⬇ {pickedMod.downloads.toLocaleString()}</div>

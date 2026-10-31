@@ -686,6 +686,13 @@ html[data-transparent="on"] body {
 .vl-checkbox.layui-form-checked > i { background: var(--accent); border-color: var(--accent); color: #101725; }
 .vl-checkbox-disabled { opacity: .5; cursor: default; }
 
+/* 远程图片占位：加载中半透明，失败后由 RemoteIcon 换成本地图标 */
+.vl-img-loading { opacity: .35; transition: opacity .2s ease; }
+.detail-icon {
+  width: 56px; height: 56px; border-radius: 12px; object-fit: cover;
+  border: 1px solid var(--line); background: var(--surface-3); flex: none;
+}
+
 /* ---------- 皮肤管理 ---------- */
 .skin-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 18px; align-items: start; }
 .skin-accounts { display: flex; flex-direction: column; gap: 6px; }

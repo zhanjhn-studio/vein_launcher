@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { on, rpc } from './bridge';
-import { LayuiProgress } from './ui';
+import { LayuiProgress, RemoteIcon } from './ui';
 import type { ModItem, VersionInfo } from './types';
 
 type Category = 'version' | 'mod' | 'modpack' | 'datapack' | 'shader' | 'resourcepack' | 'optifine';
@@ -334,7 +334,11 @@ export function DownloadPage({
       ) : detail ? (
         <div className="card project-detail">
           <div className="mod-head">
-            {detail.icon ? <img src={detail.icon} alt="" /> : <img src="icons/chest.png" alt="" />}
+            {detail.icon ? (
+              <RemoteIcon src={detail.icon} className="detail-icon" />
+            ) : (
+              <RemoteIcon className="detail-icon" />
+            )}
             <div>
               <h2>{detail.title}</h2>
               <p className="muted">{detail.author} · {(detail.downloads || 0).toLocaleString()} downloads</p>
@@ -374,7 +378,7 @@ export function DownloadPage({
           <div className="proj-grid">
             {items.map((item) => (
               <button className="proj-card" key={item.slug} onClick={() => setDetail(item)}>
-                {item.icon ? <img src={item.icon} alt="" /> : <img src="icons/chest.png" alt="" />}
+                <RemoteIcon src={item.icon} />
                 <div>
                   <b>{item.title}</b>
                   <p>{item.description}</p>

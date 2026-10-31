@@ -12,7 +12,7 @@ from pathlib import Path
 from PySide6.QtCore import QPoint, Qt, QTimer, QUrl
 from PySide6.QtGui import QColor, QIcon
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtWebEngineCore import QWebEnginePage
+from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
@@ -156,6 +156,14 @@ class MainWindow(QMainWindow):
         page = LoggingPage(self.view)
         # 提前给页面铺底色，避免首帧白屏闪烁
         page.setBackgroundColor(QColor("#101318"))
+        # 页面以 file:// 加载，必须显式允许加载远程图片/资源（Modrinth 图标、LittleSkin 预览）
+        page_settings = page.settings()
+        page_settings.setAttribute(
+            QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True
+        )
+        page_settings.setAttribute(
+            QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True
+        )
         self.view.setPage(page)
 
         container = QWidget(self)

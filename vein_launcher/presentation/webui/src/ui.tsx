@@ -6,6 +6,42 @@ export function Empty({ children }: { children: React.ReactNode }) {
   return <div className="empty">{children}</div>;
 }
 
+/** 远程图片（Modrinth 图标 / LittleSkin 预览）：加载中淡出，失败回退本地图标 */
+export function RemoteIcon({
+  src,
+  alt = '',
+  fallback = 'icons/chest.png',
+  className = '',
+}: {
+  src?: string;
+  alt?: string;
+  fallback?: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const useFallback = !src || failed;
+  const url = useFallback ? fallback : (src as string);
+  return (
+    <img
+      className={`${className} ${loaded ? '' : 'vl-img-loading'}`.trim()}
+      src={url}
+      alt={alt}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onLoad={() => setLoaded(true)}
+      onError={() => {
+        if (!failed) {
+          setFailed(true);
+          setLoaded(false);
+        } else {
+          setLoaded(true);
+        }
+      }}
+    />
+  );
+}
+
 /** Layui 进度条：结构与官方一致，颜色跟随主题变量 */
 export function LayuiProgress({
   percent,
