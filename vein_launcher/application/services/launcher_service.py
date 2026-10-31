@@ -14,7 +14,13 @@ from typing import Any, Dict, List, Optional
 from vein_launcher.application.services.version_service import VersionService
 from vein_launcher.common.config.settings import settings_manager
 from vein_launcher.common.exceptions import GameLaunchError, JavaNotFoundError
-from vein_launcher.common.utils.path_utils import ensure_dir, get_assets_dir, get_libraries_dir, get_version_dir
+from vein_launcher.common.utils.path_utils import (
+    ensure_dir,
+    get_assets_dir,
+    get_libraries_dir,
+    get_version_dir,
+    resolve_version_dir,
+)
 from vein_launcher.infrastructure.process.game_process import GameProcess
 from vein_launcher.infrastructure.process.java_detector import JavaDetector, JavaRuntime
 
@@ -56,7 +62,7 @@ class LauncherService:
             if java is None:
                 raise JavaNotFoundError(f"未找到 Java {required}+")
 
-        version_dir = get_version_dir(version_id)
+        version_dir = resolve_version_dir(version_id)
         natives_dir = ensure_dir(version_dir / "natives")
         self._extract_natives(merged, natives_dir)
 
@@ -101,7 +107,7 @@ class LauncherService:
     async def launch(self, version_id: str, username: str = "Player",
                      java_path: Optional[str] = None) -> int:
         command = await self.build_command(version_id, username, java_path=java_path)
-        return await self._process.launch(command, cwd=get_version_dir(version_id))
+        return await self._process.launch(command, cwd=resolve_version_dir(version_id))
 
     # ------------------------------------------------------------------
     def _jar_chain(self, version_id: str) -> List[Path]:
@@ -111,10 +117,10 @@ class LauncherService:
         current = version_id
         while current and current not in seen:
             seen.add(current)
-            jar = get_version_dir(current) / f"{current}.jar"
+            jar = resolve_version_dir(current) / f"{current}.jar"
             if jar.is_file():
                 jars.append(jar)
-            meta = get_version_dir(current) / f"{current}.json"
+            meta = resolve_version_dir(current) / f"{current}.json"
             if not meta.is_file():
                 break
             try:

@@ -107,6 +107,20 @@ def get_instance_root() -> Path:
     return get_minecraft_dir() / "instances"
 
 
+def resolve_version_dir(version_id: str) -> Path:
+    """优先实例目录，其次标准 .minecraft/versions（兼容用户自装版本）"""
+    primary = get_version_dir(version_id)
+    if (primary / f"{version_id}.json").is_file():
+        return primary
+    try:
+        legacy = get_minecraft_dir() / "versions" / version_id
+        if (legacy / f"{version_id}.json").is_file():
+            return legacy
+    except Exception:
+        pass
+    return primary
+
+
 def get_version_dir(version_id: str) -> Path:
     return get_instance_root() / version_id
 

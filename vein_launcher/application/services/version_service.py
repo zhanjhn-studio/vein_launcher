@@ -46,23 +46,52 @@ class VersionService:
         await self._api.close()
 
     # ------------------------------------------------------------------
+    def _version_roots(self) -> List[Path]:
+        """实例目录 + 标准 .minecraft/versions（兼容用户自装的游戏）"""
+        roots: List[Path] = [get_version_dir(".")]
+        try:
+            from vein_launcher.common.utils.path_utils import get_minecraft_dir
+
+            roots.append(get_minecraft_dir() / "versions")
+        except Exception:
+            pass
+        return [r for r in roots if r.is_dir()]
+
     def list_installed(self) -> List[Dict[str, Any]]:
-        root = get_version_dir(".").parent
-        if not root.is_dir():
-            return []
-        result = []
-        for child in sorted(root.iterdir(), reverse=True):
-            json_path = child / f"{child.name}.json"
-            if not child.is_dir() or not json_path.is_file():
-                continue
-            version_type = "release"
-            try:
-                data = json.loads(json_path.read_text(encoding="utf-8"))
-                version_type = data.get("type", "release")
-            except (json.JSONDecodeError, OSError):
-                pass
-            result.append({"id": child.name, "type": version_type})
+        result: List[Dict[str, Any]] = []
+        seen: set = set()
+        for root in self._version_roots():
+            for child in sorted(root.iterdir(), reverse=True):
+                if not child.is_dir():
+                    continue
+                json_path = child / f"{child.name}.json"
+                if not json_path.is_file():
+                    continue
+                if child.name in seen:
+                    continue
+                version_type = "release"
+                try:
+                    data = json.loads(json_path.read_text(encoding="utf-8"))
+                    version_type = data.get("type", "release")
+                except (json.JSONDecodeError, OSError):
+                    pass
+                seen.add(child.name)
+                result.append({"id": child.name, "type": version_type})
         return result
+
+    def resolve_dir(self, version_id: str) -> Path:
+        """在实例目录与 versions 目录中定位实际存在的版本目录"""
+        candidates = [get_version_dir(version_id)]
+        try:
+            from vein_launcher.common.utils.path_utils import get_minecraft_dir
+
+            candidates.append(get_minecraft_dir() / "versions" / version_id)
+        except Exception:
+            pass
+        for candidate in candidates:
+            if (candidate / f"{version_id}.json").is_file():
+                return candidate
+        return candidates[0]
 
     def is_installed(self, version_id: str) -> bool:
         return self._storage.version_json_path(version_id).is_file()
