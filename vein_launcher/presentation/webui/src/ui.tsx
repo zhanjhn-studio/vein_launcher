@@ -150,7 +150,7 @@ export function Toast({ text }: { text: string }) {
 
 export function LogPanel({
   lines,
-  title = 'Game log',
+  title = '游戏日志',
   height = 320,
 }: {
   lines: string[];
@@ -177,7 +177,7 @@ export function LogPanel({
       {open && (
         <div className="log-body" style={{ height }}>
           {lines.length === 0 ? (
-            <div className="log-empty">启动游戏后日志会在这里实时滚动</div>
+            <div className="log-empty">启动游戏后，日志会在这里实时滚动</div>
           ) : (
             lines.map((line, index) => (
               <div className={`log-line ${levelOf(line)}`} key={index}>

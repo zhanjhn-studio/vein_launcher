@@ -13,7 +13,7 @@ import { SettingsPage } from './settingsPage';
 import { DownloadBar, Toast } from './ui';
 import { PluginUiHost } from './pluginUi';
 import { initI18n, t, useI18n } from './i18n';
-import { applyTheme, initTheme, currentTheme, Theme } from './theme';
+import { initTheme, Theme } from './theme';
 
 const NAV = [
   { key: 'launch', label: '启动', icon: 'layui-icon-play' },
@@ -87,6 +87,8 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const alpha = localStorage.getItem('vl.transparent') === 'on';
+    document.documentElement.dataset.transparent = alpha ? 'on' : 'off';
     setTheme(initTheme());
     initI18n();
     refreshInstalled().catch(() => {});
@@ -101,12 +103,6 @@ export function App() {
       offNotify();
     };
   }, [notify, refreshInstalled, setPage]);
-
-  const toggleTheme = () => {
-    const next: Theme = currentTheme() === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    setTheme(next);
-  };
 
   const lightNews = (news?.announcements ?? []).filter((a) => a.level !== 'heavy');
   const forced = Boolean(news?.force_update);
@@ -133,10 +129,7 @@ export function App() {
           ))}
         </nav>
         <div className="side-foot">
-          <button className="theme-btn" onClick={toggleTheme}>
-            <i className={`layui-icon ${currentTheme() === 'dark' ? 'layui-icon-light' : 'layui-icon-moon'}`} />
-            <span className="txt">{currentTheme() === 'dark' ? '浅色模式' : '深色模式'}</span>
-          </button>
+          <span className="side-ver">v0.0.3</span>
         </div>
       </aside>
 
@@ -145,7 +138,7 @@ export function App() {
           <h1>{t(current.label)}</h1>
           <span className="sub">Vein Launcher 0.0.3</span>
           <div className="spacer" />
-          <span className="sub">{installed.length} instances</span>
+          <span className="sub">{installed.length} 个实例</span>
         </header>
 
         {lightNews.length > 0 && !dismissed && (
@@ -155,7 +148,7 @@ export function App() {
             {lightNews[0].content && <em>{lightNews[0].content}</em>}
             {lightNews[0].url && (
               <button className="btn sm" onClick={() => rpc('app.openUrl', [lightNews[0].url])}>
-                Details
+                详情
               </button>
             )}
             <button className="notice-close" onClick={() => setDismissed(true)}>

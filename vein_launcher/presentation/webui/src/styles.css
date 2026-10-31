@@ -50,6 +50,23 @@
   color-scheme: light;
 }
 
+/* ---------- Layui 图标字体（侧边栏/按钮图标依赖） ---------- */
+@font-face {
+  font-family: "layui-icon";
+  src: url("../vendor/layui/font/iconfont.woff2") format("woff2"),
+       url("../vendor/layui/font/iconfont.woff") format("woff"),
+       url("../vendor/layui/font/iconfont.ttf") format("truetype");
+  font-display: swap;
+}
+.layui-icon {
+  font-family: "layui-icon" !important;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: inline-block;
+  line-height: 1;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
 
@@ -378,4 +395,30 @@ select { cursor: pointer; }
   .three-pane { grid-template-columns: 160px 280px 1fr; }
   .launch-grid { grid-template-columns: 1fr; }
   .cards { grid-template-columns: 1fr; }
+}
+
+/* ---------- 透明背景（可选项，设置里开关） ---------- */
+html[data-transparent="on"] {
+  --surface: rgba(32, 37, 47, .72);
+  --surface-2: rgba(38, 44, 55, .64);
+  --surface-3: rgba(45, 52, 65, .58);
+  --bg-2: rgba(27, 31, 39, .72);
+}
+html[data-transparent="on"][data-theme="light"] {
+  --surface: rgba(255, 255, 255, .74);
+  --surface-2: rgba(246, 248, 251, .66);
+  --surface-3: rgba(238, 241, 246, .6);
+  --bg-2: rgba(236, 239, 245, .74);
+}
+html[data-transparent="on"] body {
+  background:
+    radial-gradient(900px 520px at 12% 0%, rgba(111, 151, 240, .16), transparent 60%),
+    radial-gradient(760px 480px at 92% 8%, rgba(138, 127, 240, .14), transparent 60%),
+    var(--bg);
+}
+html[data-transparent="on"] .card,
+html[data-transparent="on"] .pane,
+html[data-transparent="on"] .version-card,
+html[data-transparent="on"] .log-panel {
+  backdrop-filter: blur(18px) saturate(140%);
 }

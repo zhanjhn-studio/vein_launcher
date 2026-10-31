@@ -9,12 +9,21 @@ import sys
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QTimer, QUrl
+from PySide6.QtCore import QPoint, Qt, QTimer, QUrl
 from PySide6.QtGui import QIcon
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QSizeGrip,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from vein_launcher.common.logging.logger import (
     install_excepthook,
@@ -56,6 +65,80 @@ class LoggingPage(QWebEnginePage):
         return False
 
 
+class TitleBar(QWidget):
+    """自绘标题栏：拖动、最小化、最大化、关闭（替代系统原生边框）"""
+
+    def __init__(self, window):
+        super().__init__(window)
+        self._window = window
+        self._drag_offset = None
+        self.setFixedHeight(40)
+        self.setObjectName("vlTitleBar")
+        self.setStyleSheet(
+            """
+            #vlTitleBar { background: #1b1f27; border-bottom: 1px solid #2b313d; }
+            #vlTitleBar QLabel { color: #a4aec0; font-size: 12px; background: transparent; }
+            #vlWinBtn {
+                color: #a4aec0; background: transparent; border: 0;
+                min-width: 42px; min-height: 28px; font-size: 13px; border-radius: 6px;
+            }
+            #vlWinBtn:hover { background: #2d3441; color: #e6e9f0; }
+            #vlCloseBtn:hover { background: #c0504d; color: #ffffff; }
+            """
+        )
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 0, 6, 0)
+        layout.setSpacing(4)
+
+        logo = QLabel(self)
+        icon_path = Path(__file__).resolve().parents[2] / "assets" / "logo.png"
+        if icon_path.is_file():
+            logo.setPixmap(QIcon(str(icon_path)).pixmap(20, 20))
+        title = QLabel(f"Vein Launcher {VERSION}", self)
+        title.setStyleSheet("color:#e6e9f0; font-size:12.5px; font-weight:600;")
+        layout.addWidget(logo)
+        layout.addSpacing(8)
+        layout.addWidget(title)
+        layout.addStretch(1)
+
+        for text, name, slot, tip in (
+            ("─", "vlWinBtn", self._window.showMinimized, "最小化"),
+            ("❐", "vlWinBtn", self._toggle_max, "最大化"),
+            ("✕", "vlCloseBtn", self._window.close, "关闭"),
+        ):
+            button = QToolButton(self)
+            button.setText(text)
+            button.setObjectName(name)
+            button.setToolTip(tip)
+            button.clicked.connect(slot)
+            layout.addWidget(button)
+
+    def _toggle_max(self) -> None:
+        if self._window.isMaximized():
+            self._window.showNormal()
+        else:
+            self._window.showMaximized()
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton and not self._window.isMaximized():
+            self._drag_offset = event.globalPosition().toPoint() - self._window.pos()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:  # noqa: N802
+        if self._drag_offset is not None and event.buttons() & Qt.MouseButton.LeftButton:
+            self._window.move(event.globalPosition().toPoint() - self._drag_offset)
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:  # noqa: N802
+        self._drag_offset = None
+        super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event) -> None:  # noqa: N802
+        self._toggle_max()
+        super().mouseDoubleClickEvent(event)
+
+
 class MainWindow(QMainWindow):
     """主窗口：原生边框 + WebView"""
 
@@ -68,10 +151,24 @@ class MainWindow(QMainWindow):
         self.resize(1280, 820)
         self.setMinimumSize(1080, 680)
 
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.view = QWebEngineView(self)
         page = LoggingPage(self.view)
         self.view.setPage(page)
-        self.setCentralWidget(self.view)
+
+        container = QWidget(self)
+        container.setObjectName("vlRoot")
+        container.setStyleSheet("#vlRoot { background: #15181e; }")
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.titlebar = TitleBar(self)
+        layout.addWidget(self.titlebar)
+        layout.addWidget(self.view, 1)
+        self.setCentralWidget(container)
+
+        self._grip = QSizeGrip(container)
+        self._grip.setFixedSize(16, 16)
 
         self.channel = QWebChannel(page)
         self.bridge = ApiBridge(context, page, self)
@@ -126,6 +223,12 @@ class MainWindow(QMainWindow):
         )
         holder["result"] = chosen or ""
         holder["event"].set()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        if hasattr(self, "_grip"):
+            self._grip.move(self.width() - 18, self.height() - 18)
+            self._grip.raise_()
 
     def _on_renderer_crashed(self, status, exit_code: int) -> None:
         logger.critical("渲染进程终止：status=%s exit_code=%s", status, exit_code)

@@ -3,7 +3,7 @@ import { rpc } from './bridge';
 
 export type Lang = 'en' | 'zh';
 
-let lang: Lang = 'en';
+let lang: Lang = 'zh';
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((fn) => fn());
 

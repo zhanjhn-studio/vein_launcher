@@ -11,6 +11,9 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [javaMsg, setJavaMsg] = useState('');
   const [mcDir, setMcDir] = useState('');
   const [theme, setTheme] = useState<Theme>(currentTheme());
+  const [transparent, setTransparent] = useState(
+    localStorage.getItem('vl.transparent') === 'on'
+  );
 
   useEffect(() => {
     rpc<AppInfo>('app.info').then(setInfo).catch(() => {});
@@ -29,23 +32,23 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
 
   const installJava = async (major: number) => {
     setJavaBusy(major);
-    setJavaMsg(`Installing Java ${major}…`);
+    setJavaMsg(`正在安装 Java ${major}…`);
     try {
       const r = await rpc<{ path: string; downloaded: boolean }>('java.ensure', [major]);
-      setJavaMsg(`Java ${major}: ${r.path} (${r.downloaded ? 'downloaded' : 'existing'})`);
+      setJavaMsg(`Java ${major}：${r.path}（${r.downloaded ? '已下载' : '已存在'}）`);
     } catch (err) {
-      setJavaMsg(`Java ${major} failed: ${(err as Error).message}`);
+      setJavaMsg(`Java ${major} 失败：${(err as Error).message}`);
     } finally {
       setJavaBusy(0);
     }
   };
 
   const chooseDir = async () => {
-    const picked = await rpc<{ path: string }>('app.pickDirectory', ['Select .minecraft folder']);
+    const picked = await rpc<{ path: string }>('app.pickDirectory', ['选择 .minecraft 目录']);
     if (!picked.path) return;
     const applied = await rpc<{ path: string }>('minecraft.setDir', [picked.path]);
     setMcDir(applied.path);
-    notify(`Game folder: ${applied.path}`);
+    notify(`游戏目录：${applied.path}`);
   };
 
   return (
@@ -74,6 +77,22 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                   <option value="light">浅色</option>
                   <option value="system">跟随系统</option>
                 </select>
+              </b>
+            </div>
+            <div className="kv">
+              <span>透明背景</span>
+              <b>
+                <button
+                  className={transparent ? 'btn sm primary' : 'btn sm'}
+                  onClick={() => {
+                    const next = !transparent;
+                    setTransparent(next);
+                    localStorage.setItem('vl.transparent', next ? 'on' : 'off');
+                    document.documentElement.dataset.transparent = next ? 'on' : 'off';
+                  }}
+                >
+                  {transparent ? '已开启' : '已关闭'}
+                </button>
               </b>
             </div>
             <div className="kv">
