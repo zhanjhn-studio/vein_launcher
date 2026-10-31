@@ -71,13 +71,13 @@ export function PermissionDialog({
   return (
     <div className="modal-mask" onClick={onCancel}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>授权确认</h3>
+        <h3>Permission request</h3>
         <p className="muted">
-          {plugin.displayName} 请求以下能力。未声明的能力会被宿主拒绝。
+          {plugin.displayName} This plugin requests the following capabilities. Undeclared calls are rejected.。
         </p>
         <ul className="perm-list">
           {plugin.permissions.length === 0 ? (
-            <li className="muted">该插件未声明任何权限</li>
+            <li className="muted">This plugin declares no permissions</li>
           ) : (
             plugin.permissions.map((perm) => (
               <li key={perm}>
@@ -88,10 +88,10 @@ export function PermissionDialog({
         </ul>
         <div className="modal-actions">
           <button className="btn" onClick={onCancel}>
-            取消
+            Cancel
           </button>
           <button className="btn primary" onClick={onConfirm}>
-            允许并启用
+            Allow & enable
           </button>
         </div>
       </div>
@@ -109,7 +109,7 @@ export function DownloadBar() {
         const list = await rpc<DownloadTask[]>('downloads.list');
         if (alive) setTasks(list);
       } catch {
-        /* 宿主不可用时静默 */
+        /* Host不可用时静默 */
       }
     };
     tick();
@@ -133,7 +133,7 @@ export function DownloadBar() {
               <i style={{ width: `${percent}%` }} />
             </div>
             <span className="percent">
-              {task.error ? '失败' : task.active ? `${percent}%` : '完成'}
+              {task.error ? 'Failed' : task.active ? `${percent}%` : 'Done'}
             </span>
           </div>
         );
@@ -150,7 +150,7 @@ export function Toast({ text }: { text: string }) {
 
 export function LogPanel({
   lines,
-  title = '游戏日志',
+  title = 'Game log',
   height = 320,
 }: {
   lines: string[];
@@ -171,13 +171,13 @@ export function LogPanel({
         <span className="spacer" />
         <span className="muted">{lines.length}</span>
         <button className="btn sm ghost" onClick={() => setOpen((v) => !v)}>
-          {open ? '收起' : '展开'}
+          {open ? 'Collapse' : 'Expand'}
         </button>
       </div>
       {open && (
         <div className="log-body" style={{ height }}>
           {lines.length === 0 ? (
-            <div className="log-empty">启动游戏后，日志会在这里实时滚动</div>
+            <div className="log-empty">Launch game后，Logs会在这里实时滚动</div>
           ) : (
             lines.map((line, index) => (
               <div className={`log-line ${levelOf(line)}`} key={index}>

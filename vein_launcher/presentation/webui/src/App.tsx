@@ -16,13 +16,13 @@ import { initI18n, t, useI18n } from './i18n';
 import { initTheme, Theme } from './theme';
 
 const NAV = [
-  { key: 'launch', label: '启动', icon: 'layui-icon-play' },
-  { key: 'download', label: '下载', icon: 'layui-icon-download-circle' },
-  { key: 'plugins', label: '插件', icon: 'layui-icon-app', star: true },
+  { key: 'launch', label: 'Launch', icon: 'layui-icon-play' },
+  { key: 'download', label: 'Download', icon: 'layui-icon-download-circle' },
+  { key: 'plugins', label: 'Plugins', icon: 'layui-icon-app', star: true },
   { key: 'mlc', label: 'MLC', icon: 'layui-icon-console' },
-  { key: 'multiplayer', label: '联机', icon: 'layui-icon-link' },
-  { key: 'settings', label: '设置', icon: 'layui-icon-set' },
-  { key: 'toolbox', label: '工具箱', icon: 'layui-icon-util' },
+  { key: 'multiplayer', label: 'Multiplayer', icon: 'layui-icon-link' },
+  { key: 'settings', label: 'Settings', icon: 'layui-icon-set' },
+  { key: 'toolbox', label: 'Toolbox', icon: 'layui-icon-util' },
 ];
 
 interface Announcement {
@@ -138,7 +138,7 @@ export function App() {
           <h1>{t(current.label)}</h1>
           <span className="sub">Vein Launcher 0.0.3</span>
           <div className="spacer" />
-          <span className="sub">{installed.length} 个实例</span>
+          <span className="sub">{installed.length} instances</span>
         </header>
 
         {lightNews.length > 0 && !dismissed && (
@@ -148,7 +148,7 @@ export function App() {
             {lightNews[0].content && <em>{lightNews[0].content}</em>}
             {lightNews[0].url && (
               <button className="btn sm" onClick={() => rpc('app.openUrl', [lightNews[0].url])}>
-                详情
+                Details
               </button>
             )}
             <button className="notice-close" onClick={() => setDismissed(true)}>
@@ -181,10 +181,10 @@ export function App() {
       {forced && !dismissed && (
         <div className="force-mask">
           <div className="force-modal">
-            <h2>需要更新</h2>
+            <h2>Update required</h2>
             <p className="muted">
-              当前版本被重要公告锁定，请更新后继续。
-              {news?.min_version ? ` 最低版本：${news.min_version}` : ''}
+              Current versionThis build is blocked by an urgent announcement. Please update to continue.
+              {news?.min_version ? ` Minimum: ${news.min_version}` : ''}
             </p>
             {forcedItems.map((item, index) => (
               <div className="force-item" key={item.id ?? index}>
@@ -195,11 +195,11 @@ export function App() {
             <div className="row-actions">
               {news?.update?.url && (
                 <button className="btn primary" onClick={() => rpc('app.openUrl', [news.update?.url])}>
-                  下载更新
+                  Download update
                 </button>
               )}
               <button className="btn" onClick={() => setDismissed(true)}>
-                暂不更新
+                Not now
               </button>
             </div>
           </div>

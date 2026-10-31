@@ -1,5 +1,5 @@
 /* Layui 2.13.9 接入：vendor 加载 + 模块化调用
- * 设计原则：默认不注入 layui.css，避免其全局重置影响现有 React 设计；
+ * 设计原则：默认不注入 layui.css，避免其全局Reset影响现有 React 设计；
  * 仅在真正使用 layui 组件（layer/form/element 等）时按需加载样式。
  */
 
@@ -46,7 +46,7 @@ export function loadLayuiCss(): Promise<void> {
     link.href = CSS_HREF;
     link.dataset.layui = 'css';
     link.onload = () => resolve();
-    link.onerror = () => reject(new Error(`layui.css 加载失败：${CSS_HREF}`));
+    link.onerror = () => reject(new Error(`layui.css Load failed：${CSS_HREF}`));
     document.head.appendChild(link);
   });
   return cssLoading;
@@ -77,14 +77,14 @@ export async function layerMsg(text: string, icon = 1): Promise<void> {
 export async function layerConfirm(text: string): Promise<boolean> {
   const layer = await useLayui('layer');
   return new Promise<boolean>((resolve) => {
-    layer.confirm(text, { title: '确认', btn: ['确定', '取消'] }, (index: number) => {
+    layer.confirm(text, { title: 'Confirm', btn: ['OK', 'Cancel'] }, (index: number) => {
       layer.close(index);
       resolve(true);
     }, () => resolve(false));
   });
 }
 
-/** 打开一个 layui 层（page 类型），用于承载表单/表格等 layui 组件 */
+/** Open a layui layer（page 类型），用于承载表单/表格等 layui 组件 */
 export async function layerOpen(title: string, html: string, width = '560px', height = '420px'): Promise<void> {
   const layer = await useLayui('layer');
   layer.open({
@@ -97,7 +97,7 @@ export async function layerOpen(title: string, html: string, width = '560px', he
   });
 }
 
-/** 组件预览：验证 layer + form + element + table 是否可用 */
+/** Component preview：验证 layer + form + element + table 是否可用 */
 export async function openLayuiPreview(): Promise<void> {
   const html = `
     <div style="padding:16px">
@@ -105,25 +105,25 @@ export async function openLayuiPreview(): Promise<void> {
         <div class="layui-form-item">
           <label class="layui-form-label">昵称</label>
           <div class="layui-input-block">
-            <input type="text" name="name" lay-verify="required" placeholder="layui 表单组件"
+            <input type="text" name="name" lay-verify="required" placeholder="layui Form component"
                    autocomplete="off" class="layui-input">
           </div>
         </div>
         <div class="layui-form-item">
           <label class="layui-form-label">开关</label>
           <div class="layui-input-block">
-            <input type="checkbox" name="enable" lay-skin="switch" lay-text="启用|停用" checked>
+            <input type="checkbox" name="enable" lay-skin="switch" lay-text="Enable|停用" checked>
           </div>
         </div>
         <div class="layui-form-item">
           <div class="layui-input-block">
             <button class="layui-btn" lay-submit>提交</button>
-            <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            <button type="reset" class="layui-btn layui-btn-primary">Reset</button>
           </div>
         </div>
       </form>
       <table class="layui-table" lay-size="sm">
-        <thead><tr><th>模块</th><th>状态</th></tr></thead>
+        <thead><tr><th>模块</th><th>Status</th></tr></thead>
         <tbody>
           <tr><td>layer</td><td>可用</td></tr>
           <tr><td>form</td><td>可用</td></tr>
@@ -131,5 +131,5 @@ export async function openLayuiPreview(): Promise<void> {
         </tbody>
       </table>
     </div>`;
-  await layerOpen('Layui 组件预览', html);
+  await layerOpen('Layui Component preview', html);
 }

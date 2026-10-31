@@ -29,15 +29,15 @@ export function LaunchPage({
 
   const launch = async () => {
     if (!selected) {
-      notify('请先安装一个版本');
+      notify('Install a version first');
       return;
     }
     setBusy(true);
     try {
       const result = await rpc<{ pid: number }>('launch', [selected, account?.username ?? 'Player']);
-      notify(`已启动，PID ${result.pid}`);
+      notify(`Launched, PID ${result.pid}`);
     } catch (err) {
-      notify(`启动失败：${(err as Error).message}`);
+      notify(`Launch failed：${(err as Error).message}`);
     } finally {
       setBusy(false);
     }
@@ -48,15 +48,15 @@ export function LaunchPage({
       <div className="launch-grid">
         <div>
           <div className="page-head">
-            <h1>启动</h1>
-            <span className="muted">{installed.length} 个版本</span>
+            <h1>Launch</h1>
+            <span className="muted">{installed.length} versions</span>
             <span className="muted">·</span>
-            <span className="muted">{account ? `离线 ${account.username}` : '未登录'}</span>
+            <span className="muted">{account ? `Offline ${account.username}` : 'Not signed in'}</span>
           </div>
 
           {installed.length === 0 ? (
             <div className="card">
-              <div className="empty">还没有安装任何版本，去「下载」页安装</div>
+              <div className="empty">Nothing installed yet. Install one from Download.</div>
             </div>
           ) : (
             <div className="version-cards">
@@ -71,7 +71,7 @@ export function LaunchPage({
                     <span className="name">{version.id}</span>
                     <span className="tag">{version.type || 'release'}</span>
                   </span>
-                  {selected === version.id && <span className="status">已选择</span>}
+                  {selected === version.id && <span className="status">Selected</span>}
                 </button>
               ))}
             </div>
@@ -80,16 +80,16 @@ export function LaunchPage({
           <div className="card" style={{ marginTop: 14 }}>
             <div className="launch-panel">
               <div className="kv">
-                <span>实例</span>
+                <span>Instance</span>
                 <b>{selected || '—'}</b>
               </div>
               <div className="kv">
-                <span>账号</span>
-                <b>{account ? account.username : '未登录（离线）'}</b>
+                <span>Accounts</span>
+                <b>{account ? account.username : 'Not signed in (offline)'}</b>
               </div>
               <div className="launch-actions">
                 <button className="launch-btn" onClick={launch} disabled={busy || !selected}>
-                  {busy ? '启动中…' : '启动游戏'}
+                  {busy ? 'Launching…' : 'Launch game'}
                 </button>
               </div>
             </div>

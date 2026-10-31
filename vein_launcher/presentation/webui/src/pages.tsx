@@ -16,24 +16,24 @@ import { layuiVersion, layerMsg, openLayuiPreview } from './layui';
 import { currentLang, setLang, t } from './i18n';
 
 const CATEGORIES: { key: Category; label: string; hint?: string }[] = [
-  { key: 'vanilla', label: '游戏本体' },
-  { key: 'modpack', label: '整合包' },
-  { key: 'mod', label: '模组' },
-  { key: 'plugin', label: '服务器插件' },
-  { key: 'resourcepack', label: '资源包' },
-  { key: 'shader', label: '光影' },
-  { key: 'datapack', label: '数据包' },
+  { key: 'vanilla', label: 'Game versions' },
+  { key: 'modpack', label: 'Modpacks' },
+  { key: 'mod', label: 'Mods' },
+  { key: 'plugin', label: 'Server plugins' },
+  { key: 'resourcepack', label: 'Resource packs' },
+  { key: 'shader', label: 'Shaders' },
+  { key: 'datapack', label: 'Datapacks' },
 ];
 
 const LOADERS = [
-  { key: '', title: '原版', desc: 'Vanilla' },
-  { key: 'fabric', title: 'Fabric', desc: '轻量模组' },
-  { key: 'quilt', title: 'Quilt', desc: 'Fabric 分支' },
-  { key: 'forge', title: 'Forge', desc: '经典模组' },
+  { key: '', title: 'Vanilla', desc: 'Vanilla' },
+  { key: 'fabric', title: 'Fabric', desc: 'Light mods' },
+  { key: 'quilt', title: 'Quilt', desc: 'Fabric Branch' },
+  { key: 'forge', title: 'Forge', desc: 'Classic mods' },
   { key: 'neoforge', title: 'NeoForge', desc: '1.20.2+' },
 ];
 
-// ---------------------------------------------------------------- 启动
+// ---------------------------------------------------------------- Launch
 export function LaunchPage({
   installed,
   accounts,
@@ -56,17 +56,17 @@ export function LaunchPage({
 
   const launch = async () => {
     if (!selected) {
-      notify('还没有可用版本，先去下载');
+      notify('No versions yet. Download one first.');
       return;
     }
     setBusy(true);
-    setStatus('正在启动…');
+    setStatus('Starting…');
     try {
       const result = await rpc<{ pid: number }>('launch', [selected, account?.username ?? 'Player']);
-      setStatus(`已启动，PID ${result.pid}`);
+      setStatus(`Launched, PID ${result.pid}`);
     } catch (err) {
       setStatus('');
-      notify(`启动失败：${(err as Error).message}`);
+      notify(`Launch failed：${(err as Error).message}`);
     } finally {
       setBusy(false);
     }
@@ -76,9 +76,9 @@ export function LaunchPage({
     <div className="page">
       <div className="hero">
         <div className="hero-left">
-          <div className="label">当前版本</div>
+          <div className="label">Current version</div>
           {installed.length === 0 ? (
-            <div className="hero-version">未安装</div>
+            <div className="hero-version">Not installed</div>
           ) : (
             <select className="hero-select" value={selected} onChange={(e) => onSelect(e.target.value)}>
               {installed.map((v) => (
@@ -89,18 +89,18 @@ export function LaunchPage({
             </select>
           )}
           <div className="hero-meta">
-            <span className="chip">{account ? `离线 · ${account.username}` : '未登录'}</span>
-            <span className="chip">{installed.length} 个实例</span>
-            <span className="chip">{status || '就绪'}</span>
+            <span className="chip">{account ? `Offline · ${account.username}` : 'Not signed in'}</span>
+            <span className="chip">{installed.length} instances</span>
+            <span className="chip">{status || 'Ready'}</span>
           </div>
           <button className="launch-btn" onClick={launch} disabled={busy}>
-            {busy ? '启动中…' : '启动游戏'}
+            {busy ? 'Launching…' : 'Launch game'}
           </button>
         </div>
         <div className="hero-right">
-          <div className="card-title">{t('游戏日志')}</div>
+          <div className="card-title">{t('Game log')}</div>
           {logs.length === 0 ? (
-            <Empty>启动后这里会实时显示游戏输出</Empty>
+            <Empty>LaunchGame output appears here after launch</Empty>
           ) : (
             <div className="log-view">{logs.join('\n')}</div>
           )}
@@ -110,7 +110,7 @@ export function LaunchPage({
   );
 }
 
-// ---------------------------------------------------------------- 下载
+// ---------------------------------------------------------------- Download
 export function DownloadPage({
   installed,
   onInstalled,
@@ -149,15 +149,15 @@ export function DownloadPage({
         const list = await rpc<VersionInfo[]>('versions.remote', [200]);
         setItems(list);
         setMods([]);
-        log(`版本列表 ${list.length} 个`);
+        log(`Versions ${list.length} 个`);
       } else {
         const list = await rpc<ModItem[]>('mods.featured', [category, '', 'fabric', 40]);
         setMods(list);
         setItems([]);
-        log(`${category} 推荐 ${list.length} 个`);
+        log(`${category} Featured ${list.length} 个`);
       }
     } catch (err) {
-      log(`加载失败：${(err as Error).message}`);
+      log(`Load failed：${(err as Error).message}`);
     } finally {
       setBusy(false);
     }
@@ -201,7 +201,7 @@ export function DownloadPage({
   const installVersion = async () => {
     if (!picked) return;
     setBusy(true);
-    log(`开始安装 ${targetId}`);
+    log(`Install ${targetId}`);
     try {
       const result = await rpc<{
         loader_version?: string;
@@ -212,16 +212,16 @@ export function DownloadPage({
       }>('versions.install', [(picked as VersionInfo).id, loader, '', custom.trim()]);
       log(
         result.loader_version
-          ? `加载器安装完成：${targetId}（${result.loader_version}）`
-          : `安装完成：成功 ${result.ok ?? 0} / 失败 ${result.failed ?? 0}`
+          ? `Loader installed：${targetId}（${result.loader_version}）`
+          : `Installed：Installed: ${result.ok ?? 0} / Failed ${result.failed ?? 0}`
       );
       const finalId = result.version_id || targetId;
       setFileTarget(finalId);
       await onInstalled();
       loadFiles(finalId);
     } catch (err) {
-      log(`安装失败：${(err as Error).message}`);
-      notify(`安装失败：${(err as Error).message}`);
+      log(`Install failed：${(err as Error).message}`);
+      notify(`Install failed：${(err as Error).message}`);
     } finally {
       setBusy(false);
       setProgress(null);
@@ -231,11 +231,11 @@ export function DownloadPage({
   const installMod = async (item: ModItem) => {
     const instance = installed[0]?.id;
     if (!instance) {
-      notify('请先安装一个实例');
+      notify('Install an instance first');
       return;
     }
     setBusy(true);
-    log(`安装 ${item.title} → ${instance}`);
+    log(`Install ${item.title} → ${instance}`);
     try {
       const result = await rpc<{ installed?: number; files?: number }>('mods.install', [
         item.slug,
@@ -243,9 +243,9 @@ export function DownloadPage({
         category,
         'fabric',
       ]);
-      log(`安装完成：${result.installed ?? result.files ?? 1} 个文件`);
+      log(`Installed：${result.installed ?? result.files ?? 1} files`);
     } catch (err) {
-      log(`安装失败：${(err as Error).message}`);
+      log(`Install failed：${(err as Error).message}`);
     } finally {
       setBusy(false);
     }
@@ -257,9 +257,9 @@ export function DownloadPage({
       middle={
         <>
           <div className="pane-head">
-            <span>{category === 'vanilla' ? '版本' : '推荐'}</span>
+            <span>{category === 'vanilla' ? 'Version' : 'Featured'}</span>
             <button className="btn sm" onClick={load} disabled={busy}>
-              {busy ? '加载中' : '刷新'}
+              {busy ? 'Loading' : 'Refresh'}
             </button>
           </div>
           <div className="list">
@@ -274,7 +274,7 @@ export function DownloadPage({
                     }}
                   >
                     <span className="title">{v.id}</span>
-                    <span className="sub">{v.release_time}{installedIds.has(v.id) ? ' · 已安装' : ''}</span>
+                    <span className="sub">{v.release_time}{installedIds.has(v.id) ? ' · Installed' : ''}</span>
                   </button>
                 ))
               : mods.map((m) => (
@@ -287,7 +287,7 @@ export function DownloadPage({
                     <span className="sub">⬇ {m.downloads.toLocaleString()}</span>
                   </button>
                 ))}
-            {!busy && items.length === 0 && mods.length === 0 && <Empty>{t('暂无内容')}</Empty>}
+            {!busy && items.length === 0 && mods.length === 0 && <Empty>{t('Nothing here yet')}</Empty>}
           </div>
         </>
       }
@@ -296,7 +296,7 @@ export function DownloadPage({
           picked ? (
             <div className="detail">
               <h2>{(picked as VersionInfo).id}</h2>
-              <div className="kv"><span>实例 ID</span><b>{targetId}</b></div>
+              <div className="kv"><span>Instance ID</span><b>{targetId}</b></div>
               <div className="loader-grid">
                 {LOADERS.map((l) => (
                   <button
@@ -314,10 +314,10 @@ export function DownloadPage({
                   <i style={{ width: `${progress.total ? Math.round((progress.done / progress.total) * 100) : 0}%` }} />
                 </div>
               )}
-              <div className="kv"><span>版本类型</span><b>{(picked as VersionInfo).type ?? 'release'}</b></div>
-              <div className="kv"><span>发布时间</span><b>{(picked as VersionInfo).release_time ?? '—'}</b></div>
+              <div className="kv"><span>Type</span><b>{(picked as VersionInfo).type ?? 'release'}</b></div>
+              <div className="kv"><span>Released</span><b>{(picked as VersionInfo).release_time ?? '—'}</b></div>
 
-              <label className="muted" style={{ marginTop: 6 }}>自定义版本名（可选，留空则用 {targetId}）</label>
+              <label className="muted" style={{ marginTop: 6 }}>Custom name (optional, defaults to  {targetId}）</label>
               <input
                 className="input"
                 placeholder={targetId}
@@ -326,23 +326,23 @@ export function DownloadPage({
               />
 
               <button className="btn primary block" style={{ marginTop: 10 }} onClick={installVersion} disabled={busy}>
-                {busy ? '安装中…' : '开始安装'}
+                {busy ? 'Installing…' : 'Install'}
               </button>
-              <div className="activity">{activity.join('\n') || '（进度会显示在这里）'}</div>
+              <div className="activity">{activity.join('\n') || '（Progress appears here)'}</div>
 
               {fileTarget && (
                 <>
                   <div className="pane-head" style={{ padding: '14px 0 8px', border: 0 }}>
-                    <span>版本文件 · {fileTarget}</span>
+                    <span>Version files · {fileTarget}</span>
                     <div className="row-actions" style={{ marginTop: 0 }}>
-                      <button className="btn sm" onClick={() => loadFiles(fileTarget)}>刷新</button>
+                      <button className="btn sm" onClick={() => loadFiles(fileTarget)}>Refresh</button>
                       <button className="btn sm" onClick={() => rpc('versions.openFolder', [fileTarget]).catch(() => {})}>
-                        打开目录
+                        Open folder
                       </button>
                     </div>
                   </div>
                   {files.length === 0 ? (
-                    <div className="empty">目录为空或尚未安装完成</div>
+                    <div className="empty">Folder is empty or installation is incomplete</div>
                   ) : (
                     files.map((f) => (
                       <div className="row-item" key={f.rel}>
@@ -357,7 +357,7 @@ export function DownloadPage({
               )}
             </div>
           ) : (
-            <Empty>选择左侧版本查看安装选项</Empty>
+            <Empty>Select a version to see install options</Empty>
           )
         ) : pickedMod ? (
           <div className="detail">
@@ -370,19 +370,19 @@ export function DownloadPage({
             </div>
             <p className="desc">{pickedMod.description}</p>
             <button className="btn primary block" onClick={() => installMod(pickedMod)} disabled={busy}>
-              安装到 {installed[0]?.id ?? '（无实例）'}
+              Install to {installed[0]?.id ?? '（no instance)'}
             </button>
-            <div className="activity">{activity.join('\n') || '（安装进度会显示在这里）'}</div>
+            <div className="activity">{activity.join('\n') || '（InstallProgress appears here)'}</div>
           </div>
         ) : (
-          <Empty>选择左侧条目查看详情</Empty>
+          <Empty>Select an item to see details</Empty>
         )
       }
     />
   );
 }
 
-// ---------------------------------------------------------------- 插件
+// ---------------------------------------------------------------- Plugins
 export function PluginsPage({ notify }: { notify: (text: string) => void }) {
   const [state, setState] = useState<PluginState>({ host: { running: false, pid: null, node: null }, plugins: [] });
   const [filter, setFilter] = useState('all');
@@ -397,7 +397,7 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
       setState(s);
       setLogs(await rpc<string[]>('plugins.logs', [120]));
     } catch (err) {
-      notify(`读取插件失败：${(err as Error).message}`);
+      notify(`Failed to read plugins: ${(err as Error).message}`);
     }
   }, [notify]);
 
@@ -418,7 +418,7 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
       await rpc('plugins.setEnabled', [name, enable]);
       await refresh();
     } catch (err) {
-      notify(`操作失败：${(err as Error).message}`);
+      notify(`Operation failed: ${(err as Error).message}`);
     } finally {
       setBusy('');
       setPendingGrant('');
@@ -430,9 +430,9 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
     try {
       await rpc('plugins.reload', [name]);
       await refresh();
-      notify(`${name} 已热重载`);
+      notify(`${name} Reloaded`);
     } catch (err) {
-      notify(`重载失败：${(err as Error).message}`);
+      notify(`Reload failed: ${(err as Error).message}`);
     } finally {
       setBusy('');
     }
@@ -444,9 +444,9 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
         left={
           <CategoryList
             items={[
-              { key: 'all', label: '全部', hint: String(state.plugins.length) },
-              { key: 'enabled', label: '已启用', hint: String(state.plugins.filter((p) => p.enabled).length) },
-              { key: 'disabled', label: '已禁用', hint: String(state.plugins.filter((p) => !p.enabled).length) },
+              { key: 'all', label: 'All', hint: String(state.plugins.length) },
+              { key: 'enabled', label: 'Enabled', hint: String(state.plugins.filter((p) => p.enabled).length) },
+              { key: 'disabled', label: 'Disabled', hint: String(state.plugins.filter((p) => !p.enabled).length) },
             ]}
             active={filter}
             onPick={setFilter}
@@ -455,11 +455,11 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
         middle={
           <>
             <div className="pane-head">
-              <span>{t('插件')}</span>
-              <StatusDot on={state.host.running} label={state.host.running ? `宿主 ${state.host.pid}` : '宿主未启动'} />
+              <span>{t('Plugins')}</span>
+              <StatusDot on={state.host.running} label={state.host.running ? `Host ${state.host.pid}` : 'Host stopped'} />
             </div>
             <div className="list">
-              {shown.length === 0 && <Empty>t('还没有插件')</Empty>}
+              {shown.length === 0 && <Empty>t('No plugins yet')</Empty>}
               {shown.map((p) => (
                 <button
                   key={p.name}
@@ -467,7 +467,7 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
                   onClick={() => setPicked(p.name)}
                 >
                   <span className="title">{p.displayName}</span>
-                  <span className="sub">v{p.version} · {p.loaded ? '已加载' : p.enabled ? '待加载' : '已禁用'}</span>
+                  <span className="sub">v{p.version} · {p.loaded ? 'Loaded' : p.enabled ? 'Pending' : 'Disabled'}</span>
                 </button>
               ))}
             </div>
@@ -479,9 +479,9 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
               <h2>{current.displayName}</h2>
               <div className="muted">{current.description || current.name}</div>
               <div className="perm-block">
-                <div className="card-title">{t('权限')}</div>
+                <div className="card-title">{t('Permissions')}</div>
                 {current.permissions.length === 0 ? (
-                  <span className="muted">未声明权限</span>
+                  <span className="muted">No permission declared</span>
                 ) : (
                   <div className="tags">
                     {current.permissions.map((perm) => (
@@ -496,11 +496,11 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
                   onClick={() => hotReload(current.name)}
                   disabled={busy === current.name}
                 >
-                  热重载
+                  Hot reload
                 </button>
                 {current.enabled ? (
                   <button className="btn" onClick={() => toggle(current.name, false)} disabled={busy === current.name}>
-                    禁用
+                    Disable
                   </button>
                 ) : (
                   <button
@@ -512,15 +512,15 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
                     }
                     disabled={busy === current.name}
                   >
-                    启用
+                    Enable
                   </button>
                 )}
               </div>
-              <div className="card-title" style={{ marginTop: 16 }}>宿主日志</div>
-              <div className="activity">{logs.join('\n') || '暂无日志'}</div>
+              <div className="card-title" style={{ marginTop: 16 }}>Host log</div>
+              <div className="activity">{logs.join('\n') || 'No logs'}</div>
             </div>
           ) : (
-            <Empty>选择插件查看权限与日志</Empty>
+            <Empty>Select a plugin to see permissions and logs</Empty>
           )
         }
       />
@@ -550,7 +550,7 @@ export function MlcPage({
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState('');
   const [saveWorlds, setSaveWorlds] = useState<
-    { name: string; 种子: number; version: string; instance: string; path: string; folder: string }[]
+    { name: string; seed: number; version: string; instance: string; path: string; folder: string }[]
   >([]);
 
   useEffect(() => {
@@ -572,7 +572,7 @@ export function MlcPage({
 
   const launch = async () => {
     if (!selected) {
-      notify('没有可用实例');
+      notify('No instance available');
       return;
     }
     setBusy('launch');
@@ -580,7 +580,7 @@ export function MlcPage({
       const r = await rpc<{ pid: number }>('launch', [selected, 'Player']);
       setResult(`mlc.launch → pid ${r.pid}`);
     } catch (err) {
-      notify(`启动失败：${(err as Error).message}`);
+      notify(`Launch failed：${(err as Error).message}`);
     } finally {
       setBusy('');
     }
@@ -592,7 +592,7 @@ export function MlcPage({
       const r = await rpc<{ worlds: unknown[] }>('mlc.worlds', [selected]);
       setResult(`mlc.world.info → ${JSON.stringify(r, null, 2)}`);
     } catch (err) {
-      setResult(`mlc.world.info 失败：${(err as Error).message}`);
+      setResult(`mlc.world.info Failed：${(err as Error).message}`);
     } finally {
       setBusy('');
     }
@@ -608,7 +608,7 @@ export function MlcPage({
       setScan(data);
       setResult(`mc2.scan → ${folder}`);
     } catch (err) {
-      setResult(`mc2.scan 失败：${(err as Error).message}`);
+      setResult(`mc2.scan Failed：${(err as Error).message}`);
     } finally {
       setBusy('');
     }
@@ -617,14 +617,14 @@ export function MlcPage({
   const loadWorlds = async () => {
     setBusy('mc2');
     try {
-      const list = await rpc<{ name: string; 种子: number; version: string; instance: string; path: string; folder: string }[]>(
+      const list = await rpc<{ name: string; seed: number; version: string; instance: string; path: string; folder: string }[]>(
         'mc2.worlds',
         ['']
       );
       setSaveWorlds(list);
-      setResult(`mc2.worlds → ${list.length} 个存档`);
+      setResult(`mc2.worlds → ${list.length} saves`);
     } catch (err) {
-      setResult(`mc2.worlds 失败：${(err as Error).message}`);
+      setResult(`mc2.worlds Failed：${(err as Error).message}`);
     } finally {
       setBusy('');
     }
@@ -633,41 +633,41 @@ export function MlcPage({
   return (
     <div className="page">
       <div className="pane-head">
-        <span>VL-MLC 控制层</span>
+        <span>VL-MLC Control layer</span>
         <StatusDot
           on={state.connected}
-          label={state.connected ? `已连接 · pid ${state.pid}` : '未连接'}
+          label={state.connected ? `Connected · pid ${state.pid}` : 'Disconnected'}
           tone="ok"
         />
       </div>
       <div className="cards">
         <div className="card">
-          <div className="card-title">{t('连接')}</div>
-          <div className="kv"><span>状态</span><b>{state.connected ? '运行中' : '空闲'}</b></div>
-          <div className="kv"><span>实例</span><b>{selected || '—'}</b></div>
+          <div className="card-title">{t('Connection')}</div>
+          <div className="kv"><span>Status</span><b>{state.connected ? 'Running' : 'Idle'}</b></div>
+          <div className="kv"><span>Instance</span><b>{selected || '—'}</b></div>
           <div className="row-actions">
             <button className="btn primary" onClick={launch} disabled={busy === 'launch'}>
               mlc.launch
             </button>
             <button className="btn" onClick={worlds} disabled={busy === 'worlds'}>
-              世界信息
+              World info
             </button>
           </div>
         </div>
         <div className="card">
-          <div className="card-title">{t('调用返回')}</div>
-          <pre className="activity">{result || '（调用结果会显示在这里）'}</pre>
+          <div className="card-title">{t('Call result')}</div>
+          <pre className="activity">{result || '（Results appear here)'}</pre>
         </div>
       </div>
       <div className="card" style={{ marginTop: 16 }}>
         <div className="pane-head" style={{ padding: '0 0 10px', border: 0 }}>
-          <span>MC2 · 世界数据</span>
+          <span>MC2 · World data</span>
           <button className="btn sm" onClick={loadWorlds} disabled={busy === 'mc2'}>
-            {busy === 'mc2' ? '…' : '扫描存档'}
+            {busy === 'mc2' ? '…' : 'Scan saves'}
           </button>
         </div>
         {saveWorlds.length === 0 ? (
-          <div className="empty">没有找到存档，进游戏创建一个世界后再回来扫描</div>
+          <div className="empty">No saves found. Create a world in-game, then scan again.</div>
         ) : (
           saveWorlds.map((w) => (
             <button
@@ -678,7 +678,7 @@ export function MlcPage({
             >
               <span className="title">{w.name}</span>
               <span className="sub">
-                种子 {w.种子} · {w.version || '—'} · {w.instance}
+                seed {w.seed} · {w.version || '—'} · {w.instance}
               </span>
             </button>
           ))
@@ -688,47 +688,47 @@ export function MlcPage({
       {scan && (
         <div className="card" style={{ marginTop: 16 }}>
           <div className="card-title">
-            MC2 扫描 · {scan.name} · 种子 {scan.种子}
+            MC2 scan · {scan.name} · seed {scan.seed}
           </div>
           {Object.entries(scan.scan?.dimensions ?? {}).map(([dim, info]: [string, any]) => (
             <div key={dim} style={{ marginTop: 10 }}>
               <div className="kv">
                 <span>{dim}</span>
-                <b>{info.chunks} 个区块 · {info.files} 个 region 文件</b>
+                <b>{info.chunks} chunks · {info.files} region files</b>
               </div>
               <div className="muted" style={{ marginTop: 4 }}>
-                群系： {info.biomes.length ? info.biomes.join(', ') : '—'}
+                biomes： {info.biomes.length ? info.biomes.join(', ') : '—'}
               </div>
               <div className="muted" style={{ marginTop: 2 }}>
-                结构： {info.structures.length ? info.structures.join(', ') : '—'}
+                structures： {info.structures.length ? info.structures.join(', ') : '—'}
               </div>
             </div>
           ))}
           {Object.keys(scan.scan?.dimensions ?? {}).length === 0 && (
-            <div className="empty">这个世界里没有 region 文件</div>
+            <div className="empty">No region files in this world.</div>
           )}
         </div>
       )}
 
       <div className="card" style={{ marginTop: 16 }}>
-        <div className="card-title">{t('事件流')}</div>
-        <div className="activity">{logs.join('\n') || '游戏启动后这里会显示 MLC 事件'}</div>
+        <div className="card-title">{t('Event stream')}</div>
+        <div className="activity">{logs.join('\n') || 'MLC events appear here after launch'}</div>
       </div>
     </div>
   );
 }
 
-// ---------------------------------------------------------------- 联机
+// ---------------------------------------------------------------- Multiplayer
 export function MultiplayerPage() {
   return (
     <div className="page center">
-      <h2>联机</h2>
-      <p className="muted">敬请期待</p>
+      <h2>Multiplayer</h2>
+      <p className="muted">Coming soon</p>
     </div>
   );
 }
 
-// ---------------------------------------------------------------- 设置
+// ---------------------------------------------------------------- Settings
 export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [section, setSection] = useState('about');
   const [info, setInfo] = useState<AppInfo | null>(null);
@@ -751,7 +751,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
     try {
       setRuntimes(await rpc<JavaRuntime[]>('java.detect'));
     } catch (err) {
-      notify(`探测失败：${(err as Error).message}`);
+      notify(`Detect failed: ${(err as Error).message}`);
     }
   };
 
@@ -760,11 +760,11 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
       left={
         <CategoryList
           items={[
-            { key: 'about', label: '关于' },
+            { key: 'about', label: 'About' },
             { key: 'java', label: 'Java' },
-            { key: 'game', label: '游戏目录' },
-            { key: 'logs', label: '日志' },
-            { key: 'language', label: '语言 / Language' },
+            { key: 'game', label: 'Game folder' },
+            { key: 'logs', label: 'Logs' },
+            { key: 'language', label: 'Language / Language' },
           ]}
           active={section}
           onPick={setSection}
@@ -774,16 +774,16 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
         <div className="detail">
           {section === 'about' && (
             <>
-              <h2>关于</h2>
-              <div className="kv"><span>{t('版本列表')}</span><b>{info?.version ?? '—'}</b></div>
-              <div className="kv"><span>数据目录</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
-              <div className="kv"><span>架构</span><b>Python + PySide6 WebView + React + TS</b></div>
+              <h2>About</h2>
+              <div className="kv"><span>{t('Versions')}</span><b>{info?.version ?? '—'}</b></div>
+              <div className="kv"><span>Data folder</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
+              <div className="kv"><span>Architecture</span><b>Python + PySide6 WebView + React + TS</b></div>
             </>
           )}
           {section === 'java' && (
             <>
-              <h2>Java 运行时</h2>
-              <button className="btn" onClick={detect}>{t('自动探测')}</button>
+              <h2>Java Runtime</h2>
+              <button className="btn" onClick={detect}>{t('Auto detect')}</button>
               <div className="row-actions" style={{ marginTop: 10 }}>
                 {[8, 17, 21].map((major) => (
                   <button
@@ -811,7 +811,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
               </div>
               {javaMsg && <p className="muted">{javaMsg}</p>}
               {runtimes.length === 0 ? (
-                <Empty>点击探测扫描本机 Java</Empty>
+                <Empty>Click detect to scan local Java</Empty>
               ) : (
                 runtimes.map((rt) => (
                   <div className="row-item" key={rt.path}>
@@ -824,12 +824,12 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
           )}
           {section === 'game' && (
             <>
-              <h2>游戏目录（.minecraft）</h2>
+              <h2>Game folder (.minecraft)</h2>
               <p className="muted">
-                使用已有的 .minecraft 目录，或保留启动器管理的目录。
+                Use an existing .minecraft directory, or keep the launcher-managed one.。
               </p>
               <div className="kv">
-                <span>当前</span>
+                <span>Current</span>
                 <b className="mono">{mcDir || '—'}</b>
               </div>
               <div className="row-actions">
@@ -837,33 +837,33 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                   className="btn"
                   onClick={async () => {
                     const picked = await rpc<{ path: string }>('app.pickDirectory', [
-                      '选择 .minecraft 目录',
+                      'Select .minecraft folder',
                     ]);
                     if (!picked.path) return;
                     const applied = await rpc<{ path: string }>('minecraft.setDir', [picked.path]);
                     setMcDir(applied.path);
-                    notify(`游戏目录： ${applied.path}`);
+                    notify(`Game folder:  ${applied.path}`);
                   }}
                 >
-                  选择…
+                  Choose…
                 </button>
                 <button
                   className="btn"
                   onClick={async () => {
                     const applied = await rpc<{ path: string }>('minecraft.setDir', ['']);
                     setMcDir(applied.path);
-                    notify('已恢复为启动器管理的目录');
+                    notify('Reverted to launcher-managed folder');
                   }}
                 >
-                  恢复默认
+                  Use default
                 </button>
               </div>
             </>
           )}
           {section === 'language' && (
             <>
-              <h2>语言</h2>
-              <p className="muted">切换立即生效并保存，重启后保持。</p>
+              <h2>Language</h2>
+              <p className="muted">Switching applies immediately and is saved.。</p>
               <div className="row-actions">
                 <button
                   className={currentLang() === 'en' ? 'btn primary' : 'btn'}
@@ -882,21 +882,21 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
           )}
           {section === 'logs' && (
             <>
-              <h2>日志</h2>
-              <p className="muted">按天写入 VeinLauncher/log/YYYY-MM-DD.log</p>
+              <h2>Logs</h2>
+              <p className="muted">Written daily to VeinLauncher/log/YYYY-MM-DD.log</p>
               <button className="btn" onClick={() => rpc('logs.openDir').catch(() => {})}>
-                打开日志目录
+                Open log folder
               </button>
             </>
           )}
         </div>
       }
-      right={<Empty>选择左侧设置项</Empty>}
+      right={<Empty>Select a settings group</Empty>}
     />
   );
 }
 
-// ---------------------------------------------------------------- 工具箱
+// ---------------------------------------------------------------- Toolbox
 export function ToolboxPage({ notify }: { notify: (text: string) => void }) {
   const [info, setInfo] = useState<AppInfo | null>(null);
   useEffect(() => {
@@ -905,35 +905,35 @@ export function ToolboxPage({ notify }: { notify: (text: string) => void }) {
 
   return (
     <div className="page">
-      <div className="page-head"><h1>{t('工具箱')}</h1><span className="muted">快捷操作</span></div>
+      <div className="page-head"><h1>{t('Toolbox')}</h1><span className="muted">Quick actions</span></div>
       <div className="cards">
         <div className="card">
-          <div className="card-title">{t('目录')}</div>
-          <div className="kv"><span>数据目录</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
+          <div className="card-title">{t('Folders')}</div>
+          <div className="kv"><span>Data folder</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
           <div className="row-actions">
-            <button className="btn" onClick={() => rpc('logs.openDir').catch(() => {})}>{t('打开日志目录')}</button>
+            <button className="btn" onClick={() => rpc('logs.openDir').catch(() => {})}>{t('Open log folder')}</button>
             <button className="btn" onClick={() => rpc('app.openDataDir').catch((e) => notify((e as Error).message))}>
-              打开数据目录
+              Open data folder
             </button>
           </div>
         </div>
         <div className="card">
-          <div className="card-title">{t('说明')}</div>
-          <p className="muted">下载缓存位于 assets/objects，下载中断会保留 .part 便于续传。</p>
+          <div className="card-title">{t('Notes')}</div>
+          <p className="muted">Downloads are cached in assets/objects; interrupted files keep .part for resume.。</p>
           <div className="row-actions" style={{ marginTop: 10, alignItems: "center" }}>
             <button
               className="btn sm"
               onClick={() =>
-                layerMsg(`Layui ${layuiVersion()} 已就绪`).catch(() => notify("layui 加载失败"))
+                layerMsg(`Layui ${layuiVersion()} Ready`).catch(() => notify("layui Load failed"))
               }
             >
-              测试 Layui 弹层
+              Test Layui layer
             </button>
             <button
               className="btn sm"
-              onClick={() => openLayuiPreview().catch(() => notify("layui 组件加载失败"))}
+              onClick={() => openLayuiPreview().catch(() => notify("layui Component failed to load"))}
             >
-              Layui 组件预览
+              Layui Component preview
             </button>
             <span className="muted">layui {layuiVersion()}</span>
           </div>

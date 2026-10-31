@@ -25,7 +25,7 @@ export function initBridge(): Promise<void> {
         if (!entry) return;
         pending.delete(id);
         if (ok) entry.resolve(payload);
-        else entry.reject(new Error(String(payload ?? '调用失败')));
+        else entry.reject(new Error(String(payload ?? '调用Failed')));
       };
 
       (window as any).__veinProgress = (taskId: string, done: number, total: number) =>
@@ -45,7 +45,7 @@ export function rpc<T>(method: string, args: unknown[] = []): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const bridge = (window as any).__bridge;
     if (!bridge) {
-      reject(new Error('桥未就绪'));
+      reject(new Error('桥未Ready'));
       return;
     }
     const id = ++seq;

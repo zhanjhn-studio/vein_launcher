@@ -1,0 +1,9 @@
+feat(i18n): launcher UI now pure English; fix Quick Play launch args
+
+- UI: all visible strings translated to English; language switch removed; default en_US
+- i18n: frontend default en, backend DEFAULT_LANG=en_US
+- Chinese version preserved: tag ui-zh-backup / branch ui-zh
+- launch args: drop unresolved placeholders (quickPlay*), respect feature rules
+  (is_demo_user / quick plays false, has_custom_resolution true), strip --demo
+  and dangling --quickPlay values -> fixes "Failed to Quick Play / world not found"
+- README files untouched

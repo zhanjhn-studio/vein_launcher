@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from typing import Dict, Optional
 
-DEFAULT_LANG = "zh_CN"
+DEFAULT_LANG = "en_US"
 SUPPORTED = {"en_US": "English", "zh_CN": "简体中文"}
 
 

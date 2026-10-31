@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { rpc } from './bridge';
 import type { AppInfo, JavaRuntime } from './types';
 import { applyTheme, currentTheme, Theme } from './theme';
-import { currentLang, setLang } from './i18n';
 
 export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [info, setInfo] = useState<AppInfo | null>(null);
@@ -23,44 +22,44 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
     try {
       setRuntimes(await rpc<JavaRuntime[]>('java.detect'));
     } catch (err) {
-      notify(`探测失败：${(err as Error).message}`);
+      notify(`Detect failed: ${(err as Error).message}`);
     }
   };
 
   const installJava = async (major: number) => {
     setJavaBusy(major);
-    setJavaMsg(`正在安装 Java ${major}…`);
+    setJavaMsg(`Installing Java ${major}…`);
     try {
       const r = await rpc<{ path: string; downloaded: boolean }>('java.ensure', [major]);
-      setJavaMsg(`Java ${major}：${r.path}（${r.downloaded ? '已下载' : '已存在'}）`);
+      setJavaMsg(`Java ${major}：${r.path}（${r.downloaded ? 'downloaded' : 'existing'}）`);
     } catch (err) {
-      setJavaMsg(`Java ${major} 失败：${(err as Error).message}`);
+      setJavaMsg(`Java ${major} Failed：${(err as Error).message}`);
     } finally {
       setJavaBusy(0);
     }
   };
 
   const chooseDir = async () => {
-    const picked = await rpc<{ path: string }>('app.pickDirectory', ['选择 .minecraft 目录']);
+    const picked = await rpc<{ path: string }>('app.pickDirectory', ['Select .minecraft folder']);
     if (!picked.path) return;
     const applied = await rpc<{ path: string }>('minecraft.setDir', [picked.path]);
     setMcDir(applied.path);
-    notify(`游戏目录：${applied.path}`);
+    notify(`Game folder: ${applied.path}`);
   };
 
   return (
     <div className="page">
       <div className="page-head">
-        <h1>设置</h1>
-        <span className="muted">分组展开，避免一屏堆满</span>
+        <h1>Settings</h1>
+        <span className="muted">Grouped sections keep the page readable.</span>
       </div>
 
       <div className="accordion">
         <details className="acc-item" open>
-          <summary>外观与语言</summary>
+          <summary>Appearance & language</summary>
           <div className="acc-body">
             <div className="kv">
-              <span>主题</span>
+              <span>Theme</span>
               <b>
                 <select
                   value={theme}
@@ -70,41 +69,30 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                     applyTheme(next);
                   }}
                 >
-                  <option value="dark">深色</option>
-                  <option value="light">浅色</option>
-                  <option value="clear">透明</option>
-                  <option value="system">跟随系统</option>
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                  <option value="clear">Clear</option>
+                  <option value="system">System</option>
                 </select>
-              </b>
-            </div>
-            <div className="kv">
-              <span>语言</span>
-              <b>
-                <button className={currentLang() === 'en' ? 'btn sm primary' : 'btn sm'} onClick={() => setLang('en')}>
-                  English
-                </button>{' '}
-                <button className={currentLang() === 'zh' ? 'btn sm primary' : 'btn sm'} onClick={() => setLang('zh')}>
-                  简体中文
-                </button>
               </b>
             </div>
           </div>
         </details>
 
         <details className="acc-item">
-          <summary>Java 运行时</summary>
+          <summary>Java Runtime</summary>
           <div className="acc-body">
             <div className="row-actions" style={{ marginTop: 0 }}>
-              <button className="btn sm" onClick={detect}>自动探测</button>
+              <button className="btn sm" onClick={detect}>Auto detect</button>
               {[8, 17, 21].map((major) => (
                 <button key={major} className="btn sm" disabled={javaBusy === major} onClick={() => installJava(major)}>
-                  {javaBusy === major ? '…' : `安装 Java ${major}`}
+                  {javaBusy === major ? '…' : `Install Java ${major}`}
                 </button>
               ))}
             </div>
             {javaMsg && <p className="muted">{javaMsg}</p>}
             {runtimes.length === 0 ? (
-              <p className="muted">尚未探测，点击「自动探测」扫描本机 Java</p>
+              <p className="muted">Not scanned yet. Click Auto detect to find local Java.</p>
             ) : (
               runtimes.map((rt) => (
                 <div className="kv" key={rt.path}>
@@ -117,14 +105,14 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
         </details>
 
         <details className="acc-item">
-          <summary>游戏目录</summary>
+          <summary>Game folder</summary>
           <div className="acc-body">
             <div className="kv">
-              <span>当前</span>
+              <span>Current</span>
               <b className="mono">{mcDir || '—'}</b>
             </div>
             <div className="row-actions" style={{ marginTop: 0 }}>
-              <button className="btn sm" onClick={chooseDir}>选择 .minecraft</button>
+              <button className="btn sm" onClick={chooseDir}>Choose .minecraft</button>
               <button
                 className="btn sm"
                 onClick={async () => {
@@ -132,30 +120,30 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                   setMcDir(applied.path);
                 }}
               >
-                恢复默认
+                Use default
               </button>
             </div>
           </div>
         </details>
 
         <details className="acc-item">
-          <summary>日志</summary>
+          <summary>Logs</summary>
           <div className="acc-body">
-            <p className="muted">按天写入 VeinLauncher/log，分类存放 launcher / plugin / mlc / download。</p>
+            <p className="muted">Written daily to VeinLauncher/log, split by launcher / plugin / mlc / download.。</p>
             <div className="row-actions" style={{ marginTop: 0 }}>
               <button className="btn sm" onClick={() => rpc('logs.openDir').catch(() => {})}>
-                打开日志目录
+                Open log folder
               </button>
             </div>
           </div>
         </details>
 
         <details className="acc-item">
-          <summary>关于</summary>
+          <summary>About</summary>
           <div className="acc-body">
-            <div className="kv"><span>版本</span><b>{info?.version ?? '—'}</b></div>
-            <div className="kv"><span>数据目录</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
-            <div className="kv"><span>架构</span><b>Python + PySide6 WebView + React + TS</b></div>
+            <div className="kv"><span>Version</span><b>{info?.version ?? '—'}</b></div>
+            <div className="kv"><span>Data folder</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
+            <div className="kv"><span>Architecture</span><b>Python + PySide6 WebView + React + TS</b></div>
           </div>
         </details>
       </div>

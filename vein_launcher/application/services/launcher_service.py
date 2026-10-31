@@ -178,7 +178,10 @@ class LauncherService:
 
         for entry in entries:
             if isinstance(entry, str):
-                result.append(substitute(entry))
+                text = substitute(entry)
+                if "${" in text:  # 未能解析的占位符（如 quickPlay 系列）直接丢弃
+                    continue
+                result.append(text)
                 continue
             if not isinstance(entry, dict):
                 continue
@@ -188,17 +191,47 @@ class LauncherService:
             value = entry.get("value")
             for item in (value if isinstance(value, list) else [value]):
                 if isinstance(item, str):
-                    result.append(substitute(item))
-        return result
+                    text = substitute(item)
+                    if "${" in text:
+                        continue
+                    result.append(text)
+
+        # 清理：demo / quickPlay 参数及其悬空值（我们不支持这些入口）
+        cleaned: List[str] = []
+        skip_next = False
+        for token in result:
+            if skip_next:
+                skip_next = False
+                if not token.startswith("--"):
+                    continue
+            if token == "--demo":
+                continue
+            if token.startswith("--quickPlay"):
+                skip_next = True
+                continue
+            cleaned.append(token)
+        return cleaned
 
     @staticmethod
     def _rules_allow(rules: Optional[List[Dict[str, Any]]]) -> bool:
         if not rules:
             return True
+        # 我们支持的 feature：自定义分辨率；其余（demo/quickPlay）一律视为不满足
+        supported = {
+            "has_custom_resolution": True,
+            "is_demo_user": False,
+            "has_quick_plays_support": False,
+            "is_quick_play_singleplayer": False,
+            "is_quick_play_multiplayer": False,
+            "is_quick_play_realms": False,
+        }
         allowed = False
         for rule in rules:
             os_rule = rule.get("os") or {}
             if os_rule and os_rule.get("name") not in (None, "windows"):
+                continue
+            features = rule.get("features") or {}
+            if any(bool(value) != bool(supported.get(name, False)) for name, value in features.items()):
                 continue
             allowed = rule.get("action", "allow") == "allow"
         return allowed
