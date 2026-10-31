@@ -3,6 +3,12 @@ import { rpc } from './bridge';
 import type { AppInfo, JavaRuntime } from './types';
 import { applyTheme, currentTheme, Theme } from './theme';
 
+interface AccountRow {
+  id: string;
+  username: string;
+  selected?: boolean;
+}
+
 export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [runtimes, setRuntimes] = useState<JavaRuntime[]>([]);
@@ -10,11 +16,27 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [javaMsg, setJavaMsg] = useState('');
   const [mcDir, setMcDir] = useState('');
   const [theme, setTheme] = useState<Theme>(currentTheme());
+  const [accounts, setAccounts] = useState<AccountRow[]>([]);
+  const [newName, setNewName] = useState('');
+  const [msId, setMsId] = useState('');
+  const [msAuthority, setMsAuthority] = useState('common');
+  const [msCode, setMsCode] = useState('');
+  const [msBusy, setMsBusy] = useState(false);
+
+  const reloadAccounts = () =>
+    rpc<AccountRow[]>('accounts.list').then(setAccounts).catch(() => {});
 
   useEffect(() => {
     rpc<AppInfo>('app.info').then(setInfo).catch(() => {});
     rpc<{ path: string }>('minecraft.getDir')
       .then((r) => setMcDir(r.path))
+      .catch(() => {});
+    reloadAccounts();
+    rpc<{ client_id: string }>('accounts.msClientId')
+      .then((r) => setMsId(r.client_id))
+      .catch(() => {});
+    rpc<{ authority: string }>('accounts.msAuthority')
+      .then((r) => setMsAuthority(r.authority || 'common'))
       .catch(() => {});
   }, []);
 
@@ -31,32 +53,44 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
     setJavaMsg(`Installing Java ${major}…`);
     try {
       const r = await rpc<{ path: string; downloaded: boolean }>('java.ensure', [major]);
-      setJavaMsg(`Java ${major}：${r.path}（${r.downloaded ? 'downloaded' : 'existing'}）`);
+      setJavaMsg(`Java ${major}: ${r.path} (${r.downloaded ? 'downloaded' : 'existing'})`);
     } catch (err) {
-      setJavaMsg(`Java ${major} Failed：${(err as Error).message}`);
+      setJavaMsg(`Java ${major} failed: ${(err as Error).message}`);
     } finally {
       setJavaBusy(0);
     }
   };
 
-  const chooseDir = async () => {
-    const picked = await rpc<{ path: string }>('app.pickDirectory', ['Select .minecraft folder']);
-    if (!picked.path) return;
-    const applied = await rpc<{ path: string }>('minecraft.setDir', [picked.path]);
-    setMcDir(applied.path);
-    notify(`Game folder: ${applied.path}`);
+  const startMicrosoft = async () => {
+    setMsBusy(true);
+    setMsCode('Requesting device code…');
+    try {
+      await rpc('accounts.msClientId', [msId]);
+      await rpc('accounts.msAuthority', [msAuthority]);
+      const info = await rpc<{ device_code: string; user_code: string; verification_uri: string }>(
+        'accounts.msStart'
+      );
+      setMsCode(`Open ${info.verification_uri} and enter code ${info.user_code}`);
+      const account = await rpc<{ username: string }>('accounts.msLogin', [info.device_code]);
+      setMsCode(`Signed in as ${account.username}`);
+      await reloadAccounts();
+    } catch (err) {
+      setMsCode(`Failed: ${(err as Error).message}`);
+    } finally {
+      setMsBusy(false);
+    }
   };
 
   return (
     <div className="page">
       <div className="page-head">
         <h1>Settings</h1>
-        <span className="muted">Grouped sections keep the page readable.</span>
+        <span className="muted">Grouped sections</span>
       </div>
 
       <div className="accordion">
         <details className="acc-item" open>
-          <summary>Appearance & language</summary>
+          <summary>Appearance</summary>
           <div className="acc-body">
             <div className="kv">
               <span>Theme</span>
@@ -80,19 +114,119 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
         </details>
 
         <details className="acc-item">
-          <summary>Java Runtime</summary>
+          <summary>Accounts</summary>
+          <div className="acc-body">
+            {accounts.length === 0 && <p className="muted">No accounts yet</p>}
+            {accounts.map((acc) => (
+              <div className="kv" key={acc.id}>
+                <span>
+                  {acc.username}
+                  {acc.selected ? ' · current' : ''}
+                </span>
+                <b>
+                  <button
+                    className="btn sm"
+                    onClick={async () => {
+                      await rpc('accounts.select', [acc.id]);
+                      await reloadAccounts();
+                    }}
+                  >
+                    Use
+                  </button>
+                  <button
+                    className="btn sm"
+                    style={{ marginLeft: 6 }}
+                    onClick={async () => {
+                      await rpc('accounts.remove', [acc.id]);
+                      await reloadAccounts();
+                    }}
+                  >
+                    Remove
+                  </button>
+                </b>
+              </div>
+            ))}
+
+            <div className="row-actions">
+              <input
+                className="input"
+                placeholder="Offline username (3-16)"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+              <button
+                className="btn primary sm"
+                onClick={async () => {
+                  try {
+                    await rpc('accounts.add', [newName]);
+                    setNewName('');
+                    await reloadAccounts();
+                  } catch (err) {
+                    notify(`Add failed: ${(err as Error).message}`);
+                  }
+                }}
+              >
+                Add offline
+              </button>
+            </div>
+
+            <div className="card-title" style={{ marginTop: 14 }}>Microsoft</div>
+            <div className="row-actions">
+              <input
+                className="input"
+                style={{ width: 300 }}
+                placeholder="Azure client id"
+                value={msId}
+                onChange={(e) => setMsId(e.target.value)}
+              />
+              <input
+                className="input"
+                style={{ width: 260 }}
+                placeholder="authority (common / tenant id)"
+                value={msAuthority}
+                onChange={(e) => setMsAuthority(e.target.value)}
+              />
+              <button
+                className="btn sm"
+                onClick={async () => {
+                  await rpc('accounts.msClientId', [msId]);
+                  await rpc('accounts.msAuthority', [msAuthority]);
+                  notify('Microsoft settings saved');
+                }}
+              >
+                Save
+              </button>
+            </div>
+            <div className="row-actions">
+              <button className="btn primary" onClick={startMicrosoft} disabled={msBusy}>
+                {msBusy ? 'Waiting for approval…' : 'Sign in with Microsoft'}
+              </button>
+            </div>
+            {msCode && <p className="muted">{msCode}</p>}
+          </div>
+        </details>
+
+        <details className="acc-item">
+          <summary>Java runtime</summary>
           <div className="acc-body">
             <div className="row-actions" style={{ marginTop: 0 }}>
-              <button className="btn sm" onClick={detect}>Auto detect</button>
+              <button className="btn sm" onClick={detect}>
+                Auto detect
+              </button>
               {[8, 17, 21].map((major) => (
-                <button key={major} className="btn sm" disabled={javaBusy === major} onClick={() => installJava(major)}>
+                <button
+                  key={major}
+                  className="btn sm"
+                  disabled={javaBusy === major}
+                  onClick={() => installJava(major)}
+                >
                   {javaBusy === major ? '…' : `Install Java ${major}`}
                 </button>
               ))}
             </div>
             {javaMsg && <p className="muted">{javaMsg}</p>}
             {runtimes.length === 0 ? (
-              <p className="muted">Not scanned yet. Click Auto detect to find local Java.</p>
+              <p className="muted">No scan yet. Click Auto detect.</p>
             ) : (
               runtimes.map((rt) => (
                 <div className="kv" key={rt.path}>
@@ -112,7 +246,19 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
               <b className="mono">{mcDir || '—'}</b>
             </div>
             <div className="row-actions" style={{ marginTop: 0 }}>
-              <button className="btn sm" onClick={chooseDir}>Choose .minecraft</button>
+              <button
+                className="btn sm"
+                onClick={async () => {
+                  const picked = await rpc<{ path: string }>('app.pickDirectory', [
+                    'Select .minecraft folder',
+                  ]);
+                  if (!picked.path) return;
+                  const applied = await rpc<{ path: string }>('minecraft.setDir', [picked.path]);
+                  setMcDir(applied.path);
+                }}
+              >
+                Choose .minecraft
+              </button>
               <button
                 className="btn sm"
                 onClick={async () => {
@@ -129,7 +275,9 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
         <details className="acc-item">
           <summary>Logs</summary>
           <div className="acc-body">
-            <p className="muted">Written daily to VeinLauncher/log, split by launcher / plugin / mlc / download.。</p>
+            <p className="muted">
+              Written daily to VeinLauncher/log, split into launcher / plugin / mlc / download.
+            </p>
             <div className="row-actions" style={{ marginTop: 0 }}>
               <button className="btn sm" onClick={() => rpc('logs.openDir').catch(() => {})}>
                 Open log folder
@@ -143,7 +291,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
           <div className="acc-body">
             <div className="kv"><span>Version</span><b>{info?.version ?? '—'}</b></div>
             <div className="kv"><span>Data folder</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
-            <div className="kv"><span>Architecture</span><b>Python + PySide6 WebView + React + TS</b></div>
+            <div className="kv"><span>Stack</span><b>Python + PySide6 WebView + React + TS</b></div>
           </div>
         </details>
       </div>
