@@ -12,6 +12,7 @@ import { LaunchPage } from './launchPage';
 import { DownloadPage } from './downloadPage';
 import { SettingsPage } from './settingsPage';
 import { SkinsPage } from './skinsPage';
+import { InstancePage } from './instancePage';
 import { DownloadMonitor, Toast } from './ui';
 import { PluginUiHost } from './pluginUi';
 import { initI18n, t, useI18n } from './i18n';
@@ -196,6 +197,10 @@ export function App() {
               accounts={accounts}
               selected={selected}
               onSelect={setSelected}
+              onManage={(id) => {
+                setSelected(id);
+                setPage('mlc');
+              }}
               notify={notify}
               announcements={lightNews}
             />
@@ -205,7 +210,17 @@ export function App() {
             <DownloadPage installed={installed} onInstalled={refreshInstalled} notify={notify} />
           )}
           {page === 'plugins' && <PluginsPage notify={notify} />}
-          {page === 'mlc' && <MlcPage installed={installed} selected={selected} notify={notify} />}
+          {page === 'mlc' && (
+            <InstancePage
+              installed={installed}
+              selected={selected}
+              notify={notify}
+              onSelect={setSelected}
+              onDownload={() => setPage('download')}
+              onDeleted={refreshInstalled}
+              Console={<MlcPage installed={installed} selected={selected} notify={notify} />}
+            />
+          )}
           {page === 'multiplayer' && <MultiplayerPage />}
           {page === 'settings' && <SettingsPage notify={notify} />}
           {page === 'toolbox' && <ToolboxPage notify={notify} />}

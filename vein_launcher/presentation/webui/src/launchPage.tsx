@@ -8,6 +8,7 @@ export function LaunchPage({
   accounts,
   selected,
   onSelect,
+  onManage,
   notify,
   announcements = [],
 }: {
@@ -15,6 +16,7 @@ export function LaunchPage({
   accounts: AccountInfo[];
   selected: string;
   onSelect: (id: string) => void;
+  onManage?: (id: string) => void;
   notify: (text: string) => void;
   announcements?: { id?: string; title: string; content?: string }[];
 }) {
@@ -63,10 +65,15 @@ export function LaunchPage({
           ) : (
             <div className="version-cards">
               {installed.map((version) => (
-                <button
+                <div
                   key={version.id}
                   className={`version-card ${selected === version.id ? 'active' : ''}`}
                   onClick={() => onSelect(version.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') onSelect(version.id);
+                  }}
                 >
                   <span className="mark">{version.id.split('.')[0]}</span>
                   <span className="meta">
@@ -74,7 +81,18 @@ export function LaunchPage({
                     <span className="tag">{version.type || 'release'}</span>
                   </span>
                   {selected === version.id && <span className="status">Selected</span>}
-                </button>
+                  {onManage && (
+                    <button
+                      className="btn sm ghost card-manage"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onManage(version.id);
+                      }}
+                    >
+                      Manage
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}

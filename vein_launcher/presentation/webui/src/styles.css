@@ -681,6 +681,62 @@ html[data-transparent="on"] body {
 
 .side:hover .side-ver { opacity: 1; }
 
+/* ---------- 实例详情（MLC 页） ---------- */
+.instance-layout { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: 16px; align-items: start; }
+.instance-list { display: flex; flex-direction: column; gap: 6px; }
+.instance-item {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer;
+  padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface-2); color: var(--text);
+}
+.instance-item b { font-size: 12.5px; }
+.instance-item span { font-size: 10.5px; color: var(--text-3); }
+.instance-item:hover { border-color: var(--line-2); }
+.instance-item.active { border-color: var(--accent); background: var(--accent-soft); }
+
+.instance-main { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.instance-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.instance-head h2 { font-size: 18px; margin: 0 0 2px; }
+.instance-head .muted { font-size: 11.5px; }
+.instance-tabs { display: flex; gap: 3px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.instance-tab {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  border: 0; background: transparent; color: var(--text-3); font-size: 12px;
+  padding: 6px 10px; border-radius: 8px;
+}
+.instance-tab em { font-style: normal; font-size: 10px; color: var(--text-3); }
+.instance-tab:hover { background: var(--surface-2); color: var(--text); }
+.instance-tab.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+.files-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.file-rows { display: flex; flex-direction: column; gap: 4px; }
+.file-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 78px 128px auto; gap: 10px;
+  align-items: center; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2);
+}
+.file-row.off { opacity: .62; }
+.file-name { font: 11.5px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { font: 10.5px var(--mono); color: var(--text-3); text-align: right; }
+
+.world-rows { display: flex; flex-direction: column; gap: 6px; }
+.world-row {
+  display: flex; gap: 8px; align-items: center; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2);
+}
+.world-main {
+  flex: 1; display: flex; gap: 12px; align-items: baseline; text-align: left;
+  border: 0; background: none; color: var(--text); cursor: pointer; min-width: 0;
+}
+.world-main b { font-size: 12.5px; }
+.world-main span { font-size: 11px; color: var(--text-3); }
+.scan-panel { margin-top: 12px; padding: 10px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface-2); }
+.scan-head { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+.scan-head .btn { margin-left: auto; }
+.scan-body { max-height: 320px; overflow: auto; margin: 0; font: 11px var(--mono); color: var(--text-2); white-space: pre-wrap; }
+.instance-console { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--surface-2); }
+.card-manage { margin-left: auto; }
+
 /* ---------- Layui 控件（进度条 / 勾选框） ---------- */
 .layui-progress { height: 6px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
 .layui-progress-bar { height: 100%; border-radius: 4px; background: var(--accent); transition: width .25s ease; }

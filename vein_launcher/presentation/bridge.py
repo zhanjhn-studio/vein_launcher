@@ -130,6 +130,11 @@ class ApiBridge(QObject):
             "skins.remote": self._skins_remote,
             "skins.library": self._skins_library,
             "skins.download": self._skins_download,
+            "instances.contents": self._instance_contents,
+            "instances.toggle": self._instance_toggle,
+            "instances.deleteFile": self._instance_delete_file,
+            "instances.worlds": self._instance_worlds,
+            "instances.deleteWorld": self._instance_delete_world,
             "minecraft.getDir": self._minecraft_get_dir,
             "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
@@ -756,6 +761,21 @@ class ApiBridge(QObject):
         except Exception as exc:
             logger.warning("皮肤下载失败 tid=%s：%s", tid, exc)
             return {"ok": False, "error": str(exc)}
+
+    async def _instance_contents(self, version_id: str) -> dict:
+        return self._ctx.instances.list_contents(str(version_id))
+
+    async def _instance_toggle(self, version_id: str, kind: str, name: str, enabled: bool) -> dict:
+        return self._ctx.instances.set_enabled(str(version_id), str(kind), str(name), bool(enabled))
+
+    async def _instance_delete_file(self, version_id: str, kind: str, name: str) -> dict:
+        return self._ctx.instances.delete(str(version_id), str(kind), str(name))
+
+    async def _instance_worlds(self, version_id: str) -> list:
+        return self._ctx.instances.list_worlds(str(version_id))
+
+    async def _instance_delete_world(self, version_id: str, folder: str) -> dict:
+        return self._ctx.instances.delete_world(str(version_id), str(folder))
 
     async def _skins_list(self) -> list:
         rows = []

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from vein_launcher.application.services.account_service import AccountService
+from vein_launcher.application.services.instance_service import InstanceService
 from vein_launcher.application.services.launcher_service import LauncherService
 from vein_launcher.application.services.loader_service import LoaderService
 from vein_launcher.application.services.modpack_service import ModpackService
@@ -56,6 +57,7 @@ class AppContext:
         self.accounts = AccountService()
         self.accounts.load()
         self.skins = SkinService()
+        self.instances = InstanceService()
         self.modrinth = ModrinthApiClient()
         self.detector = JavaDetector()
         self.java = JavaManager(self.detector)
