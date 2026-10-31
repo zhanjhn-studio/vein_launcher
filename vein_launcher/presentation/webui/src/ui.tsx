@@ -333,30 +333,62 @@ export function DownloadMonitor() {
     };
   }, []);
 
-  const entries = Object.entries(tasks).filter(([, t]) => t.total > 0 || t.done > 0);
+  const entries = Object.entries(tasks).filter(([, t]) => t.total > 0);
+  const running = entries.filter(([, t]) => t.done < t.total);
+  const overall = running.length
+    ? Math.round(
+        (running.reduce((sum, [, t]) => sum + (t.total ? t.done / t.total : 0), 0) /
+          running.length) *
+          100
+      )
+    : 0;
 
   return (
-    <div className="monitor" title="Download monitor">
-      <div className="monitor-head">
-        <span className="monitor-title">Downloads</span>
-        <span className="muted">{entries.length}</span>
+    <div className={`monitor ${running.length ? 'busy' : ''}`} title="Download monitor">
+      <div className="monitor-mini">
+        <div
+          className="monitor-ring"
+          style={{
+            background: running.length
+              ? `conic-gradient(var(--accent) ${overall * 3.6}deg, var(--surface-3) 0)`
+              : 'var(--surface-3)',
+          }}
+        >
+          <span>
+            {running.length ? (
+              `${overall}%`
+            ) : (
+              <i className="layui-icon layui-icon-download-circle" />
+            )}
+          </span>
+        </div>
+        {running.length > 0 && <em className="monitor-count">{running.length}</em>}
       </div>
-      {entries.length === 0 ? (
-        <div className="monitor-empty">idle</div>
-      ) : (
-        entries.map(([id, task]) => {
-          const pct = task.total > 0 ? Math.round((task.done / task.total) * 100) : 0;
-          return (
-            <div className="monitor-item" key={id}>
-              <div className="monitor-name" title={task.name}>
-                {task.name.length > 22 ? `${task.name.slice(0, 22)}…` : task.name}
+
+      <div className="monitor-full">
+        <div className="monitor-head">
+          <span className="monitor-title">Downloads</span>
+          <span className="muted">
+            {running.length ? `${running.length} active` : 'idle'}
+          </span>
+        </div>
+        {running.length === 0 ? (
+          <div className="monitor-empty">No active downloads</div>
+        ) : (
+          running.map(([id, task]) => {
+            const pct = task.total > 0 ? Math.round((task.done / task.total) * 100) : 0;
+            return (
+              <div className="monitor-item" key={id}>
+                <div className="monitor-name" title={task.name}>
+                  {task.name.length > 24 ? `${task.name.slice(0, 24)}…` : task.name}
+                </div>
+                <LayuiProgress percent={Math.max(pct, 2)} slim />
+                <span className="monitor-pct">{pct}%</span>
               </div>
-              <LayuiProgress percent={Math.max(pct, 3)} slim />
-              <span className="monitor-pct">{pct}%</span>
-            </div>
-          );
-        })
-      )}
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { on, rpc } from './bridge';
-import { LayuiProgress, RemoteIcon } from './ui';
+import { RemoteIcon } from './ui';
 import type { ModItem, VersionInfo } from './types';
 
 type Category = 'version' | 'mod' | 'modpack' | 'datapack' | 'shader' | 'resourcepack' | 'optifine';
@@ -196,15 +196,10 @@ export function DownloadPage({
         </div>
 
         {installing && (
-          <div className="card" style={{ marginTop: 12 }}>
-            <div className="card-title">{installing}</div>
-            <LayuiProgress percent={Math.max(percent, 2)} />
-            <div className="kv">
-              <span>
-                {progress ? `${progress.done} / ${progress.total} files` : 'preparing…'}
-              </span>
-              <b>{percent}%</b>
-            </div>
+          <div className="install-status">
+            <i className="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop" />
+            <span>Installing {installing}</span>
+            <span className="muted">progress is in the sidebar monitor</span>
           </div>
         )}
       </div>
@@ -394,13 +389,10 @@ export function DownloadPage({
       )}
 
       {installing && (
-        <div className="card" style={{ marginTop: 12 }}>
-          <div className="card-title">{installing}</div>
-          <LayuiProgress percent={Math.max(percent, 4)} tone="green" />
-          <div className="kv">
-            <span>{progress ? `${progress.done} / ${progress.total}` : 'starting'}</span>
-            <b>{percent}%</b>
-          </div>
+        <div className="install-status">
+          <i className="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop" />
+          <span>Installing {installing}</span>
+          <span className="muted">progress is in the sidebar monitor</span>
         </div>
       )}
     </div>

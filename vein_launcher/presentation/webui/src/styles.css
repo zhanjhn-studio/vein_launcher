@@ -526,18 +526,33 @@ html[data-transparent="on"] body {
 .project-detail { max-width: 820px; }
 
 /* ---------- 侧栏下载监控中心 ---------- */
-.monitor {
-  border: 1px solid var(--line); border-radius: var(--radius-sm);
-  background: var(--surface-2); padding: 8px; margin-bottom: 8px;
-  width: 208px; max-width: 100%; overflow: hidden;
+.monitor { width: 100%; }
+.monitor-mini { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 2px 0; }
+.side:hover .monitor-mini { display: none; }
+.monitor-ring {
+  position: relative; width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center; transition: background .25s ease;
 }
+.monitor-ring > span {
+  width: 26px; height: 26px; border-radius: 50%; background: var(--bg-2);
+  display: grid; place-items: center; font: 8.5px var(--mono); color: var(--text-2);
+}
+.monitor-ring > span i { font-size: 12px; color: var(--text-3); }
+.monitor-count {
+  font: 700 9px var(--mono); font-style: normal; color: var(--text); background: var(--accent);
+  color: #101725; border-radius: 8px; padding: 0 5px; line-height: 14px;
+}
+.monitor-full {
+  display: none; flex-direction: column; gap: 4px; width: 100%;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface-2); padding: 8px;
+}
+.side:hover .monitor-full { display: flex; }
 .monitor-head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-3); }
 .monitor-title { font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
 .monitor-empty { font: 11px var(--mono); color: var(--text-3); padding: 6px 2px; }
 .monitor-item { display: grid; grid-template-columns: 1fr auto; gap: 2px 6px; margin-top: 6px; }
 .monitor-name { font: 10.5px var(--mono); color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; grid-column: 1 / -1; }
-.monitor-bar { height: 4px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
-.monitor-bar i { display: block; height: 100%; background: var(--accent); transition: width .25s ease; }
 .monitor-pct { font: 10px var(--mono); color: var(--text-3); }
 .side:hover .monitor { width: 100%; }
 .side-ver { font: 10px var(--mono); color: var(--text-3); opacity: 0; transition: opacity .2s ease; }
@@ -688,6 +703,12 @@ html[data-transparent="on"] body {
 
 /* 远程图片占位：加载中半透明，失败后由 RemoteIcon 换成本地图标 */
 .vl-img-loading { opacity: .35; transition: opacity .2s ease; }
+.install-status {
+  display: flex; align-items: center; gap: 8px; margin-top: 10px;
+  font-size: 12px; color: var(--text-2);
+}
+.install-status .layui-icon { color: var(--accent); font-size: 14px; }
+.install-status .muted { font-size: 11px; }
 .detail-icon {
   width: 56px; height: 56px; border-radius: 12px; object-fit: cover;
   border: 1px solid var(--line); background: var(--surface-3); flex: none;
