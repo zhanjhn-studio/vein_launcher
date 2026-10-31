@@ -1,6 +1,0 @@
-fix(versions): 修复已装版本检测不到
-
-- 根因: list_installed 用 get_version_dir(".").parent，实际扫到 minecraft 根目录而不是 instances
-- 改为扫描实例目录，并兼容标准 .minecraft/versions（用户自装的游戏）
-- 新增 resolve_version_dir: 启动命令/合并 JSON/jar 路径在实例目录与 versions 之间自动定位
-- 实测: list_installed 返回 1.20.1 release
