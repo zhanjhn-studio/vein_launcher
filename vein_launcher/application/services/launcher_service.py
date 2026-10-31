@@ -54,6 +54,7 @@ class LauncherService:
         access_token: Optional[str] = None,
         auth_uuid: Optional[str] = None,
         user_type: str = "legacy",
+        extra_jvm: Optional[List[str]] = None,
     ) -> List[str]:
         merged = await self._versions.merged(version_id)
         cfg = settings_manager.get()
@@ -99,6 +100,7 @@ class LauncherService:
             f"-Xmx{cfg.launch.memory_max}M",
             *cfg.launch.jvm_args,
             *jvm_args,
+            *(extra_jvm or []),
         ]
         has_cp = any(arg in ("-cp", "-classpath") for arg in jvm_args)
         if not has_cp:
@@ -115,6 +117,7 @@ class LauncherService:
         access_token: Optional[str] = None,
         auth_uuid: Optional[str] = None,
         user_type: str = "legacy",
+        extra_jvm: Optional[List[str]] = None,
     ) -> int:
         command = await self.build_command(
             version_id,
@@ -123,6 +126,7 @@ class LauncherService:
             access_token=access_token,
             auth_uuid=auth_uuid,
             user_type=user_type,
+            extra_jvm=extra_jvm,
         )
         return await self._process.launch(command, cwd=resolve_version_dir(version_id))
 

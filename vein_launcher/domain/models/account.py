@@ -94,6 +94,28 @@ class MicrosoftAccount(AccountBase):
         return current_time + 600 > self.token_expires_at
 
 
+class LittleSkinAccount(AccountBase):
+    """LittleSkin（及兼容 Yggdrasil 的皮肤站）账号"""
+
+    account_type: Literal["littleskin"] = Field(
+        default="littleskin", description="皮肤站账号标记"
+    )
+
+    server: str = Field(
+        default="https://littleskin.cn/api/yggdrasil", description="皮肤站 Yggdrasil API 根地址"
+    )
+    uuid: Optional[str] = None
+    access_token: Optional[str] = None
+    client_token: Optional[str] = None
+    skin_model: Optional[str] = None  # slim / classic
+
+    def is_valid(self) -> bool:
+        return bool(self.access_token and self.uuid)
+
+    def get_auth_token(self) -> Optional[str]:
+        return self.access_token
+
+
 REFRESH_MARGIN = 600  # 提前 10 分钟续期，避免启动瞬间过期
 
 

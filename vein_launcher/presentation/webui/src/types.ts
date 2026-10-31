@@ -9,6 +9,9 @@ export interface AccountInfo {
   username: string;
   selected?: boolean;
   type?: string;
+  uuid?: string;
+  online?: boolean;
+  server?: string;
 }
 
 export interface ModItem {
@@ -68,6 +71,8 @@ export interface JavaRuntime {
 export interface AppInfo {
   version: string;
   dataDir: string;
+  accountCount?: number;
+  firstRun?: boolean;
 }
 
 export type Category =

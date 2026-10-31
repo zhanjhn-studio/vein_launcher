@@ -14,6 +14,7 @@ from vein_launcher.common.utils.path_utils import ensure_dir, get_app_data_dir
 from vein_launcher.domain.models.account import (
     AccountBase,
     AccountManager,
+    LittleSkinAccount,
     MicrosoftAccount,
     OfflineAccount,
 )
@@ -32,6 +33,8 @@ def _build_account(raw: Dict[str, Any]) -> Optional[AccountBase]:
     try:
         if kind == "microsoft":
             return MicrosoftAccount(**raw)
+        if kind == "littleskin":
+            return LittleSkinAccount(**raw)
         return OfflineAccount(**raw)
     except Exception as exc:  # 单条坏数据不应拖垮整个账号列表
         logger.warning("账号记录解析失败（%s）：%s", kind, exc)
@@ -84,7 +87,11 @@ class AccountService:
                 "selected": acc.account_id == self._manager.selected_account_id,
                 "type": getattr(acc, "account_type", "offline"),
                 "uuid": getattr(acc, "uuid", None),
-                "online": bool(getattr(acc, "mc_access_token", None)),
+                "online": bool(
+                    getattr(acc, "mc_access_token", None)
+                    or getattr(acc, "access_token", None)
+                ),
+                "server": getattr(acc, "server", None),
                 "expires_at": getattr(acc, "mc_expires_at", None),
             }
             for acc in self._manager.accounts
@@ -136,6 +143,48 @@ class AccountService:
             "id": account.account_id,
             "username": account.username,
             "type": "microsoft",
+        }
+
+    def add_littleskin(self, session: Dict[str, Any]) -> Dict[str, Any]:
+        """LittleSkin 登录成功：同一皮肤站账号按 uuid 去重，令牌随账号保存"""
+        server = str(session.get("server") or "")
+        ls_uuid = str(session.get("uuid") or "")
+        account: Optional[LittleSkinAccount] = None
+        for acc in self._manager.accounts:
+            if (
+                isinstance(acc, LittleSkinAccount)
+                and ls_uuid
+                and acc.uuid == ls_uuid
+                and acc.server == server
+            ):
+                account = acc
+                break
+        if account is None:
+            account = LittleSkinAccount(
+                account_id=str(uuid.uuid4()),
+                username=str(session.get("username") or "Player"),
+                uuid=ls_uuid,
+                server=server,
+            )
+            self._manager.add_account(account)
+
+        account.username = str(session.get("username") or account.username)
+        account.uuid = ls_uuid or account.uuid
+        account.server = server or account.server
+        if session.get("access_token"):
+            account.access_token = str(session["access_token"])
+        if session.get("client_token"):
+            account.client_token = str(session["client_token"])
+        if session.get("skin_model"):
+            account.skin_model = str(session["skin_model"])
+
+        self._manager.select_account(account.account_id)
+        self.save()
+        logger.info("LittleSkin 账号已保存：%s", account.username)
+        return {
+            "id": account.account_id,
+            "username": account.username,
+            "type": "littleskin",
         }
 
     def update_ms_session(self, account_id: str, session: Dict[str, Any]) -> bool:

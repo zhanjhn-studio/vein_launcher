@@ -17,11 +17,13 @@ from unittest.mock import patch
 from vein_launcher.application.services.account_service import AccountService
 from vein_launcher.application.services.launcher_service import LauncherService
 from vein_launcher.domain.models.account import (
+    LittleSkinAccount,
     MicrosoftAccount,
     OfflineAccount,
     token_needs_refresh,
 )
 from vein_launcher.infrastructure.network import microsoft_auth as ma
+from vein_launcher.infrastructure.network import littleskin
 from vein_launcher.presentation.bridge import ApiBridge
 
 
@@ -257,6 +259,105 @@ class MsEnsureTokenTests(unittest.TestCase):
             )
 
         self.assertEqual(token["access_token"], "fresh-token")
+
+
+class LittleSkinTests(unittest.TestCase):
+    def test_parse_session_prefers_selected_profile(self) -> None:
+        data = {
+            "accessToken": "at-1",
+            "clientToken": "ct-1",
+            "selectedProfile": {"id": "abc-123", "name": "SkinGuy"},
+            "availableProfiles": [{"id": "other", "name": "Other"}],
+        }
+        session = littleskin.parse_session("https://littleskin.cn/api/yggdrasil/", data)
+        self.assertEqual(session["access_token"], "at-1")
+        self.assertEqual(session["client_token"], "ct-1")
+        self.assertEqual(session["username"], "SkinGuy")
+        self.assertEqual(session["uuid"], "abc123")
+        self.assertEqual(session["server"], "https://littleskin.cn/api/yggdrasil")
+        self.assertEqual(session["type"], "littleskin")
+
+    def test_parse_session_falls_back_to_available_profile(self) -> None:
+        data = {"accessToken": "at", "clientToken": "ct",
+                "availableProfiles": [{"id": "f00d", "name": "Fallback"}]}
+        session = littleskin.parse_session("https://example.org/api/yggdrasil", data)
+        self.assertEqual(session["username"], "Fallback")
+        self.assertEqual(session["uuid"], "f00d")
+
+    def test_account_persists_and_reloads(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = Path(tmp.name) / "accounts.json"
+        service = AccountService(path=path)
+        session = littleskin.parse_session(
+            "https://littleskin.cn/api/yggdrasil",
+            {"accessToken": "at", "clientToken": "ct",
+             "selectedProfile": {"id": "abc-123", "name": "SkinGuy"}},
+        )
+        created = service.add_littleskin(session)
+        self.assertEqual(created["type"], "littleskin")
+
+        rows = service.list()
+        self.assertEqual(rows[0]["type"], "littleskin")
+        self.assertTrue(rows[0]["online"])
+        self.assertEqual(rows[0]["server"], "https://littleskin.cn/api/yggdrasil")
+
+        reloaded = AccountService(path=path)
+        reloaded.load()
+        account = reloaded.current()
+        self.assertIsInstance(account, LittleSkinAccount)
+        self.assertEqual(account.access_token, "at")
+        self.assertEqual(account.client_token, "ct")
+        self.assertEqual(account.uuid, "abc123")
+
+    def test_error_mapping_forbidden_operation(self) -> None:
+        err = littleskin._error(
+            403,
+            {"error": "ForbiddenOperationException",
+             "errorMessage": "用户名或密码错误。Incorrect username or password."},
+            "LittleSkin 登录",
+        )
+        self.assertIn("邮箱或密码不正确", str(err))
+
+    def test_error_mapping_server_down(self) -> None:
+        err = littleskin._error(503, {}, "LittleSkin 登录")
+        self.assertIn("暂时不可用", str(err))
+
+    def test_same_profile_updates_instead_of_duplicating(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        service = AccountService(path=Path(tmp.name) / "accounts.json")
+        base = {"clientToken": "ct", "selectedProfile": {"id": "abc-123", "name": "SkinGuy"}}
+        service.add_littleskin(littleskin.parse_session("https://littleskin.cn/api/yggdrasil",
+                                                       {**base, "accessToken": "at-1"}))
+        service.add_littleskin(littleskin.parse_session("https://littleskin.cn/api/yggdrasil",
+                                                       {**base, "accessToken": "at-2"}))
+        rows = service.list()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(service.current().access_token, "at-2")
+
+
+class ExtraJvmTests(unittest.TestCase):
+    def test_launch_forwards_extra_jvm(self) -> None:
+        captured: dict = {}
+        service = LauncherService(versions=SimpleNamespace())
+
+        async def fake_build(version_id, username, **kwargs):
+            captured["args"] = (version_id, username)
+            captured.update(kwargs)
+            return ["java"]
+
+        async def fake_launch(command, cwd=None):
+            return 4242
+
+        service.build_command = fake_build  # type: ignore[assignment]
+        service._process = SimpleNamespace(launch=fake_launch)  # type: ignore[assignment]
+
+        pid = asyncio.run(
+            service.launch("1.20.1", "Steve", extra_jvm=["-javaagent:authlib.jar=https://x"])
+        )
+        self.assertEqual(pid, 4242)
+        self.assertEqual(captured["extra_jvm"], ["-javaagent:authlib.jar=https://x"])
 
 
 class LaunchArgTests(unittest.TestCase):

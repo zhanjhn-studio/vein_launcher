@@ -547,4 +547,57 @@ html[data-transparent="on"] .log-panel {
 .monitor-pct { font: 10px var(--mono); color: var(--text-3); }
 .side:hover .monitor { width: 100%; }
 .side-ver { font: 10px var(--mono); color: var(--text-3); opacity: 0; transition: opacity .2s ease; }
+
+/* 首次启动欢迎页 */
+.splash {
+  position: fixed; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+  background: radial-gradient(120% 90% at 50% 0%, var(--surface-2), var(--bg));
+}
+.splash-mark { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.splash-mark img { width: 44px; height: 44px; image-rendering: pixelated; }
+.splash-mark span { font: 800 22px var(--mono); letter-spacing: 4px; color: var(--text); }
+.splash h1 { font-size: 20px; margin: 4px 0 0; }
+.splash p { margin: 0; font-size: 12.5px; }
+.splash-bar { width: 240px; height: 4px; margin-top: 14px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
+.splash-bar i {
+  display: block; height: 100%; width: 40%;
+  background: var(--accent); border-radius: 3px;
+  animation: splash-slide 1.1s ease-in-out infinite;
+}
+@keyframes splash-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(260%); }
+}
+
+/* 新手引导 */
+.onboard-mask {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  background: rgba(8, 10, 14, .72); backdrop-filter: blur(3px);
+}
+.onboard {
+  width: min(600px, 92vw); padding: 26px 28px 22px;
+  border: 1px solid var(--line-2); border-radius: var(--radius);
+  background: var(--surface); box-shadow: var(--shadow);
+  animation: onboard-in .18s ease-out;
+}
+@keyframes onboard-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.onboard-logo { width: 40px; height: 40px; image-rendering: pixelated; margin-bottom: 6px; }
+.onboard h1 { font-size: 19px; margin: 4px 0 8px; }
+.onboard p { font-size: 12.5px; line-height: 1.6; }
+.onboard .method-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+.method-card {
+  display: flex; flex-direction: column; gap: 6px; text-align: left;
+  padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--text); cursor: pointer;
+}
+.method-card:hover { border-color: var(--accent); }
+.method-card.active { border-color: var(--accent); background: var(--accent-soft); }
+.method-card b { font-size: 12.5px; }
+.method-card span { font-size: 11px; color: var(--text-3); line-height: 1.5; }
+.onboard-form { margin: 10px 0 4px; }
+.onboard-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.onboard-msg { color: var(--warn, #e0b072); font-size: 12px; margin: 8px 0 0; }
+.device-code { font: 700 15px var(--mono); letter-spacing: 3px; padding: 6px 10px; border: 1px dashed var(--line-2); border-radius: 6px; }
+
 .side:hover .side-ver { opacity: 1; }

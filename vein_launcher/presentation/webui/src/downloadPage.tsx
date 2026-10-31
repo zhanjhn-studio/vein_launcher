@@ -6,12 +6,12 @@ type Category = 'version' | 'mod' | 'modpack' | 'datapack' | 'shader' | 'resourc
 
 const CATEGORIES: { key: Category; label: string; desc: string; icon: string; project?: string }[] = [
   { key: 'version', label: 'Vanilla & Loaders', desc: 'Install game versions with Fabric, Forge, Quilt, NeoForge', icon: 'grass_block.png' },
-  { key: 'mod', label: 'Mods', desc: 'Mods from Modrinth, filtered by game version and loader', icon: 'chest.png', project: 'mod' },
-  { key: 'modpack', label: 'Modpacks', desc: 'Full modpacks (.mrpack) with automatic setup', icon: 'hopper.png', project: 'modpack' },
+  { key: 'mod', label: 'Mods', desc: 'Mods from Modrinth, filtered by game version and loader', icon: 'crafting_table.png', project: 'mod' },
+  { key: 'modpack', label: 'Modpacks', desc: 'Full modpacks (.mrpack) with automatic setup', icon: 'chest.png', project: 'modpack' },
   { key: 'resourcepack', label: 'Resource packs', desc: 'Textures and resource packs', icon: 'writable_book.png', project: 'resourcepack' },
-  { key: 'shader', label: 'Shaders', desc: 'Shader packs for Iris / OptiFine', icon: 'grass_block.png', project: 'shader' },
-  { key: 'datapack', label: 'Datapacks', desc: 'Datapacks for worlds and servers', icon: 'chest.png', project: 'datapack' },
-  { key: 'optifine', label: 'OptiFine', desc: 'Run the OptiFine installer against your game folder', icon: 'anvil.png' },
+  { key: 'shader', label: 'Shaders', desc: 'Shader packs for Iris / OptiFine', icon: 'spyglass.png', project: 'shader' },
+  { key: 'datapack', label: 'Datapacks', desc: 'Datapacks for worlds and servers', icon: 'command_block.png', project: 'datapack' },
+  { key: 'optifine', label: 'OptiFine', desc: 'Run the OptiFine installer against your game folder', icon: 'emerald.png' },
 ];
 
 const LOADERS = [
@@ -19,7 +19,7 @@ const LOADERS = [
   { key: 'fabric', label: 'Fabric', icon: 'loom.png' },
   { key: 'quilt', label: 'Quilt', icon: 'string.png' },
   { key: 'forge', label: 'Forge', icon: 'anvil.png' },
-  { key: 'neoforge', label: 'NeoForge', icon: 'anvil.png' },
+  { key: 'neoforge', label: 'NeoForge', icon: 'golden_apple.png' },
 ];
 
 interface RemoteVersion {

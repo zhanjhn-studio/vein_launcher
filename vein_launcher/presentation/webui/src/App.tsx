@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { on, rpc } from './bridge';
-import type { AccountInfo, VersionInfo } from './types';
+import type { AccountInfo, AppInfo, VersionInfo } from './types';
 import {
   DownloadPage,
   MlcPage,
@@ -15,6 +15,7 @@ import { DownloadMonitor, Toast } from './ui';
 import { PluginUiHost } from './pluginUi';
 import { initI18n, t, useI18n } from './i18n';
 import { initTheme, Theme } from './theme';
+import { Onboarding, Splash } from './onboarding';
 
 const NAV = [
   { key: 'launch', label: 'Launch', icon: 'layui-icon-play', iconImg: 'arrow.png' },
@@ -74,6 +75,9 @@ export function App() {
   const [news, setNews] = useState<AnnouncementPayload | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [theme, setTheme] = useState<Theme>('dark');
+  const [booted, setBooted] = useState(false);
+  const [firstRun, setFirstRun] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const notify = useCallback((text: string) => {
     setToast(text);
@@ -87,6 +91,12 @@ export function App() {
     setSelected((prev) => (prev && list.some((v) => v.id === prev) ? prev : list[0]?.id ?? ''));
   }, []);
 
+  const refreshAccounts = useCallback(async () => {
+    const list = await rpc<AccountInfo[]>('accounts.list');
+    setAccounts(list);
+    return list;
+  }, []);
+
   useEffect(() => {
     const alpha = localStorage.getItem('vl.transparent') === 'on';
     document.documentElement.dataset.transparent = alpha ? 'on' : 'off';
@@ -94,6 +104,19 @@ export function App() {
     initI18n();
     refreshInstalled().catch(() => {});
     rpc<AccountInfo[]>('accounts.list').then(setAccounts).catch(() => {});
+    rpc<AppInfo>('app.info')
+      .then((info) => {
+        const fresh = Boolean(info.firstRun);
+        setFirstRun(fresh);
+        window.setTimeout(
+          () => {
+            setBooted(true);
+            if (fresh) setShowOnboarding(true);
+          },
+          fresh ? 3200 : 900
+        );
+      })
+      .catch(() => setBooted(true));
     rpc<AnnouncementPayload>('announcements.get').then(setNews).catch(() => setNews(null));
     const offNav = on<string>('vein:navigate', (p) => setPage(p));
     const offNotify = on<{ title: string; message: string }>('vein:notify', (d) =>
@@ -109,6 +132,10 @@ export function App() {
   const forced = Boolean(news?.force_update);
   const forcedItems = (news?.announcements ?? []).filter((a) => a.level === 'heavy');
   const current = NAV.find((n) => n.key === page) ?? NAV[0];
+
+  if (!booted) {
+    return <Splash firstRun={firstRun} />;
+  }
 
   return (
     <div className="app">
@@ -187,7 +214,7 @@ export function App() {
           <div className="force-modal">
             <h2>Update required</h2>
             <p className="muted">
-              Current versionThis build is blocked by an urgent announcement. Please update to continue.
+              This build is blocked by an urgent announcement. Please update to continue.
               {news?.min_version ? ` Minimum: ${news.min_version}` : ''}
             </p>
             {forcedItems.map((item, index) => (
@@ -211,6 +238,15 @@ export function App() {
       )}
 
       <PluginUiHost />
+      {showOnboarding && (
+        <Onboarding
+          notify={notify}
+          onDone={() => {
+            setShowOnboarding(false);
+            refreshAccounts().catch(() => {});
+          }}
+        />
+      )}
       <Toast text={toast} />
     </div>
   );

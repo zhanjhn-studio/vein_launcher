@@ -122,6 +122,8 @@ class ApiBridge(QObject):
             "accounts.msAuthority": self._ms_authority,
             "accounts.msStart": self._ms_start,
             "accounts.msLogin": self._ms_login,
+            "accounts.littleSkin": self._littleskin_login,
+            "onboarding.complete": self._onboarding_complete,
             "minecraft.getDir": self._minecraft_get_dir,
             "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
@@ -242,7 +244,13 @@ class ApiBridge(QObject):
     # 处理方法
     # ------------------------------------------------------------------
     async def _app_info(self) -> dict:
-        return {"version": self._ctx.version, "dataDir": str(self._ctx.data_dir)}
+        accounts = self._ctx.accounts.list()
+        return {
+            "version": self._ctx.version,
+            "dataDir": str(self._ctx.data_dir),
+            "accountCount": len(accounts),
+            "firstRun": not accounts and not self._onboarding_done(),
+        }
 
     async def _versions_remote(self, limit: int = 80) -> list:
         items = await self._ctx.versions_api.fetch_version_list()
@@ -336,16 +344,28 @@ class ApiBridge(QObject):
         access_token = None
         auth_uuid = None
         user_type = "legacy"
+        extra_jvm: list[str] = []
         selected = self._ctx.accounts.current()
-        if selected is not None and getattr(selected, "account_type", "offline") == "microsoft":
-            token = await self._ms_ensure_token(selected)
-            if token and token.get("access_token"):
-                access_token = token["access_token"]
-                auth_uuid = token.get("uuid") or None
-                user_type = "msa"
-                logger.info("使用正版账号启动：%s", selected.username)
-        elif selected is not None:
-            logger.info("使用离线账号启动：%s", selected.username)
+        if selected is not None:
+            kind = getattr(selected, "account_type", "offline")
+            if kind == "microsoft":
+                token = await self._ms_ensure_token(selected)
+                if token and token.get("access_token"):
+                    access_token = token["access_token"]
+                    auth_uuid = token.get("uuid") or None
+                    user_type = "msa"
+                    logger.info("使用正版账号启动：%s", selected.username)
+            elif kind == "littleskin":
+                access_token = getattr(selected, "access_token", None) or None
+                auth_uuid = getattr(selected, "uuid", None) or None
+                user_type = "mojang"
+                server = getattr(selected, "server", "") or ""
+                jar = await self._ensure_authlib_injector()
+                if jar:
+                    extra_jvm = [f"-javaagent:{jar}={server}"]
+                logger.info("使用 LittleSkin 账号启动：%s（%s）", selected.username, server)
+            else:
+                logger.info("使用离线账号启动：%s", selected.username)
 
         pid = await self._ctx.launcher.launch(
             str(version_id),
@@ -354,6 +374,7 @@ class ApiBridge(QObject):
             access_token=access_token,
             uuid=auth_uuid,
             user_type=user_type,
+            extra_jvm=extra_jvm,
         )
         return {
             "pid": pid,
@@ -584,6 +605,42 @@ class ApiBridge(QObject):
         )
         return self._ctx.accounts.add_microsoft(profile)
 
+    async def _littleskin_login(self, server: str = "", email: str = "", password: str = "") -> dict:
+        """LittleSkin / 通用 Yggdrasil 皮肤站登录"""
+        from vein_launcher.infrastructure.network import littleskin
+
+        session = await littleskin.authenticate(
+            server or littleskin.DEFAULT_SERVER, str(email), str(password)
+        )
+        profile = await littleskin.profile(session["server"], session["access_token"])
+        skins = (profile or {}).get("skins") or []
+        if skins and isinstance(skins[0], dict):
+            variant = str(skins[0].get("variant") or "").lower()
+            if variant:
+                session["skin_model"] = variant
+        return self._ctx.accounts.add_littleskin(session)
+
+    def _onboarding_file(self) -> Path:
+        from vein_launcher.common.utils.path_utils import get_config_dir
+
+        return get_config_dir() / "onboarding.json"
+
+    def _onboarding_done(self) -> bool:
+        try:
+            data = json.loads(self._onboarding_file().read_text(encoding="utf-8"))
+            return bool(data.get("completed"))
+        except Exception:
+            return False
+
+    async def _onboarding_complete(self) -> dict:
+        path = self._onboarding_file()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps({"completed": True, "at": int(time.time())}, indent=2),
+            encoding="utf-8",
+        )
+        return {"ok": True}
+
     async def _ms_ensure_token(self, account) -> Optional[dict]:
         """返回可用的 Minecraft 会话令牌；过期前用 refresh_token 自动续期"""
         from vein_launcher.domain.models.account import token_needs_refresh
@@ -615,6 +672,57 @@ class ApiBridge(QObject):
         except Exception as exc:
             logger.warning("正版令牌续期失败（继续尝试现有令牌）：%s", exc)
             return cached
+
+    async def _ensure_authlib_injector(self) -> Optional[str]:
+        """确保 authlib-injector.jar 存在：Yggdrasil 皮肤站登录必需"""
+        import aiohttp
+
+        from vein_launcher.common.utils.path_utils import get_root_dir
+
+        target = get_root_dir() / "downloads" / "authlib-injector.jar"
+        if target.is_file() and target.stat().st_size > 100_000:
+            return str(target)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        urls = [
+            "https://github.com/yushijinhun/authlib-injector/releases/latest/download/authlib-injector.jar"
+        ]
+        try:
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=180)
+            ) as session:
+                try:
+                    async with session.get(
+                        "https://authlib-injector.yushi.moe/artifact/latest.json"
+                    ) as resp:
+                        if resp.status == 200:
+                            meta = await resp.json(content_type=None)
+                            if isinstance(meta, dict) and meta.get("download_url"):
+                                urls.insert(0, str(meta["download_url"]))
+                except Exception as exc:
+                    logger.info("authlib-injector 版本信息获取失败：%s", exc)
+
+                for url in urls:
+                    try:
+                        async with session.get(url) as resp:
+                            if resp.status != 200:
+                                logger.warning(
+                                    "下载 authlib-injector 失败 HTTP %s：%s", resp.status, url
+                                )
+                                continue
+                            data = await resp.read()
+                    except Exception as exc:
+                        logger.warning("下载 authlib-injector 异常：%s", exc)
+                        continue
+                    if len(data) < 100_000:
+                        continue
+                    part = target.with_name(target.name + ".part")
+                    part.write_bytes(data)
+                    part.replace(target)
+                    logger.info("authlib-injector 已下载：%s（%s 字节）", target, len(data))
+                    return str(target)
+        except Exception as exc:
+            logger.warning("authlib-injector 准备失败：%s", exc)
+        return None
 
     async def _minecraft_get_dir(self) -> dict:
         from vein_launcher.common.utils.path_utils import get_minecraft_dir

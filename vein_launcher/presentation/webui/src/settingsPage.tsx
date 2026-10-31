@@ -25,6 +25,10 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [msAuthority, setMsAuthority] = useState('common');
   const [msCode, setMsCode] = useState('');
   const [msBusy, setMsBusy] = useState(false);
+  const [lsEmail, setLsEmail] = useState('');
+  const [lsPassword, setLsPassword] = useState('');
+  const [lsBusy, setLsBusy] = useState(false);
+  const [lsMsg, setLsMsg] = useState('');
 
   const reloadAccounts = () =>
     rpc<AccountRow[]>('accounts.list').then(setAccounts).catch(() => {});
@@ -84,6 +88,25 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
     }
   };
 
+  const startLittleSkin = async () => {
+    setLsBusy(true);
+    setLsMsg('Signing in to LittleSkin…');
+    try {
+      const account = await rpc<{ username: string }>('accounts.littleSkin', [
+        '',
+        lsEmail.trim(),
+        lsPassword,
+      ]);
+      setLsPassword('');
+      setLsMsg(`Signed in as ${account.username}`);
+      await reloadAccounts();
+    } catch (err) {
+      setLsMsg(`LittleSkin login failed: ${(err as Error).message}`);
+    } finally {
+      setLsBusy(false);
+    }
+  };
+
   return (
     <div className="page">
       <div className="page-head">
@@ -129,7 +152,9 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                       ? acc.online
                         ? 'Microsoft'
                         : 'Microsoft · signed out'
-                      : 'Offline'}
+                      : acc.type === 'littleskin'
+                        ? 'LittleSkin'
+                        : 'Offline'}
                   </span>
                   {acc.selected ? ' · current' : ''}
                 </span>
@@ -213,6 +238,37 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
               </button>
             </div>
             {msCode && <p className="muted">{msCode}</p>}
+
+            <div className="card-title" style={{ marginTop: 14 }}>LittleSkin</div>
+            <div className="row-actions">
+              <input
+                className="input"
+                style={{ width: 260 }}
+                placeholder="LittleSkin email"
+                value={lsEmail}
+                onChange={(e) => setLsEmail(e.target.value)}
+              />
+              <input
+                className="input"
+                style={{ width: 220 }}
+                type="password"
+                placeholder="Password"
+                value={lsPassword}
+                onChange={(e) => setLsPassword(e.target.value)}
+              />
+              <button
+                className="btn primary sm"
+                disabled={lsBusy || !lsEmail.trim() || !lsPassword}
+                onClick={startLittleSkin}
+              >
+                {lsBusy ? 'Signing in…' : 'Sign in'}
+              </button>
+            </div>
+            <p className="muted">
+              littleskin.cn skins and its online servers. The launcher stores only the access
+              token, never your password.
+            </p>
+            {lsMsg && <p className="muted">{lsMsg}</p>}
           </div>
         </details>
 
