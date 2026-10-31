@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { on, rpc } from './bridge';
+import { LayuiProgress } from './ui';
 import type { ModItem, VersionInfo } from './types';
 
 type Category = 'version' | 'mod' | 'modpack' | 'datapack' | 'shader' | 'resourcepack' | 'optifine';
@@ -197,9 +198,7 @@ export function DownloadPage({
         {installing && (
           <div className="card" style={{ marginTop: 12 }}>
             <div className="card-title">{installing}</div>
-            <div className="progress">
-              <i style={{ width: `${Math.max(percent, 4)}%` }} />
-            </div>
+            <LayuiProgress percent={Math.max(percent, 4)} />
           </div>
         )}
       </div>
@@ -387,9 +386,7 @@ export function DownloadPage({
       {installing && (
         <div className="card" style={{ marginTop: 12 }}>
           <div className="card-title">{installing}</div>
-          <div className="progress">
-            <i style={{ width: `${Math.max(percent, 4)}%` }} />
-          </div>
+          <LayuiProgress percent={Math.max(percent, 4)} tone="green" />
           <div className="kv">
             <span>{progress ? `${progress.done} / ${progress.total}` : 'starting'}</span>
             <b>{percent}%</b>

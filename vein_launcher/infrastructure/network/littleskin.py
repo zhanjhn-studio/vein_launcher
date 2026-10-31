@@ -142,11 +142,66 @@ async def profile(server: str, access_token: str) -> Dict[str, Any]:
         return {}
 
 
+async def profile_by_uuid(server: str, uuid: str) -> Dict[str, Any]:
+    """通过 Yggdrasil 查询角色档案（含 textures 属性，可读出当前皮肤）"""
+    server = _normalize(server)
+    if not uuid:
+        return {}
+    try:
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=TIMEOUT)
+        ) as session:
+            async with session.get(
+                f"{server}/sessionserver/session/minecraft/profile/{uuid}"
+            ) as resp:
+                if resp.status != 200:
+                    logger.info("LittleSkin 角色档案查询 HTTP %s", resp.status)
+                    return {}
+                data = await resp.json(content_type=None)
+                return data if isinstance(data, dict) else {}
+    except Exception as exc:
+        logger.info("LittleSkin 角色档案查询失败：%s", exc)
+        return {}
+
+
+def extract_skin(profile: Dict[str, Any]) -> Dict[str, str]:
+    """从角色档案的 textures 属性里取出皮肤 URL 与模型（纯函数）"""
+    import base64
+    import json as _json
+
+    for prop in profile.get("properties") or []:
+        if not isinstance(prop, dict) or prop.get("name") != "textures":
+            continue
+        try:
+            payload = _json.loads(base64.b64decode(prop.get("value") or ""))
+        except Exception:
+            continue
+        skin = ((payload.get("textures") or {}).get("SKIN") or {})
+        url = str(skin.get("url") or "")
+        if url:
+            model = str((skin.get("metadata") or {}).get("model") or "classic").lower()
+            return {"url": url, "model": "slim" if model == "slim" else "classic"}
+    return {}
+
+
+async def fetch_texture(url: str) -> bytes:
+    if not url:
+        raise LittleSkinError("皮肤地址为空")
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=TIMEOUT)) as session:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                raise LittleSkinError(f"下载皮肤失败 HTTP {resp.status}")
+            return await resp.read()
+
+
 __all__ = [
     "DEFAULT_SERVER",
     "LittleSkinError",
     "authenticate",
+    "extract_skin",
+    "fetch_texture",
     "parse_session",
     "profile",
+    "profile_by_uuid",
     "refresh",
 ]

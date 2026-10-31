@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { rpc } from './bridge';
+import { LayuiCheckbox } from './ui';
 
 export function Splash({ firstRun }: { firstRun: boolean }) {
   return (
@@ -333,12 +334,13 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
                 <span>No telemetry, no analytics, no advertising identifiers.</span>
               </div>
             </div>
-            <label className="consent">
-              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-              <span>
-                I understand and agree to the terms and privacy policy of Vein Launcher.
-              </span>
-            </label>
+            <div className="consent">
+              <LayuiCheckbox
+                checked={consent}
+                onChange={setConsent}
+                label="I understand and agree to the terms and privacy policy of Vein Launcher."
+              />
+            </div>
           </div>
         );
 

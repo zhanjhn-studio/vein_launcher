@@ -665,3 +665,66 @@ html[data-transparent="on"] body {
 .setup-count { font: 11px var(--mono); color: var(--text-3); }
 
 .side:hover .side-ver { opacity: 1; }
+
+/* ---------- Layui 控件（进度条 / 勾选框） ---------- */
+.layui-progress { height: 6px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+.layui-progress-bar { height: 100%; border-radius: 4px; background: var(--accent); transition: width .25s ease; }
+.layui-progress-bar.layui-bg-blue { background: var(--accent); }
+.layui-progress-bar.layui-bg-green { background: var(--ok); }
+.layui-progress-bar.layui-bg-orange { background: #e0b072; }
+.vl-progress-slim { height: 4px; }
+.vl-checkbox {
+  display: inline-flex; align-items: center; gap: 8px; padding: 0;
+  background: none; border: 0; cursor: pointer; color: var(--text-2); font-size: 12.5px;
+}
+.vl-checkbox > span { order: 2; }
+.vl-checkbox > i {
+  order: 1; width: 16px; height: 16px; line-height: 16px; text-align: center;
+  font-size: 11px; border: 1px solid var(--line-2); border-radius: 4px;
+  background: var(--surface-2); color: transparent; flex: none;
+}
+.vl-checkbox.layui-form-checked > i { background: var(--accent); border-color: var(--accent); color: #101725; }
+.vl-checkbox-disabled { opacity: .5; cursor: default; }
+
+/* ---------- 皮肤管理 ---------- */
+.skin-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 18px; align-items: start; }
+.skin-accounts { display: flex; flex-direction: column; gap: 6px; }
+.skin-account {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 2px 8px;
+  text-align: left; padding: 10px 12px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--text);
+}
+.skin-account .badge { grid-row: 1 / 3; align-self: center; font: 9.5px var(--mono); color: var(--text-3);
+  border: 1px solid var(--line-2); border-radius: 4px; padding: 2px 5px; }
+.skin-account .badge.accent { color: var(--accent); border-color: var(--accent); }
+.skin-account b { font-size: 12.5px; font-weight: 600; }
+.skin-account em { font-style: normal; font-size: 10.5px; color: var(--text-3); }
+.skin-account:hover { border-color: var(--line-2); }
+.skin-account.active { border-color: var(--accent); background: var(--accent-soft); }
+
+.skin-main { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 20px; }
+.skin-preview {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 18px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.skin-head { position: relative; width: 96px; height: 96px; }
+.skin-head-layer { position: absolute; inset: 0; background-repeat: no-repeat; image-rendering: pixelated; }
+.skin-head-layer.hat { pointer-events: none; }
+.skin-texture {
+  width: 200px; height: 200px; image-rendering: pixelated;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface-3);
+}
+.skin-meta { text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.skin-meta b { font-size: 13px; }
+.skin-meta span { font-size: 11px; color: var(--text-3); }
+.skin-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; height: 240px; color: var(--text-3); border: 1px dashed var(--line-2); border-radius: 10px;
+}
+.skin-empty i { font-size: 34px; }
+.skin-empty span { font-size: 12px; }
+.skin-controls { display: flex; flex-direction: column; gap: 12px; }
+.skin-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12.5px; }
+.skin-row > span { color: var(--text-2); }
+.skin-note { font-size: 11.5px; line-height: 1.7; color: var(--text-3); max-width: 520px; }

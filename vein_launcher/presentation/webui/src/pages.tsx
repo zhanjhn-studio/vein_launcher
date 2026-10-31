@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { on, rpc } from './bridge';
+import { LayuiProgress } from './ui';
 import type {
   AccountInfo,
   AppInfo,
@@ -311,9 +312,11 @@ export function DownloadPage({
                 ))}
               </div>
               {progress && (
-                <div className="progress">
-                  <i style={{ width: `${progress.total ? Math.round((progress.done / progress.total) * 100) : 0}%` }} />
-                </div>
+                <LayuiProgress
+                  percent={
+                    progress.total ? Math.round((progress.done / progress.total) * 100) : 0
+                  }
+                />
               )}
               <div className="kv"><span>Type</span><b>{(picked as VersionInfo).type ?? 'release'}</b></div>
               <div className="kv"><span>Released</span><b>{(picked as VersionInfo).release_time ?? '—'}</b></div>

@@ -6,6 +6,62 @@ export function Empty({ children }: { children: React.ReactNode }) {
   return <div className="empty">{children}</div>;
 }
 
+/** Layui 进度条：结构与官方一致，颜色跟随主题变量 */
+export function LayuiProgress({
+  percent,
+  slim = false,
+  tone = 'blue',
+}: {
+  percent: number;
+  slim?: boolean;
+  tone?: 'blue' | 'green' | 'orange';
+}) {
+  const value = Math.max(0, Math.min(100, Math.round(percent)));
+  const cls = tone === 'green' ? 'layui-bg-green' : tone === 'orange' ? 'layui-bg-orange' : 'layui-bg-blue';
+  return (
+    <div className={`layui-progress ${slim ? 'vl-progress-slim' : ''}`}>
+      <div className={`layui-progress-bar ${cls}`} style={{ width: `${value}%` }} />
+    </div>
+  );
+}
+
+/** Layui 勾选框：自行维护 checked 状态，不依赖 layui.form 的初始化 */
+export function LayuiCheckbox({
+  checked,
+  onChange,
+  label,
+  disabled = false,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label?: React.ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      role="checkbox"
+      aria-checked={checked}
+      tabIndex={disabled ? -1 : 0}
+      className={`layui-form-checkbox vl-checkbox ${checked ? 'layui-form-checked' : ''} ${
+        disabled ? 'vl-checkbox-disabled' : ''
+      }`}
+      onClick={() => {
+        if (!disabled) onChange(!checked);
+      }}
+      onKeyDown={(e) => {
+        if (disabled) return;
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          onChange(!checked);
+        }
+      }}
+    >
+      <span>{label}</span>
+      <i className="layui-icon layui-icon-ok" />
+    </div>
+  );
+}
+
 export function StatusDot({ on, label, tone = 'ok' }: { on: boolean; label: string; tone?: 'ok' | 'warn' | 'idle' }) {
   const cls = on ? tone : 'idle';
   return (
@@ -259,9 +315,7 @@ export function DownloadMonitor() {
               <div className="monitor-name" title={task.name}>
                 {task.name.length > 22 ? `${task.name.slice(0, 22)}…` : task.name}
               </div>
-              <div className="monitor-bar">
-                <i style={{ width: `${Math.max(pct, 3)}%` }} />
-              </div>
+              <LayuiProgress percent={Math.max(pct, 3)} slim />
               <span className="monitor-pct">{pct}%</span>
             </div>
           );

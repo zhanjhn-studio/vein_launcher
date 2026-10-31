@@ -11,6 +11,7 @@ import {
 import { LaunchPage } from './launchPage';
 import { DownloadPage } from './downloadPage';
 import { SettingsPage } from './settingsPage';
+import { SkinsPage } from './skinsPage';
 import { DownloadMonitor, Toast } from './ui';
 import { PluginUiHost } from './pluginUi';
 import { initI18n, t, useI18n } from './i18n';
@@ -19,6 +20,7 @@ import { Onboarding, Splash } from './onboarding';
 
 const NAV = [
   { key: 'launch', label: 'Launch', icon: 'layui-icon-play', iconImg: 'arrow.png' },
+  { key: 'skins', label: 'Skins', icon: 'layui-icon-picture', iconImg: 'writable_book.png' },
   { key: 'download', label: 'Download', icon: 'layui-icon-download-circle', iconImg: 'hopper.png' },
   { key: 'plugins', label: 'Plugins', icon: 'layui-icon-app', iconImg: 'command_block.png', star: true },
   { key: 'mlc', label: 'MLC', icon: 'layui-icon-console', iconImg: 'chest.png' },
@@ -198,6 +200,7 @@ export function App() {
               announcements={lightNews}
             />
           )}
+          {page === 'skins' && <SkinsPage notify={notify} />}
           {page === 'download' && (
             <DownloadPage installed={installed} onInstalled={refreshInstalled} notify={notify} />
           )}

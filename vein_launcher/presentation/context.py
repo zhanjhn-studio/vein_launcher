@@ -11,6 +11,7 @@ from vein_launcher.application.services.launcher_service import LauncherService
 from vein_launcher.application.services.loader_service import LoaderService
 from vein_launcher.application.services.modpack_service import ModpackService
 from vein_launcher.application.services.plugin_service import PluginService
+from vein_launcher.application.services.skin_service import SkinService
 from vein_launcher.application.services.version_service import VersionService
 from vein_launcher.common.utils.path_utils import (
     bootstrap_layout,
@@ -54,6 +55,7 @@ class AppContext:
         self.launcher = LauncherService(self.versions)
         self.accounts = AccountService()
         self.accounts.load()
+        self.skins = SkinService()
         self.modrinth = ModrinthApiClient()
         self.detector = JavaDetector()
         self.java = JavaManager(self.detector)

@@ -124,6 +124,10 @@ class ApiBridge(QObject):
             "accounts.msLogin": self._ms_login,
             "accounts.littleSkin": self._littleskin_login,
             "onboarding.complete": self._onboarding_complete,
+            "skins.list": self._skins_list,
+            "skins.import": self._skins_import,
+            "skins.clear": self._skins_clear,
+            "skins.remote": self._skins_remote,
             "minecraft.getDir": self._minecraft_get_dir,
             "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
@@ -726,6 +730,50 @@ class ApiBridge(QObject):
         except Exception as exc:
             logger.warning("authlib-injector 准备失败：%s", exc)
         return None
+
+    async def _skins_list(self) -> list:
+        rows = []
+        for account in self._ctx.accounts.list():
+            state = self._ctx.skins.state(account["id"])
+            rows.append({**account, "skin": state})
+        return rows
+
+    async def _skins_import(self, account_id: str, path: str, model: str = "classic") -> dict:
+        return self._ctx.skins.apply_file(str(account_id), str(path), str(model))
+
+    async def _skins_clear(self, account_id: str) -> dict:
+        return self._ctx.skins.clear(str(account_id))
+
+    async def _skins_remote(self, account_id: str) -> dict:
+        """读取 LittleSkin 角色当前的皮肤（只读预览，不写回）"""
+        import base64
+
+        from vein_launcher.application.services.skin_service import SkinError, validate_skin
+        from vein_launcher.infrastructure.network import littleskin
+
+        account = self._ctx.accounts.get(str(account_id))
+        if account is None:
+            return {"ok": False, "error": "Account not found"}
+        if getattr(account, "account_type", "") != "littleskin":
+            return {"ok": False, "error": "Only LittleSkin accounts have a remote skin"}
+        try:
+            profile = await littleskin.profile_by_uuid(
+                getattr(account, "server", ""), getattr(account, "uuid", "") or ""
+            )
+            skin = littleskin.extract_skin(profile)
+            if not skin:
+                return {"ok": False, "error": "This LittleSkin player has no skin yet"}
+            data = await littleskin.fetch_texture(skin["url"])
+            validate_skin(data)
+        except (littleskin.LittleSkinError, SkinError) as exc:
+            logger.warning("读取 LittleSkin 皮肤失败：%s", exc)
+            return {"ok": False, "error": str(exc)}
+        return {
+            "ok": True,
+            "model": skin["model"],
+            "url": skin["url"],
+            "data_url": "data:image/png;base64," + base64.b64encode(data).decode(),
+        }
 
     async def _minecraft_get_dir(self) -> dict:
         from vein_launcher.common.utils.path_utils import get_minecraft_dir
