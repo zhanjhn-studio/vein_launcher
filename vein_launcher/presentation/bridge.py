@@ -632,11 +632,14 @@ class ApiBridge(QObject):
         except Exception:
             return False
 
-    async def _onboarding_complete(self) -> dict:
+    async def _onboarding_complete(self, consent: bool = False) -> dict:
         path = self._onboarding_file()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            json.dumps({"completed": True, "at": int(time.time())}, indent=2),
+            json.dumps(
+                {"completed": True, "consent": bool(consent), "at": int(time.time())},
+                indent=2,
+            ),
             encoding="utf-8",
         )
         return {"ok": True}

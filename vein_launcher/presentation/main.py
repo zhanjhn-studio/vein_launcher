@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 from PySide6.QtCore import QPoint, Qt, QTimer, QUrl
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QColor, QIcon
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -154,6 +154,8 @@ class MainWindow(QMainWindow):
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.view = QWebEngineView(self)
         page = LoggingPage(self.view)
+        # 提前给页面铺底色，避免首帧白屏闪烁
+        page.setBackgroundColor(QColor("#101318"))
         self.view.setPage(page)
 
         container = QWidget(self)
