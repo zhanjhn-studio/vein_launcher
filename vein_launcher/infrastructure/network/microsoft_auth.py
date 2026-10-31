@@ -14,8 +14,9 @@ import aiohttp
 
 logger = logging.getLogger(__name__)
 
-DEVICE_CODE_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode"
-TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token"
+AUTHORITY = "common"  # common / consumers / organizations / <tenant-id>
+DEVICE_CODE_URL = "https://login.microsoftonline.com/{authority}/oauth2/v2.0/devicecode"
+TOKEN_URL = "https://login.microsoftonline.com/{authority}/oauth2/v2.0/token"
 XBL_URL = "https://user.auth.xboxlive.com/user/authenticate"
 XSTS_URL = "https://xsts.auth.xboxlive.com/xsts/authorize"
 MC_LOGIN_URL = "https://api.minecraftservices.com/authentication/login_with_xbox"
@@ -33,7 +34,8 @@ async def start_device_code(client_id: str) -> Dict[str, Any]:
         raise MinecraftAuthError("未配置 Microsoft 应用 ID（设置 → Accounts）")
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         async with session.post(
-            DEVICE_CODE_URL, data={"client_id": client_id, "scope": SCOPE}
+            DEVICE_CODE_URL.format(authority=AUTHORITY),
+            data={"client_id": client_id, "scope": SCOPE},
         ) as resp:
             data = await resp.json(content_type=None)
             if resp.status != 200:
@@ -51,7 +53,9 @@ async def poll_token(client_id: str, device_code: str, timeout: int = 300) -> Di
                 "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
                 "device_code": device_code,
             }
-            async with session.post(TOKEN_URL, data=form) as resp:
+            async with session.post(
+                TOKEN_URL.format(authority=AUTHORITY), data=form
+            ) as resp:
                 data = await resp.json(content_type=None)
                 if resp.status == 200:
                     return data

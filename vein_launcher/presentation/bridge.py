@@ -119,6 +119,7 @@ class ApiBridge(QObject):
             "optifine.install": self._optifine_install,
             "accounts.remove": self._accounts_remove,
             "accounts.msClientId": self._ms_client_id,
+            "accounts.msAuthority": self._ms_authority,
             "accounts.msStart": self._ms_start,
             "accounts.msLogin": self._ms_login,
             "minecraft.getDir": self._minecraft_get_dir,
@@ -537,6 +538,13 @@ class ApiBridge(QObject):
                 _json.dumps({"client_id": str(client_id)}, indent=2), encoding="utf-8"
             )
         return {"client_id": self._ms_read_client_id()}
+
+    async def _ms_authority(self, authority: str = "") -> dict:
+        from vein_launcher.infrastructure.network import microsoft_auth
+
+        if authority:
+            microsoft_auth.AUTHORITY = str(authority).strip() or "common"
+        return {"authority": microsoft_auth.AUTHORITY}
 
     async def _ms_start(self) -> dict:
         from vein_launcher.infrastructure.network import microsoft_auth
