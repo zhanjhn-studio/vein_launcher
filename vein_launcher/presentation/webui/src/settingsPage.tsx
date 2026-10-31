@@ -11,9 +11,6 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [javaMsg, setJavaMsg] = useState('');
   const [mcDir, setMcDir] = useState('');
   const [theme, setTheme] = useState<Theme>(currentTheme());
-  const [transparent, setTransparent] = useState(
-    localStorage.getItem('vl.transparent') === 'on'
-  );
 
   useEffect(() => {
     rpc<AppInfo>('app.info').then(setInfo).catch(() => {});
@@ -75,24 +72,9 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                 >
                   <option value="dark">深色</option>
                   <option value="light">浅色</option>
+                  <option value="clear">透明</option>
                   <option value="system">跟随系统</option>
                 </select>
-              </b>
-            </div>
-            <div className="kv">
-              <span>透明背景</span>
-              <b>
-                <button
-                  className={transparent ? 'btn sm primary' : 'btn sm'}
-                  onClick={() => {
-                    const next = !transparent;
-                    setTransparent(next);
-                    localStorage.setItem('vl.transparent', next ? 'on' : 'off');
-                    document.documentElement.dataset.transparent = next ? 'on' : 'off';
-                  }}
-                >
-                  {transparent ? '已开启' : '已关闭'}
-                </button>
               </b>
             </div>
             <div className="kv">

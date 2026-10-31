@@ -53,9 +53,9 @@
 /* ---------- Layui 图标字体（侧边栏/按钮图标依赖） ---------- */
 @font-face {
   font-family: "layui-icon";
-  src: url("../vendor/layui/font/iconfont.woff2") format("woff2"),
-       url("../vendor/layui/font/iconfont.woff") format("woff"),
-       url("../vendor/layui/font/iconfont.ttf") format("truetype");
+  src: url("vendor/layui/font/iconfont.woff2") format("woff2"),
+       url("vendor/layui/font/iconfont.woff") format("woff"),
+       url("vendor/layui/font/iconfont.ttf") format("truetype");
   font-display: swap;
 }
 .layui-icon {

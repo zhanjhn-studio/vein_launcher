@@ -550,7 +550,7 @@ export function MlcPage({
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState('');
   const [saveWorlds, setSaveWorlds] = useState<
-    { name: string; seed: number; version: string; instance: string; path: string; folder: string }[]
+    { name: string; 种子: number; version: string; instance: string; path: string; folder: string }[]
   >([]);
 
   useEffect(() => {
@@ -617,7 +617,7 @@ export function MlcPage({
   const loadWorlds = async () => {
     setBusy('mc2');
     try {
-      const list = await rpc<{ name: string; seed: number; version: string; instance: string; path: string; folder: string }[]>(
+      const list = await rpc<{ name: string; 种子: number; version: string; instance: string; path: string; folder: string }[]>(
         'mc2.worlds',
         ['']
       );
@@ -661,13 +661,13 @@ export function MlcPage({
       </div>
       <div className="card" style={{ marginTop: 16 }}>
         <div className="pane-head" style={{ padding: '0 0 10px', border: 0 }}>
-          <span>MC2 · World data</span>
+          <span>MC2 · 世界数据</span>
           <button className="btn sm" onClick={loadWorlds} disabled={busy === 'mc2'}>
-            {busy === 'mc2' ? '…' : 'Scan saves'}
+            {busy === 'mc2' ? '…' : '扫描存档'}
           </button>
         </div>
         {saveWorlds.length === 0 ? (
-          <div className="empty">No saves found. Launch the game once to create a world.</div>
+          <div className="empty">没有找到存档，进游戏创建一个世界后再回来扫描</div>
         ) : (
           saveWorlds.map((w) => (
             <button
@@ -678,7 +678,7 @@ export function MlcPage({
             >
               <span className="title">{w.name}</span>
               <span className="sub">
-                seed {w.seed} · {w.version || '—'} · {w.instance}
+                种子 {w.种子} · {w.version || '—'} · {w.instance}
               </span>
             </button>
           ))
@@ -688,24 +688,24 @@ export function MlcPage({
       {scan && (
         <div className="card" style={{ marginTop: 16 }}>
           <div className="card-title">
-            MC2 scan · {scan.name} · seed {scan.seed}
+            MC2 扫描 · {scan.name} · 种子 {scan.种子}
           </div>
           {Object.entries(scan.scan?.dimensions ?? {}).map(([dim, info]: [string, any]) => (
             <div key={dim} style={{ marginTop: 10 }}>
               <div className="kv">
                 <span>{dim}</span>
-                <b>{info.chunks} chunks · {info.files} region files</b>
+                <b>{info.chunks} 个区块 · {info.files} 个 region 文件</b>
               </div>
               <div className="muted" style={{ marginTop: 4 }}>
-                biomes: {info.biomes.length ? info.biomes.join(', ') : '—'}
+                群系： {info.biomes.length ? info.biomes.join(', ') : '—'}
               </div>
               <div className="muted" style={{ marginTop: 2 }}>
-                structures: {info.structures.length ? info.structures.join(', ') : '—'}
+                结构： {info.structures.length ? info.structures.join(', ') : '—'}
               </div>
             </div>
           ))}
           {Object.keys(scan.scan?.dimensions ?? {}).length === 0 && (
-            <div className="empty">No region files found in this world.</div>
+            <div className="empty">这个世界里没有 region 文件</div>
           )}
         </div>
       )}
@@ -824,12 +824,12 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
           )}
           {section === 'game' && (
             <>
-              <h2>Game folder (.minecraft)</h2>
+              <h2>游戏目录（.minecraft）</h2>
               <p className="muted">
-                Use an existing .minecraft directory, or keep the launcher-managed one.
+                使用已有的 .minecraft 目录，或保留启动器管理的目录。
               </p>
               <div className="kv">
-                <span>Current</span>
+                <span>当前</span>
                 <b className="mono">{mcDir || '—'}</b>
               </div>
               <div className="row-actions">
@@ -837,33 +837,33 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                   className="btn"
                   onClick={async () => {
                     const picked = await rpc<{ path: string }>('app.pickDirectory', [
-                      'Select .minecraft folder',
+                      '选择 .minecraft 目录',
                     ]);
                     if (!picked.path) return;
                     const applied = await rpc<{ path: string }>('minecraft.setDir', [picked.path]);
                     setMcDir(applied.path);
-                    notify(`Game folder: ${applied.path}`);
+                    notify(`游戏目录： ${applied.path}`);
                   }}
                 >
-                  Choose…
+                  选择…
                 </button>
                 <button
                   className="btn"
                   onClick={async () => {
                     const applied = await rpc<{ path: string }>('minecraft.setDir', ['']);
                     setMcDir(applied.path);
-                    notify('Reverted to launcher-managed folder');
+                    notify('已恢复为启动器管理的目录');
                   }}
                 >
-                  Use default
+                  恢复默认
                 </button>
               </div>
             </>
           )}
           {section === 'language' && (
             <>
-              <h2>Language / 语言</h2>
-              <p className="muted">The launcher defaults to English. Switching applies immediately and is saved.</p>
+              <h2>语言</h2>
+              <p className="muted">切换立即生效并保存，重启后保持。</p>
               <div className="row-actions">
                 <button
                   className={currentLang() === 'en' ? 'btn primary' : 'btn'}
@@ -883,7 +883,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
           {section === 'logs' && (
             <>
               <h2>日志</h2>
-              <p className="muted">按天写入 %APPDATA%\VeinLauncher\logs\YYYY-MM-DD.log</p>
+              <p className="muted">按天写入 VeinLauncher/log/YYYY-MM-DD.log</p>
               <button className="btn" onClick={() => rpc('logs.openDir').catch(() => {})}>
                 打开日志目录
               </button>
