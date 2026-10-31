@@ -459,3 +459,43 @@ html[data-transparent="on"] .log-panel {
 
 .loader-ico { width: 22px; height: 22px; image-rendering: pixelated; margin-bottom: 2px; }
 .loader-card { align-items: flex-start; }
+
+/* ---------- 下载页 ---------- */
+.download-page { display: flex; flex-direction: column; gap: 12px; }
+.dl-tabs { display: flex; align-items: center; gap: 6px; }
+.dl-tab {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--line); background: var(--surface);
+  border-radius: var(--radius-sm); padding: 8px 14px; color: var(--text-2); font-weight: 500;
+}
+.dl-tab img { width: 18px; height: 18px; image-rendering: pixelated; }
+.dl-tab:hover { border-color: var(--accent); color: var(--text); }
+.dl-tab.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.dl-tabs .spacer { flex: 1; }
+.dl-search { display: flex; gap: 6px; }
+.dl-search .input { width: 260px; }
+
+.dl-grid { display: grid; grid-template-columns: 1fr 380px; gap: 12px; align-items: start; }
+.ver-list { max-height: 520px; overflow: auto; margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+.ver-row {
+  display: flex; align-items: center; gap: 10px; text-align: left;
+  border: 1px solid transparent; background: transparent; border-radius: var(--radius-sm);
+  padding: 7px 10px; color: var(--text);
+}
+.ver-row img { width: 16px; height: 16px; image-rendering: pixelated; }
+.ver-row:hover { background: var(--surface-2); }
+.ver-row.active { background: var(--accent-soft); border-color: var(--line-2); }
+.ver-row .name { font: 12.5px var(--mono); flex: 1; }
+.ver-row .tag { font: 10.5px var(--mono); color: var(--text-3); }
+.ver-row .badge { font: 10px var(--mono); color: var(--ok); border: 1px solid var(--line-2); border-radius: 5px; padding: 1px 6px; }
+
+.dl-instance-row { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; }
+.mod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.mod-card { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+.mod-icon { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; border: 1px solid var(--line); flex: none; background: var(--surface-3); }
+.mod-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.mod-title { font-size: 13.5px; font-weight: 600; }
+.mod-desc { font-size: 12px; color: var(--text-3); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mod-foot { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.mod-foot .btn { margin-left: auto; }
+.install-card .progress { margin: 8px 0; }

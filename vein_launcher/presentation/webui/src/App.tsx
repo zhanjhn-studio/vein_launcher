@@ -9,8 +9,9 @@ import {
   ToolboxPage,
 } from './pages';
 import { LaunchPage } from './launchPage';
+import { DownloadPage } from './downloadPage';
 import { SettingsPage } from './settingsPage';
-import { DownloadBar, Toast } from './ui';
+import { Toast } from './ui';
 import { PluginUiHost } from './pluginUi';
 import { initI18n, t, useI18n } from './i18n';
 import { initTheme, Theme } from './theme';
@@ -207,7 +208,6 @@ export function App() {
         </div>
       )}
 
-      <DownloadBar />
       <PluginUiHost />
       <Toast text={toast} />
     </div>
