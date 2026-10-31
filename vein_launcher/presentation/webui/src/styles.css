@@ -737,6 +737,18 @@ html[data-transparent="on"] body {
 .instance-console { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--surface-2); }
 .card-manage { margin-left: auto; }
 
+/* 更新面板 */
+.update-card {
+  display: flex; flex-direction: column; gap: 8px; margin-top: 12px; padding: 12px;
+  border: 1px solid var(--accent); border-radius: 10px; background: var(--accent-soft);
+}
+.update-card b { font-size: 13px; }
+.update-notes {
+  margin: 0; max-height: 160px; overflow: auto; padding: 8px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2);
+  font: 11px var(--mono); color: var(--text-2); white-space: pre-wrap;
+}
+
 /* ---------- Layui 控件（进度条 / 勾选框） ---------- */
 .layui-progress { height: 6px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
 .layui-progress-bar { height: 100%; border-radius: 4px; background: var(--accent); transition: width .25s ease; }

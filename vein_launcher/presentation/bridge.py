@@ -135,6 +135,9 @@ class ApiBridge(QObject):
             "instances.deleteFile": self._instance_delete_file,
             "instances.worlds": self._instance_worlds,
             "instances.deleteWorld": self._instance_delete_world,
+            "update.latest": self._update_latest,
+            "update.download": self._update_download,
+            "update.install": self._update_install,
             "minecraft.getDir": self._minecraft_get_dir,
             "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
@@ -764,6 +767,22 @@ class ApiBridge(QObject):
 
     async def _instance_contents(self, version_id: str) -> dict:
         return self._ctx.instances.list_contents(str(version_id))
+
+    async def _update_latest(self) -> dict:
+        try:
+            return await self._ctx.update.latest()
+        except Exception as exc:
+            logger.warning("检查更新失败：%s", exc)
+            return {"available": False, "current": self._ctx.version, "error": str(exc)}
+
+    async def _update_download(self, url: str, name: str) -> dict:
+        path = await self._ctx.update.download(
+            str(url), str(name), progress=lambda done, total: self._progress("update", done, total)
+        )
+        return {"path": str(path), "size": path.stat().st_size}
+
+    async def _update_install(self, path: str) -> dict:
+        return await asyncio.to_thread(self._ctx.update.install, str(path))
 
     async def _instance_toggle(self, version_id: str, kind: str, name: str, enabled: bool) -> dict:
         return self._ctx.instances.set_enabled(str(version_id), str(kind), str(name), bool(enabled))

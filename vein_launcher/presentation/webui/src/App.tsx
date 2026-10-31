@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { on, rpc } from './bridge';
 import type { AccountInfo, AppInfo, VersionInfo } from './types';
 import {
@@ -81,6 +81,7 @@ export function App() {
   const [booted, setBooted] = useState(false);
   const [firstRun, setFirstRun] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [version, setVersion] = useState('0.1.0');
 
   const notify = useCallback((text: string) => {
     setToast(text);
@@ -110,6 +111,7 @@ export function App() {
     rpc<AppInfo>('app.info')
       .then((info) => {
         const fresh = Boolean(info.firstRun);
+        if (info.version) setVersion(info.version);
         setFirstRun(fresh);
         window.setTimeout(
           () => {
@@ -123,7 +125,7 @@ export function App() {
     rpc<AnnouncementPayload>('announcements.get').then(setNews).catch(() => setNews(null));
     const offNav = on<string>('vein:navigate', (p) => setPage(p));
     const offNotify = on<{ title: string; message: string }>('vein:notify', (d) =>
-      notify(`${d.title}：${d.message}`)
+      notify(`${d.title}锛?{d.message}`)
     );
     return () => {
       offNav();
@@ -161,7 +163,7 @@ export function App() {
         </nav>
         <div className="side-foot">
           <DownloadMonitor />
-          <span className="side-ver">v0.0.3</span>
+          <span className="side-ver">v{version}</span>
         </div>
       </aside>
 
@@ -169,7 +171,7 @@ export function App() {
         <header className="main-head">
           <img className="head-ico" src={`icons/${current.iconImg}`} alt="" />
           <h1>{t(current.label)}</h1>
-          <span className="sub">Vein Launcher 0.0.3</span>
+          <span className="sub">Vein Launcher {version}</span>
           <div className="spacer" />
           <span className="sub">{installed.length} instances</span>
         </header>
@@ -269,3 +271,4 @@ export function App() {
     </div>
   );
 }
+

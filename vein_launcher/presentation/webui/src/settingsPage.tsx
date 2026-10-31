@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { rpc } from './bridge';
 import type { AppInfo, JavaRuntime } from './types';
 import { applyTheme, currentTheme, Theme } from './theme';
+import { currentLang, setLang as applyLang, type Lang } from './i18n';
+import { LayuiProgress } from './ui';
 
 interface AccountRow {
   id: string;
@@ -29,6 +31,20 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [lsPassword, setLsPassword] = useState('');
   const [lsBusy, setLsBusy] = useState(false);
   const [lsMsg, setLsMsg] = useState('');
+  const [lang, setLangState] = useState<Lang>(currentLang());
+  const [update, setUpdate] = useState<{
+    available: boolean;
+    current?: string;
+    version?: string;
+    notes?: string;
+    html_url?: string;
+    error?: string;
+    assets?: { name: string; size: number; url: string }[];
+  } | null>(null);
+  const [updateBusy, setUpdateBusy] = useState('');
+  const [updateMsg, setUpdateMsg] = useState('');
+  const [updatePct, setUpdatePct] = useState(0);
+  const [downloaded, setDownloaded] = useState('');
 
   const reloadAccounts = () =>
     rpc<AccountRow[]>('accounts.list').then(setAccounts).catch(() => {});
@@ -88,6 +104,70 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
     }
   };
 
+  const checkUpdates = async () => {
+    setUpdateBusy('check');
+    setUpdateMsg('');
+    try {
+      const info = await rpc<typeof update>('update.latest');
+      setUpdate(info as never);
+    } catch (err) {
+      setUpdateMsg((err as Error).message);
+    } finally {
+      setUpdateBusy('');
+    }
+  };
+
+  const downloadUpdate = async () => {
+    const asset =
+      update?.assets?.find((a) => /\.(zip|exe|msi)$/i.test(a.name)) || update?.assets?.[0];
+    if (!asset) {
+      setUpdateMsg('This release has no downloadable file');
+      return;
+    }
+    setUpdateBusy('download');
+    setUpdatePct(0);
+    setUpdateMsg(`Downloading ${asset.name}…`);
+    const timer = window.setInterval(async () => {
+      try {
+        const list = await rpc<Array<{ id: string; done: number; total: number }>>('downloads.list');
+        const task = list.find((t) => t.id === 'update');
+        if (task && task.total) setUpdatePct(Math.round((task.done / task.total) * 100));
+      } catch {
+        /* ignore */
+      }
+    }, 700);
+    try {
+      const result = await rpc<{ path: string }>('update.download', [asset.url, asset.name]);
+      setDownloaded(result.path);
+      setUpdatePct(100);
+      setUpdateMsg(`Downloaded to ${result.path}`);
+    } catch (err) {
+      setUpdateMsg((err as Error).message);
+    } finally {
+      window.clearInterval(timer);
+      setUpdateBusy('');
+    }
+  };
+
+  const installUpdate = async () => {
+    if (!downloaded) return;
+    setUpdateBusy('install');
+    try {
+      const result = await rpc<{ started: boolean; kind: string; path: string }>('update.install', [
+        downloaded,
+      ]);
+      setUpdateMsg(
+        result.started
+          ? 'Update unpacked — follow the installer / open the extracted folder.'
+          : `Cannot apply automatically, file at ${result.path}`
+      );
+    } catch (err) {
+      setUpdateMsg((err as Error).message);
+    } finally {
+      setUpdateBusy('');
+    }
+  };
+
   const startLittleSkin = async () => {
     setLsBusy(true);
     setLsMsg('Signing in to LittleSkin…');
@@ -133,6 +213,22 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                   <option value="light">Light</option>
                   <option value="clear">Clear</option>
                   <option value="system">System</option>
+                </select>
+              </b>
+            </div>
+            <div className="kv">
+              <span>Language</span>
+              <b>
+                <select
+                  value={lang}
+                  onChange={(e) => {
+                    const next = e.target.value as Lang;
+                    setLangState(next);
+                    applyLang(next);
+                  }}
+                >
+                  <option value="en">English</option>
+                  <option value="zh">简体中文</option>
                 </select>
               </b>
             </div>
@@ -358,6 +454,49 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
             <div className="kv"><span>Version</span><b>{info?.version ?? '—'}</b></div>
             <div className="kv"><span>Data folder</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
             <div className="kv"><span>Stack</span><b>Python + PySide6 WebView + React + TS</b></div>
+
+            <div className="row-actions" style={{ marginTop: 10 }}>
+              <button className="btn sm" onClick={checkUpdates} disabled={updateBusy === 'check'}>
+                <i className="layui-icon layui-icon-refresh" />{' '}
+                {updateBusy === 'check' ? 'Checking…' : 'Check for updates'}
+              </button>
+              {update?.html_url && (
+                <button
+                  className="btn sm ghost"
+                  onClick={() => rpc('app.openUrl', [update.html_url])}
+                >
+                  Release page
+                </button>
+              )}
+            </div>
+
+            {update?.available && (
+              <div className="update-card">
+                <b>Update available: v{update.version}</b>
+                {update.notes && <pre className="update-notes">{update.notes.slice(0, 1400)}</pre>}
+                {updateBusy === 'download' && <LayuiProgress percent={updatePct} />}
+                <div className="row-actions">
+                  <button
+                    className="btn primary sm"
+                    onClick={downloadUpdate}
+                    disabled={updateBusy !== ''}
+                  >
+                    {updateBusy === 'download' ? `Downloading ${updatePct}%` : 'Download update'}
+                  </button>
+                  {downloaded && (
+                    <button className="btn sm" onClick={installUpdate} disabled={updateBusy !== ''}>
+                      {updateBusy === 'install' ? 'Starting…' : 'Install update'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {update && !update.available && !update.error && (
+              <p className="muted">You are on the latest version.</p>
+            )}
+            {update?.error && <p className="muted">{update.error}</p>}
+            {updateMsg && <p className="muted">{updateMsg}</p>}
           </div>
         </details>
       </div>

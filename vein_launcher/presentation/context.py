@@ -13,6 +13,7 @@ from vein_launcher.application.services.loader_service import LoaderService
 from vein_launcher.application.services.modpack_service import ModpackService
 from vein_launcher.application.services.plugin_service import PluginService
 from vein_launcher.application.services.skin_service import SkinService
+from vein_launcher.application.services.update_service import UpdateService
 from vein_launcher.application.services.version_service import VersionService
 from vein_launcher.common.utils.path_utils import (
     bootstrap_layout,
@@ -31,7 +32,7 @@ from vein_launcher.mlc.service import MlcService
 
 logger = logging.getLogger(__name__)
 
-VERSION = "0.0.3"
+VERSION = "0.1.0"
 
 SUBDIRS = {
     "mod": "mods",
@@ -58,6 +59,7 @@ class AppContext:
         self.accounts.load()
         self.skins = SkinService()
         self.instances = InstanceService()
+        self.update = UpdateService(VERSION)
         self.modrinth = ModrinthApiClient()
         self.detector = JavaDetector()
         self.java = JavaManager(self.detector)

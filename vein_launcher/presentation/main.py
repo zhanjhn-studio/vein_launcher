@@ -36,7 +36,20 @@ from vein_launcher.presentation.context import AppContext, VERSION
 
 logger = logging.getLogger("vein_launcher.presentation.main")
 
-WEBUI_DIR = Path(__file__).parent / "webui" / "dist"
+def _resources_dir() -> Path:
+    """打包后资源在 _MEIPASS，开发态在仓库根目录"""
+    if getattr(sys, "frozen", False):
+        return Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+    return Path(__file__).resolve().parents[2]
+
+
+def _webui_dir() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent)) / "webui" / "dist"
+    return Path(__file__).parent / "webui" / "dist"
+
+
+WEBUI_DIR = _webui_dir()
 
 JS_LEVELS = {
     QWebEnginePage.JavaScriptConsoleMessageLevel.InfoMessageLevel: logging.INFO,
@@ -92,7 +105,7 @@ class TitleBar(QWidget):
         layout.setSpacing(4)
 
         logo = QLabel(self)
-        icon_path = Path(__file__).resolve().parents[2] / "assets" / "logo.png"
+        icon_path = _resources_dir() / "assets" / "logo.png"
         if icon_path.is_file():
             logo.setPixmap(QIcon(str(icon_path)).pixmap(20, 20))
         title = QLabel(f"Vein Launcher {VERSION}", self)
@@ -325,7 +338,7 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Vein Launcher")
     app.setOrganizationName("Vein Studio")
-    icon = Path(__file__).resolve().parents[2] / "assets" / "logo.ico"
+    icon = _resources_dir() / "assets" / "logo.ico"
     if not icon.is_file():
         icon = Path(__file__).resolve().parents[2] / "assets" / "logo.png"
     if icon.is_file():
