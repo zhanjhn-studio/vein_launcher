@@ -10,7 +10,8 @@ import zipfile
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from vein_launcher.common.exceptions import VersionNotFoundError
+from vein_launcher.common.config.settings import settings_manager
+from vein_launcher.common.exceptions import DownloadError, VersionNotFoundError
 from vein_launcher.common.utils.path_utils import (
     ensure_dir,
     get_libraries_dir,
@@ -172,25 +173,41 @@ class VersionService:
         tasks.extend(self._library_tasks(merged))
         tasks.extend(await self._asset_tasks(merged))
 
+        unique_total = len({str(t.dest) for t in tasks})
         total = len(tasks)
         if progress:
-            progress("准备", 0, total)
+            progress("准备", 0, unique_total)
+        logger.info("开始安装 %s：%d 个文件（去重后 %d），并发 %s", version_id, total, unique_total,
+                    settings_manager.get().download.max_concurrent)
 
-        queue = DownloadQueue(downloader=self._downloader)
+        concurrency = max(1, int(getattr(settings_manager.get().download, "max_concurrent", 8) or 8))
+        queue = DownloadQueue(
+            max_concurrent=concurrency,
+            downloader=self._downloader,
+            progress=(lambda done, count: progress and progress("下载", done, count)),
+        )
         try:
             result = await queue.run(tasks)
         finally:
             await queue.close()
 
         if progress:
-            progress("完成", result.ok, total)
+            progress("完成", unique_total, unique_total)
+        logger.info("安装完成 %s：成功 %d / %d，用时见下载日志", version_id, result.ok, unique_total)
+
+        failed = [t for t in tasks if t.error]
+        if failed:
+            sample = "; ".join(f"{t.dest.name}: {t.error}" for t in failed[:3])
+            message = f"{len(failed)}/{total} 个文件下载失败：{sample}"
+            logger.error(message)
+            raise DownloadError(message)
 
         return {
             "version_id": version_id,
             "files": total,
             "ok": result.ok,
-            "failed": result.failed,
-            "errors": [t.error for t in tasks if t.error][:10],
+            "failed": 0,
+            "errors": [],
         }
 
     async def copy_instance(self, source_id: str, target_name: str) -> str:

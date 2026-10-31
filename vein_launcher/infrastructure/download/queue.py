@@ -6,7 +6,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from vein_launcher.common.events.event_bus import event_bus
 from vein_launcher.common.events.events import EventNames
@@ -45,12 +45,18 @@ class QueueResult:
 class DownloadQueue:
     """并发下载，进度通过 event_bus 广播"""
 
-    def __init__(self, max_concurrent: int = 4, downloader: Optional[Downloader] = None):
+    def __init__(
+        self,
+        max_concurrent: int = 8,
+        downloader: Optional[Downloader] = None,
+        progress: Optional[Callable[[int, int], None]] = None,
+    ):
         self._max_concurrent = max(1, max_concurrent)
         self._downloader = downloader or Downloader()
         self._owns = downloader is None
         self._completed = 0
         self._total = 0
+        self._progress = progress
 
     async def close(self) -> None:
         if self._owns:
@@ -85,6 +91,11 @@ class DownloadQueue:
                 event_bus.publish(EventNames.DOWNLOAD_TASK_ERROR, url=task.url, error=str(exc))
             finally:
                 self._completed += 1
+                if self._progress is not None:
+                    try:
+                        self._progress(self._completed, self._total)
+                    except Exception:  # 进度回调不应影响下载
+                        logger.debug("进度回调异常", exc_info=True)
                 event_bus.publish(
                     EventNames.DOWNLOAD_TASK_COMPLETE,
                     url=task.url,

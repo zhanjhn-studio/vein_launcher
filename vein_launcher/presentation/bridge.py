@@ -128,6 +128,8 @@ class ApiBridge(QObject):
             "skins.import": self._skins_import,
             "skins.clear": self._skins_clear,
             "skins.remote": self._skins_remote,
+            "skins.library": self._skins_library,
+            "skins.download": self._skins_download,
             "minecraft.getDir": self._minecraft_get_dir,
             "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
@@ -730,6 +732,30 @@ class ApiBridge(QObject):
         except Exception as exc:
             logger.warning("authlib-injector 准备失败：%s", exc)
         return None
+
+    async def _skins_library(self, page: int = 1, keyword: str = "") -> dict:
+        """LittleSkin 公开皮肤库列表"""
+        from vein_launcher.infrastructure.network import littleskin
+
+        try:
+            return await littleskin.skin_library(int(page), str(keyword))
+        except Exception as exc:
+            logger.warning("皮肤库获取失败：%s", exc)
+            return {"page": int(page), "items": [], "has_more": False, "error": str(exc)}
+
+    async def _skins_download(self, account_id: str, tid: int, model: str = "classic") -> dict:
+        """从皮肤库下载一张皮肤并保存到指定账号"""
+        from vein_launcher.infrastructure.network import littleskin
+
+        try:
+            data = await littleskin.download_skin(int(tid))
+            state = self._ctx.skins.apply_bytes(
+                str(account_id), data, model=str(model), source=f"littleskin:{tid}"
+            )
+            return {"ok": True, "skin": state}
+        except Exception as exc:
+            logger.warning("皮肤下载失败 tid=%s：%s", tid, exc)
+            return {"ok": False, "error": str(exc)}
 
     async def _skins_list(self) -> list:
         rows = []

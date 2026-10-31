@@ -198,7 +198,13 @@ export function DownloadPage({
         {installing && (
           <div className="card" style={{ marginTop: 12 }}>
             <div className="card-title">{installing}</div>
-            <LayuiProgress percent={Math.max(percent, 4)} />
+            <LayuiProgress percent={Math.max(percent, 2)} />
+            <div className="kv">
+              <span>
+                {progress ? `${progress.done} / ${progress.total} files` : 'preparing…'}
+              </span>
+              <b>{percent}%</b>
+            </div>
           </div>
         )}
       </div>

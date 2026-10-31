@@ -28,7 +28,7 @@ class LaunchConfig(BaseModel):
 class DownloadConfig(BaseModel):
     """下载配置"""
     max_speed_mbps: int = 0     # 限速 (0=不限速)
-    max_concurrent: int = 4     # 最大并发数
+    max_concurrent: int = 8     # 最大并发数
     retry_count: int = 3        # 失败重试次数
 
 

@@ -194,14 +194,91 @@ async def fetch_texture(url: str) -> bytes:
             return await resp.read()
 
 
+def site_root(server: str) -> str:
+    """从 Yggdrasil API 根地址推出站点根（https://littleskin.cn/api/yggdrasil → https://littleskin.cn）"""
+    server = _normalize(server)
+    for suffix in ("/api/yggdrasil", "/api/yggdrasil/"):
+        if server.endswith(suffix.rstrip("/")):
+            return server[: -len(suffix.rstrip("/"))]
+    if "/api/" in server:
+        return server.split("/api/")[0]
+    return server
+
+
+async def skin_library(page: int = 1, keyword: str = "", page_type: str = "skin") -> Dict[str, Any]:
+    """公开皮肤库列表：GET /skinlib/list?filter=skin&page=N&keyword=..."""
+    root = site_root(DEFAULT_SERVER)
+    params = {"filter": page_type, "page": max(1, int(page))}
+    if keyword.strip():
+        params["keyword"] = keyword.strip()
+    headers = {"Accept": "application/json", "X-Requested-With": "XMLHttpRequest"}
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=TIMEOUT)) as session:
+        async with session.get(f"{root}/skinlib/list", params=params, headers=headers) as resp:
+            if resp.status != 200:
+                raise LittleSkinError(f"皮肤库请求失败 HTTP {resp.status}")
+            data = await resp.json(content_type=None)
+    if not isinstance(data, dict):
+        raise LittleSkinError("皮肤库返回数据格式异常")
+    items = []
+    for raw in data.get("data") or []:
+        if not isinstance(raw, dict):
+            continue
+        tid = raw.get("tid")
+        if tid is None:
+            continue
+        items.append(
+            {
+                "tid": tid,
+                "name": str(raw.get("name") or f"skin-{tid}"),
+                "type": "slim" if str(raw.get("type") or "").lower() == "alex" else "classic",
+                "hd": bool(raw.get("hd")),
+                "likes": int(raw.get("likes") or 0),
+                "author": str(raw.get("nickname") or ""),
+                "preview": f"{root}/preview/{tid}",
+            }
+        )
+    return {
+        "page": int(data.get("current_page") or page),
+        "items": items,
+        "has_more": len(items) > 0,
+        "root": root,
+    }
+
+
+async def texture_hash(tid: int) -> str:
+    root = site_root(DEFAULT_SERVER)
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=TIMEOUT)) as session:
+        async with session.get(
+            f"{root}/texture/{int(tid)}", headers={"Accept": "application/json"}
+        ) as resp:
+            if resp.status != 200:
+                raise LittleSkinError(f"获取材质信息失败 HTTP {resp.status}")
+            data = await resp.json(content_type=None)
+    digest = str((data or {}).get("hash") or "")
+    if not digest:
+        raise LittleSkinError("材质信息里没有 hash")
+    return digest
+
+
+async def download_skin(tid: int) -> bytes:
+    """按皮肤库 TID 下载原始皮肤 PNG"""
+    digest = await texture_hash(tid)
+    root = site_root(DEFAULT_SERVER)
+    return await fetch_texture(f"{root}/textures/{digest}")
+
+
 __all__ = [
     "DEFAULT_SERVER",
     "LittleSkinError",
     "authenticate",
+    "download_skin",
     "extract_skin",
     "fetch_texture",
     "parse_session",
     "profile",
     "profile_by_uuid",
     "refresh",
+    "site_root",
+    "skin_library",
+    "texture_hash",
 ]

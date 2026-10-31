@@ -16,6 +16,16 @@ interface SkinRow extends AccountInfo {
   skin: SkinState;
 }
 
+interface LibraryItem {
+  tid: number;
+  name: string;
+  type: string;
+  hd: boolean;
+  likes: number;
+  author: string;
+  preview: string;
+}
+
 export function SkinsPage({ notify }: { notify: (text: string) => void }) {
   const [rows, setRows] = useState<SkinRow[]>([]);
   const [activeId, setActiveId] = useState('');
@@ -25,6 +35,11 @@ export function SkinsPage({ notify }: { notify: (text: string) => void }) {
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('');
   const [remote, setRemote] = useState<{ url: string; data_url: string; model: string } | null>(null);
+  const [libItems, setLibItems] = useState<LibraryItem[]>([]);
+  const [libPage, setLibPage] = useState(1);
+  const [libQuery, setLibQuery] = useState('');
+  const [libBusy, setLibBusy] = useState('');
+  const [libError, setLibError] = useState('');
 
   const load = () =>
     rpc<SkinRow[]>('skins.list')
@@ -48,6 +63,55 @@ export function SkinsPage({ notify }: { notify: (text: string) => void }) {
   }, [activeId, active?.skin.model, active?.skin.has]);
 
   const preview = remote?.data_url || active?.skin.data_url || '';
+
+  const loadLibrary = async (page = 1, keyword = libQuery) => {
+    setLibBusy('load');
+    setLibError('');
+    try {
+      const res = await rpc<{
+        items: LibraryItem[];
+        page: number;
+        has_more: boolean;
+        error?: string;
+      }>('skins.library', [page, keyword]);
+      if (res.error) setLibError(res.error);
+      setLibItems((prev) => (page === 1 ? res.items : [...prev, ...res.items]));
+      setLibPage(res.page || page);
+    } catch (err) {
+      setLibError((err as Error).message);
+    } finally {
+      setLibBusy('');
+    }
+  };
+
+  useEffect(() => {
+    loadLibrary(1, '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const downloadFromLibrary = async (item: LibraryItem) => {
+    if (!active) return;
+    setBusy(`dl-${item.tid}`);
+    setMessage('');
+    try {
+      const res = await rpc<{ ok: boolean; error?: string }>('skins.download', [
+        active.id,
+        item.tid,
+        item.type,
+      ]);
+      if (!res.ok) {
+        setMessage(res.error || 'Download failed');
+        return;
+      }
+      setMessage(`Downloaded “${item.name}” to ${active.username}.`);
+      setRemote(null);
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      setMessage((err as Error).message);
+    } finally {
+      setBusy('');
+    }
+  };
 
   const importSkin = async () => {
     if (!active) return;
@@ -236,6 +300,68 @@ export function SkinsPage({ notify }: { notify: (text: string) => void }) {
           </section>
         </div>
       )}
+
+      <section className="skin-library">
+        <div className="skin-library-head">
+          <div>
+            <b>LittleSkin library</b>
+            <span className="muted">Download a public skin straight into the selected account</span>
+          </div>
+          <div className="row-actions">
+            <input
+              className="input"
+              placeholder="Search skins…"
+              value={libQuery}
+              onChange={(e) => setLibQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') loadLibrary(1);
+              }}
+            />
+            <button className="btn sm" onClick={() => loadLibrary(1)} disabled={libBusy === 'load'}>
+              {libBusy === 'load' ? 'Searching…' : 'Search'}
+            </button>
+          </div>
+        </div>
+
+        {libError && <p className="muted">{libError}</p>}
+        {libItems.length === 0 && !libError && (
+          <Empty>No skins loaded yet — press Search.</Empty>
+        )}
+
+        {libItems.length > 0 && (
+          <div className="library-grid">
+            {libItems.map((item) => (
+              <div className="library-card" key={item.tid}>
+                <img src={item.preview} alt={item.name} loading="lazy" />
+                <b title={item.name}>{item.name}</b>
+                <span>
+                  {item.type === 'slim' ? 'Slim' : 'Classic'}
+                  {item.hd ? ' · HD' : ''} · ♥ {item.likes}
+                  {item.author ? ` · ${item.author}` : ''}
+                </span>
+                <button
+                  className="btn sm"
+                  disabled={!active || busy !== ''}
+                  onClick={() => downloadFromLibrary(item)}
+                >
+                  {busy === `dl-${item.tid}` ? 'Downloading…' : 'Download'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {libItems.length > 0 && (
+          <button
+            className="btn sm"
+            style={{ marginTop: 12 }}
+            disabled={libBusy !== ''}
+            onClick={() => loadLibrary(libPage + 1)}
+          >
+            {libBusy === 'load' ? 'Loading…' : 'Load more'}
+          </button>
+        )}
+      </section>
     </div>
   );
 }
