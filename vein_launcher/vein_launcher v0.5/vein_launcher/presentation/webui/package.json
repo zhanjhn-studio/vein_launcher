@@ -1,0 +1,17 @@
+{
+  "name": "vein-launcher-webui",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Vein Launcher React frontend (bundled with esbuild into dist/app.js)",
+  "scripts": {
+    "build": "powershell -ExecutionPolicy Bypass -File build.ps1",
+    "bundle": "esbuild src/main.tsx --bundle --outfile=dist/app.js --jsx=automatic --minify"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
+  }
+}
