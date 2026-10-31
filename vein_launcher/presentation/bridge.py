@@ -521,13 +521,24 @@ class ApiBridge(QObject):
 
         return get_config_dir() / "ms_client_id.json"
 
-    def _ms_read_client_id(self) -> str:
+    def _ms_read_config(self) -> dict:
         import json as _json
 
         try:
-            return str(_json.loads(self._ms_config().read_text(encoding="utf-8")).get("client_id", ""))
+            data = _json.loads(self._ms_config().read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
         except Exception:
-            return ""
+            return {}
+
+    def _ms_read_client_id(self) -> str:
+        return str(self._ms_read_config().get("client_id", ""))
+
+    def _ms_apply_authority(self) -> str:
+        from vein_launcher.infrastructure.network import microsoft_auth
+
+        authority = str(self._ms_read_config().get("authority", "") or "common")
+        microsoft_auth.AUTHORITY = authority
+        return authority
 
     async def _ms_client_id(self, client_id: str = "") -> dict:
         import json as _json
@@ -540,15 +551,23 @@ class ApiBridge(QObject):
         return {"client_id": self._ms_read_client_id()}
 
     async def _ms_authority(self, authority: str = "") -> dict:
+        import json as _json
+
         from vein_launcher.infrastructure.network import microsoft_auth
 
         if authority:
-            microsoft_auth.AUTHORITY = str(authority).strip() or "common"
-        return {"authority": microsoft_auth.AUTHORITY}
+            data = self._ms_read_config()
+            data["authority"] = str(authority).strip() or "common"
+            self._ms_config().parent.mkdir(parents=True, exist_ok=True)
+            self._ms_config().write_text(
+                _json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        return {"authority": self._ms_apply_authority()}
 
     async def _ms_start(self) -> dict:
         from vein_launcher.infrastructure.network import microsoft_auth
 
+        self._ms_apply_authority()
         info = await microsoft_auth.start_device_code(self._ms_read_client_id())
         return {
             "device_code": info.get("device_code", ""),
@@ -560,6 +579,7 @@ class ApiBridge(QObject):
     async def _ms_login(self, device_code: str) -> dict:
         from vein_launcher.infrastructure.network import microsoft_auth
 
+        self._ms_apply_authority()
         profile = await microsoft_auth.login_with_device_code(
             self._ms_read_client_id(), str(device_code)
         )
