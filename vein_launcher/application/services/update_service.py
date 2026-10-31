@@ -59,9 +59,46 @@ class UpdateService:
         github = await self._from_github()
         if not github.get("error"):
             return github
-        logger.info("GitHub API 不可用（%s），改用公告源", github.get("error"))
-        fallback = await self._from_announcements(github.get("error", ""))
-        return fallback
+        logger.info("GitHub API 不可用（%s），改用 latest.json", github.get("error"))
+        manifest = await self._from_latest_json(github.get("error", ""))
+        if not manifest.get("error"):
+            return manifest
+        logger.info("latest.json 也不可用（%s），改用公告源", manifest.get("error"))
+        return await self._from_announcements(github.get("error", ""))
+
+    async def _from_latest_json(self, reason: str) -> Dict[str, Any]:
+        """GitHub API 限流时的公开兜底：发布资产里的 latest.json（走 download 重定向，不计 API 配额）"""
+        url = f"https://github.com/{self._repo}/releases/latest/download/latest.json"
+        try:
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=TIMEOUT)
+            ) as session:
+                async with session.get(url) as resp:
+                    if resp.status != 200:
+                        return {"available": False, "current": self.current, "error": reason}
+                    data = await resp.json(content_type=None)
+        except Exception as exc:
+            return {"available": False, "current": self.current, "error": f"{reason} / {exc}"}
+        if not isinstance(data, dict):
+            return {"available": False, "current": self.current, "error": reason}
+        version = str(data.get("version") or "").lstrip("v")
+        if not version:
+            return {"available": False, "current": self.current, "error": reason}
+        assets: List[Dict[str, Any]] = []
+        asset_name = str(data.get("asset") or "")
+        asset_url = str(data.get("url") or "")
+        if asset_name and asset_url:
+            assets.append({"name": asset_name, "size": 0, "url": asset_url})
+        return {
+            "available": is_newer(version, self.current),
+            "current": self.current,
+            "version": version,
+            "name": str(data.get("name") or f"v{version}"),
+            "notes": str(data.get("notes") or ""),
+            "html_url": str(data.get("html_url") or ""),
+            "assets": assets,
+            "source": "latest.json",
+        }
 
     async def _from_announcements(self, reason: str) -> Dict[str, Any]:
         """GitHub API 被限流/不可达时，退回公告站维护的 update 字段"""

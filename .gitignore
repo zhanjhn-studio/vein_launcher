@@ -67,3 +67,4 @@ assets/wordmark.png
 packaging/build/
 packaging/dist/
 *.spec
+packaging/*.zip
