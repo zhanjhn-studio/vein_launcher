@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { rpc } from './bridge';
+import { on, rpc } from './bridge';
 import type { DownloadTask, PluginInfo } from './types';
 
 export function Empty({ children }: { children: React.ReactNode }) {
@@ -203,4 +203,70 @@ export function Skeleton({ rows = 3 }: { rows?: number }) {
 
 export function Spinner() {
   return <span className="spinner" />;
+}
+
+
+export function DownloadMonitor() {
+  const [tasks, setTasks] = useState<Record<string, { name: string; done: number; total: number }>>({});
+
+  useEffect(() => {
+    const off = on<{ taskId: string; done: number; total: number }>('vein:progress', (d) =>
+      setTasks((prev) => ({
+        ...prev,
+        [d.taskId]: { name: prev[d.taskId]?.name ?? d.taskId, done: d.done, total: d.total },
+      }))
+    );
+    const timer = window.setInterval(() => {
+      rpc<Array<{ id: string; name: string; done: number; total: number; active: boolean }>>(
+        'downloads.list'
+      )
+        .then((list) => {
+          setTasks((prev) => {
+            const next: Record<string, { name: string; done: number; total: number }> = {};
+            for (const item of list) {
+              next[item.id] = {
+                name: item.name || prev[item.id]?.name || item.id,
+                done: item.done ?? 0,
+                total: item.total ?? 0,
+              };
+            }
+            return next;
+          });
+        })
+        .catch(() => {});
+    }, 1800);
+    return () => {
+      off();
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const entries = Object.entries(tasks).filter(([, t]) => t.total > 0 || t.done > 0);
+
+  return (
+    <div className="monitor" title="Download monitor">
+      <div className="monitor-head">
+        <span className="monitor-title">Downloads</span>
+        <span className="muted">{entries.length}</span>
+      </div>
+      {entries.length === 0 ? (
+        <div className="monitor-empty">idle</div>
+      ) : (
+        entries.map(([id, task]) => {
+          const pct = task.total > 0 ? Math.round((task.done / task.total) * 100) : 0;
+          return (
+            <div className="monitor-item" key={id}>
+              <div className="monitor-name" title={task.name}>
+                {task.name.length > 22 ? `${task.name.slice(0, 22)}…` : task.name}
+              </div>
+              <div className="monitor-bar">
+                <i style={{ width: `${Math.max(pct, 3)}%` }} />
+              </div>
+              <span className="monitor-pct">{pct}%</span>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
 }

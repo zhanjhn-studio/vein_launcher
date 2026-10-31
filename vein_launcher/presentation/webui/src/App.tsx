@@ -11,7 +11,7 @@ import {
 import { LaunchPage } from './launchPage';
 import { DownloadPage } from './downloadPage';
 import { SettingsPage } from './settingsPage';
-import { Toast } from './ui';
+import { DownloadMonitor, Toast } from './ui';
 import { PluginUiHost } from './pluginUi';
 import { initI18n, t, useI18n } from './i18n';
 import { initTheme, Theme } from './theme';
@@ -130,6 +130,7 @@ export function App() {
           ))}
         </nav>
         <div className="side-foot">
+          <DownloadMonitor />
           <span className="side-ver">v0.0.3</span>
         </div>
       </aside>
