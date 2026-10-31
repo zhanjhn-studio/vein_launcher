@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import aiohttp
 
@@ -109,7 +109,7 @@ async def _xsts_token(xbl_token: str) -> Dict[str, Any]:
             return data
 
 
-async def _minecraft_token(xsts: Dict[str, Any]) -> str:
+async def _minecraft_token(xsts: Dict[str, Any]) -> Tuple[str, int]:
     uhs = xsts["DisplayClaims"]["xui"][0]["uhs"]
     payload = {"identityToken": f"XBL3.0 x={uhs};{xsts['Token']}"}
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
@@ -121,7 +121,7 @@ async def _minecraft_token(xsts: Dict[str, Any]) -> str:
                 raise MinecraftAuthError(
                     f"Minecraft 认证失败 HTTP {resp.status}: {detail}"
                 )
-            return data["access_token"]
+            return data["access_token"], int(data.get("expires_in") or 86400)
 
 
 async def profile(mc_access_token: str) -> Dict[str, Any]:
@@ -135,16 +135,66 @@ async def profile(mc_access_token: str) -> Dict[str, Any]:
             return data
 
 
-async def login_with_device_code(client_id: str, device_code: str) -> Dict[str, Any]:
-    token = await poll_token(client_id, device_code)
-    xbl = await _xbox_token(token["access_token"])
+async def mc_session(
+    ms_access_token: str,
+    refresh_token: str = "",
+    ms_expires_in: int = 0,
+) -> Dict[str, Any]:
+    """把微软 access token 换成完整 Minecraft 会话（XBL → XSTS → MC → profile）"""
+    if not ms_access_token:
+        raise MinecraftAuthError("微软 access token 为空")
+    xbl = await _xbox_token(ms_access_token)
     xsts = await _xsts_token(xbl["Token"])
-    mc_token = await _minecraft_token(xsts)
+    mc_token, mc_expires_in = await _minecraft_token(xsts)
     prof = await profile(mc_token)
     return {
         "username": prof.get("name", "Player"),
         "uuid": prof.get("id", ""),
         "access_token": mc_token,
-        "refresh_token": token.get("refresh_token", ""),
+        "expires_in": mc_expires_in,
+        "refresh_token": refresh_token,
+        "ms_expires_in": ms_expires_in,
         "type": "microsoft",
     }
+
+
+async def refresh_ms_token(client_id: str, refresh_token: str) -> Dict[str, Any]:
+    """用 refresh_token 换新的微软令牌（无需用户交互）"""
+    if not client_id:
+        raise MinecraftAuthError("未配置 Microsoft 应用 ID（设置 → Accounts）")
+    if not refresh_token:
+        raise MinecraftAuthError("缺少 refresh token，需要重新登录")
+    form = {
+        "client_id": client_id,
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+        "scope": SCOPE,
+    }
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
+        async with session.post(TOKEN_URL.format(authority=AUTHORITY), data=form) as resp:
+            data = await resp.json(content_type=None)
+            logger.info("MS refresh_token: HTTP %s", resp.status)
+            if resp.status != 200:
+                raise MinecraftAuthError(
+                    data.get("error_description") or f"刷新令牌失败 HTTP {resp.status}"
+                )
+            return data
+
+
+async def refresh_session(client_id: str, refresh_token: str) -> Dict[str, Any]:
+    """续期：refresh_token → 新微软令牌 → 新 Minecraft 会话"""
+    token = await refresh_ms_token(client_id, refresh_token)
+    return await mc_session(
+        token["access_token"],
+        token.get("refresh_token") or refresh_token,
+        int(token.get("expires_in") or 0),
+    )
+
+
+async def login_with_device_code(client_id: str, device_code: str) -> Dict[str, Any]:
+    token = await poll_token(client_id, device_code)
+    return await mc_session(
+        token["access_token"],
+        token.get("refresh_token", ""),
+        int(token.get("expires_in") or 0),
+    )

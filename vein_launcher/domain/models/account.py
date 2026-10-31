@@ -42,6 +42,9 @@ class MicrosoftAccount(AccountBase):
     """微软正版账号 - OAuth2 流程认证"""
     
     account_type: Literal["microsoft"] = Field(default="microsoft", description="微软账号标记")
+
+    # Minecraft 档案信息
+    uuid: Optional[str] = Field(default=None, description="Minecraft 档案 UUID（无破折号）")
     
     # OAuth2 相关 token（刷新机制）
     access_token: Optional[str] = None
@@ -54,6 +57,7 @@ class MicrosoftAccount(AccountBase):
     
     # Minecraft 服务器端 token（YSER）
     mc_access_token: Optional[str] = None
+    mc_expires_at: Optional[int] = None  # Minecraft 会话 token 到期时间（Unix timestamp）
     mc_selected_profile: Optional[str] = None  # UUID（无破折号版）
     
     def is_valid(self) -> bool:
@@ -90,9 +94,22 @@ class MicrosoftAccount(AccountBase):
         return current_time + 600 > self.token_expires_at
 
 
+REFRESH_MARGIN = 600  # 提前 10 分钟续期，避免启动瞬间过期
+
+
+def token_needs_refresh(expires_at: Optional[int], now: Optional[int] = None,
+                        margin: int = REFRESH_MARGIN) -> bool:
+    """判断 Minecraft 会话 token 是否需要续期（纯函数，便于测试）"""
+    if not expires_at:
+        return True
+    import time as _time
+
+    current = int(now if now is not None else _time.time())
+    return current + margin >= int(expires_at)
+
+
 class AccountManager(BaseModel):
-    """账号管理器（多账号支持）"""
-    
+    """账号管理器（多账号支持）"""    
     accounts: list[AccountBase] = Field(default_factory=list)
     selected_account_id: Optional[str] = None
     

@@ -488,6 +488,8 @@ html[data-transparent="on"] .log-panel {
 .ver-row .name { font: 12.5px var(--mono); flex: 1; }
 .ver-row .tag { font: 10.5px var(--mono); color: var(--text-3); }
 .ver-row .badge { font: 10px var(--mono); color: var(--ok); border: 1px solid var(--line-2); border-radius: 5px; padding: 1px 6px; }
+.acc-body .badge { margin-left: 8px; font: 10px var(--mono); color: var(--text-3); border: 1px solid var(--line-2); border-radius: 5px; padding: 1px 6px; }
+.acc-body .badge.accent { color: var(--accent); border-color: var(--accent); }
 
 .dl-instance-row { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; }
 .mod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }

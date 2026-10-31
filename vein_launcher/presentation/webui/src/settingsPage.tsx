@@ -7,6 +7,9 @@ interface AccountRow {
   id: string;
   username: string;
   selected?: boolean;
+  type?: string;
+  uuid?: string;
+  online?: boolean;
 }
 
 export function SettingsPage({ notify }: { notify: (text: string) => void }) {
@@ -121,6 +124,13 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
               <div className="kv" key={acc.id}>
                 <span>
                   {acc.username}
+                  <span className={acc.type === 'microsoft' ? 'badge accent' : 'badge'}>
+                    {acc.type === 'microsoft'
+                      ? acc.online
+                        ? 'Microsoft'
+                        : 'Microsoft · signed out'
+                      : 'Offline'}
+                  </span>
                   {acc.selected ? ' · current' : ''}
                 </span>
                 <b>

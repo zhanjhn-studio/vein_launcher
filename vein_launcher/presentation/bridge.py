@@ -336,22 +336,16 @@ class ApiBridge(QObject):
         access_token = None
         auth_uuid = None
         user_type = "legacy"
-        try:
-            import json as _json
-
-            from vein_launcher.common.utils.path_utils import get_config_dir
-
-            token_file = get_config_dir() / "ms_token.json"
-            if token_file.is_file():
-                token = _json.loads(token_file.read_text(encoding="utf-8"))
-                selected = self._ctx.accounts.current()
-                if selected is not None and token.get("username") == selected.username:
-                    access_token = token.get("access_token") or None
-                    auth_uuid = token.get("uuid") or None
-                    user_type = "msa" if access_token else "legacy"
-                    logger.info("使用正版账号启动：%s", selected.username)
-        except Exception as exc:
-            logger.warning("读取正版 token 失败：%s", exc)
+        selected = self._ctx.accounts.current()
+        if selected is not None and getattr(selected, "account_type", "offline") == "microsoft":
+            token = await self._ms_ensure_token(selected)
+            if token and token.get("access_token"):
+                access_token = token["access_token"]
+                auth_uuid = token.get("uuid") or None
+                user_type = "msa"
+                logger.info("使用正版账号启动：%s", selected.username)
+        elif selected is not None:
+            logger.info("使用离线账号启动：%s", selected.username)
 
         pid = await self._ctx.launcher.launch(
             str(version_id),
@@ -361,7 +355,12 @@ class ApiBridge(QObject):
             uuid=auth_uuid,
             user_type=user_type,
         )
-        return {"pid": pid, "java": java_path, "online": bool(access_token)}
+        return {
+            "pid": pid,
+            "java": java_path,
+            "online": bool(access_token),
+            "user_type": user_type,
+        }
 
     async def _accounts_list(self) -> list:
         return self._ctx.accounts.list()
@@ -584,6 +583,38 @@ class ApiBridge(QObject):
             self._ms_read_client_id(), str(device_code)
         )
         return self._ctx.accounts.add_microsoft(profile)
+
+    async def _ms_ensure_token(self, account) -> Optional[dict]:
+        """返回可用的 Minecraft 会话令牌；过期前用 refresh_token 自动续期"""
+        from vein_launcher.domain.models.account import token_needs_refresh
+        from vein_launcher.infrastructure.network import microsoft_auth
+
+        cached = (
+            {"access_token": account.mc_access_token, "uuid": account.uuid or ""}
+            if getattr(account, "mc_access_token", None)
+            else None
+        )
+        if cached and not token_needs_refresh(getattr(account, "mc_expires_at", None)):
+            return cached
+
+        refresh_token = getattr(account, "refresh_token", "") or ""
+        if not refresh_token:
+            logger.warning("正版账号缺少 refresh token，只能使用现有令牌")
+            return cached
+        try:
+            self._ms_apply_authority()
+            session = await microsoft_auth.refresh_session(
+                self._ms_read_client_id(), refresh_token
+            )
+            self._ctx.accounts.update_ms_session(account.account_id, session)
+            logger.info("正版令牌已续期：%s", account.username)
+            return {
+                "access_token": session.get("access_token", ""),
+                "uuid": session.get("uuid") or account.uuid or "",
+            }
+        except Exception as exc:
+            logger.warning("正版令牌续期失败（继续尝试现有令牌）：%s", exc)
+            return cached
 
     async def _minecraft_get_dir(self) -> dict:
         from vein_launcher.common.utils.path_utils import get_minecraft_dir
