@@ -51,6 +51,9 @@ class LauncherService:
         username: str = "Player",
         java: Optional[JavaRuntime] = None,
         java_path: Optional[str] = None,
+        access_token: Optional[str] = None,
+        auth_uuid: Optional[str] = None,
+        user_type: str = "legacy",
     ) -> List[str]:
         merged = await self._versions.merged(version_id)
         cfg = settings_manager.get()
@@ -73,9 +76,9 @@ class LauncherService:
             "game_directory": str(version_dir),
             "assets_root": str(get_assets_dir()),
             "assets_index_name": str((merged.get("assetIndex") or {}).get("id", "legacy")),
-            "auth_uuid": self.offline_uuid(username),
-            "auth_access_token": "0",
-            "user_type": "legacy",
+            "auth_uuid": (auth_uuid or self.offline_uuid(username)),
+            "auth_access_token": (access_token or "0"),
+            "user_type": user_type,
             "version_type": merged.get("type", "release"),
             "natives_directory": str(natives_dir),
             "classpath": classpath,
@@ -104,9 +107,23 @@ class LauncherService:
         command += game_args
         return command
 
-    async def launch(self, version_id: str, username: str = "Player",
-                     java_path: Optional[str] = None) -> int:
-        command = await self.build_command(version_id, username, java_path=java_path)
+    async def launch(
+        self,
+        version_id: str,
+        username: str = "Player",
+        java_path: Optional[str] = None,
+        access_token: Optional[str] = None,
+        auth_uuid: Optional[str] = None,
+        user_type: str = "legacy",
+    ) -> int:
+        command = await self.build_command(
+            version_id,
+            username,
+            java_path=java_path,
+            access_token=access_token,
+            auth_uuid=auth_uuid,
+            user_type=user_type,
+        )
         return await self._process.launch(command, cwd=resolve_version_dir(version_id))
 
     # ------------------------------------------------------------------

@@ -332,10 +332,35 @@ class ApiBridge(QObject):
             logger.info("启动使用 Java %s：%s", major, java_path)
         except Exception as exc:
             logger.warning("Java 自动匹配失败，回退系统探测：%s", exc)
+        access_token = None
+        auth_uuid = None
+        user_type = "legacy"
+        try:
+            import json as _json
+
+            from vein_launcher.common.utils.path_utils import get_config_dir
+
+            token_file = get_config_dir() / "ms_token.json"
+            if token_file.is_file():
+                token = _json.loads(token_file.read_text(encoding="utf-8"))
+                selected = self._ctx.accounts.current()
+                if selected is not None and token.get("username") == selected.username:
+                    access_token = token.get("access_token") or None
+                    auth_uuid = token.get("uuid") or None
+                    user_type = "msa" if access_token else "legacy"
+                    logger.info("使用正版账号启动：%s", selected.username)
+        except Exception as exc:
+            logger.warning("读取正版 token 失败：%s", exc)
+
         pid = await self._ctx.launcher.launch(
-            str(version_id), str(username), java_path=java_path
+            str(version_id),
+            str(username),
+            java_path=java_path,
+            access_token=access_token,
+            uuid=auth_uuid,
+            user_type=user_type,
         )
-        return {"pid": pid, "java": java_path}
+        return {"pid": pid, "java": java_path, "online": bool(access_token)}
 
     async def _accounts_list(self) -> list:
         return self._ctx.accounts.list()
