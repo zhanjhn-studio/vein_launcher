@@ -75,7 +75,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
       setMsCode(`Signed in as ${account.username}`);
       await reloadAccounts();
     } catch (err) {
-      setMsCode(`Failed: ${(err as Error).message}`);
+      setMsCode(`Microsoft login failed: ${(err as Error).message}`);
     } finally {
       setMsBusy(false);
     }

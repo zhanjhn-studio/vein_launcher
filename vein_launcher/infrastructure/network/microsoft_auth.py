@@ -83,6 +83,7 @@ async def _xbox_token(ms_access_token: str) -> Dict[str, Any]:
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         async with session.post(XBL_URL, json=payload) as resp:
             data = await resp.json(content_type=None)
+            logger.info("XBL 步骤: HTTP %s", resp.status)
             if resp.status != 200:
                 raise MinecraftAuthError(f"Xbox Live 认证失败: {data}")
             return data
@@ -97,6 +98,11 @@ async def _xsts_token(xbl_token: str) -> Dict[str, Any]:
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         async with session.post(XSTS_URL, json=payload) as resp:
             data = await resp.json(content_type=None)
+            logger.info(
+                "XSTS 步骤: HTTP %s uhs=%s",
+                resp.status,
+                data.get("DisplayClaims", {}).get("xui", [{}])[0].get("uhs", "?"),
+            )
             if resp.status != 200:
                 hint = data.get("XErr")
                 raise MinecraftAuthError(f"XSTS 授权失败 (XErr={hint})")
@@ -109,8 +115,12 @@ async def _minecraft_token(xsts: Dict[str, Any]) -> str:
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         async with session.post(MC_LOGIN_URL, json=payload) as resp:
             data = await resp.json(content_type=None)
+            logger.info("MC login_with_xbox: HTTP %s body=%s", resp.status, str(data)[:400])
             if resp.status != 200 or "access_token" not in data:
-                raise MinecraftAuthError("Minecraft 认证失败（该账号可能未拥有游戏）")
+                detail = str(data)[:300]
+                raise MinecraftAuthError(
+                    f"Minecraft 认证失败 HTTP {resp.status}: {detail}"
+                )
             return data["access_token"]
 
 
@@ -119,6 +129,7 @@ async def profile(mc_access_token: str) -> Dict[str, Any]:
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         async with session.get(MC_PROFILE_URL, headers=headers) as resp:
             data = await resp.json(content_type=None)
+            logger.info("MC profile: HTTP %s body=%s", resp.status, str(data)[:300])
             if resp.status != 200:
                 raise MinecraftAuthError("无法获取 Minecraft 档案（可能未购买游戏）")
             return data
