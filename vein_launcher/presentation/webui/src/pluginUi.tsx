@@ -10,38 +10,62 @@ interface UiNode {
 const SHADOW_STYLE = `
   :host { all: initial; }
   .vp-panel {
-    font: 13px/1.6 "Microsoft YaHei UI", system-ui, sans-serif;
-    background: #ffffff; color: #1b2330;
-    border: 1px solid #e8ecf3; border-radius: 14px;
-    box-shadow: 0 12px 32px rgba(20,30,50,.18);
-    padding: 16px; width: 360px;
+    font: 13px/1.6 "HarmonyOS Sans SC", system-ui, sans-serif;
+    background: #20252f; color: #e6e9f0;
+    border: 1px solid #2b313d; border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0,0,0,.45);
+    padding: 16px; width: 360px; position: relative;
   }
-  .vp-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+  .vp-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; padding-right: 22px; }
   .vp-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
-  .vp-text { font-size: 12.5px; color: #5a6679; }
+  .vp-text { font-size: 12.5px; color: #a4aec0; }
   .vp-button {
-    border: 1px solid #2f6cf0; background: #2f6cf0; color: #fff;
-    border-radius: 8px; padding: 5px 12px; cursor: pointer; font-size: 12.5px;
+    border: 1px solid #6f97f0; background: #6f97f0; color: #101725;
+    border-radius: 9px; padding: 5px 12px; cursor: pointer; font-size: 12.5px; font-weight: 600;
   }
-  .vp-button:hover { filter: brightness(1.05); }
-  .vp-input { border: 1px solid #dbe2ec; border-radius: 8px; padding: 5px 10px; font-size: 12.5px; }
+  .vp-button:hover { filter: brightness(1.08); }
+  .vp-input { border: 1px solid #363e4d; border-radius: 8px; padding: 5px 10px; font-size: 12.5px; background: #262c37; color: #e6e9f0; }
   .vp-badge {
-    font: 11px ui-monospace, monospace; color: #2f6cf0;
-    background: #eef4ff; border: 1px solid #dbe7ff; border-radius: 6px; padding: 2px 8px;
+    font: 11px ui-monospace, monospace; color: #6f97f0;
+    background: rgba(111,151,240,.12); border: 1px solid rgba(111,151,240,.3);
+    border-radius: 6px; padding: 2px 8px;
   }
-  .vp-divider { border: 0; border-top: 1px solid #e8ecf3; margin: 10px 0; }
-  .vp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .vp-table th, .vp-table td { border-bottom: 1px solid #eef2f8; padding: 5px 6px; text-align: left; }
+  .vp-divider { border: 0; border-top: 1px solid #2b313d; margin: 10px 0; }
+  .vp-table { width: 100%; border-collapse: collapse; font-size: 12px; color: #e6e9f0; }
+  .vp-table th, .vp-table td { border-bottom: 1px solid #2b313d; padding: 5px 6px; text-align: left; }
+  .vp-table th { color: #a4aec0; font-weight: 600; }
   .vp-image { max-width: 100%; border-radius: 8px; }
   .vp-close {
-    position: absolute; top: 8px; right: 10px; border: 0; background: transparent;
-    color: #8c97a8; cursor: pointer; font-size: 14px;
+    position: absolute; top: 8px; right: 8px; z-index: 3;
+    width: 22px; height: 22px; line-height: 20px; text-align: center;
+    border: 1px solid #363e4d; background: #262c37; color: #a4aec0;
+    border-radius: 7px; cursor: pointer; font-size: 13px; padding: 0;
   }
+  .vp-close:hover { background: #c0504d; border-color: #c0504d; color: #fff; }
 `;
 
 export function PluginUiHost() {
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const shadowRef = useRef<ShadowRoot | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [current, setCurrent] = useState<{ pluginId: string; tree: UiNode } | null>(null);
+
+  // 只创建一次 shadow root，避免重复 attachShadow 抛错
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host || shadowRef.current) return;
+    const shadow = host.attachShadow({ mode: 'closed' });
+    const style = document.createElement('style');
+    style.textContent = SHADOW_STYLE;
+    shadow.appendChild(style);
+    const shell = document.createElement('div');
+    shell.style.cssText = 'position:fixed;right:24px;bottom:64px;z-index:150;';
+    shadow.appendChild(shell);
+    const container = document.createElement('div');
+    shell.appendChild(container);
+    shadowRef.current = shadow;
+    containerRef.current = container;
+  }, []);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -50,50 +74,54 @@ export function PluginUiHost() {
         setCurrent({ pluginId: String(detail.pluginId || 'plugin'), tree: detail.tree });
       }
     };
+    const clear = () => setCurrent(null);
     (window as any).__veinUi = (payload: any) =>
       window.dispatchEvent(new CustomEvent('vein:ui', { detail: payload }));
+    (window as any).__veinUiClear = clear;
     window.addEventListener('vein:ui', handler);
-    return () => window.removeEventListener('vein:ui', handler);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') clear();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('vein:ui', handler);
+      window.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
-    host.innerHTML = '';
+    const container = containerRef.current;
+    if (!container) return;
+    container.innerHTML = '';
     if (!current) return;
 
-    const shadow = host.attachShadow({ mode: 'closed' });
-    const style = document.createElement('style');
-    style.textContent = SHADOW_STYLE;
-    shadow.appendChild(style);
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'relative';
 
-    const shell = document.createElement('div');
-    shell.style.position = 'fixed';
-    shell.style.right = '24px';
-    shell.style.bottom = '64px';
-    shell.style.zIndex = '150';
-    shadow.appendChild(shell);
+    const close = document.createElement('button');
+    close.className = 'vp-close';
+    close.type = 'button';
+    close.textContent = '×';
+    close.title = 'Close';
+    close.addEventListener('click', (event) => {
+      event.stopPropagation();
+      setCurrent(null);
+    });
+    wrapper.appendChild(close);
 
-    const panel = renderNode(current.tree, shadow, current.pluginId);
-    if (panel) {
-      const close = document.createElement('button');
-      close.className = 'vp-close';
-      close.textContent = '×';
-      close.addEventListener('click', () => setCurrent(null));
-      const wrapper = document.createElement('div');
-      wrapper.style.position = 'relative';
-      wrapper.appendChild(close);
-      wrapper.appendChild(panel);
-      shell.appendChild(wrapper);
-    }
+    const panel = renderNode(current.tree, current.pluginId);
+    if (panel) wrapper.appendChild(panel);
+    container.appendChild(wrapper);
   }, [current]);
 
   return <div ref={hostRef} />;
 }
 
-function renderNode(node: UiNode, root: ShadowRoot, pluginId: string): HTMLElement | null {
+function renderNode(node: UiNode, pluginId: string): HTMLElement | null {
   const props = node.props || {};
-  const children = (node.children || []).map((child) => renderNode(child, root, pluginId)).filter(Boolean) as HTMLElement[];
+  const children = (node.children || [])
+    .map((child) => renderNode(child, pluginId))
+    .filter(Boolean) as HTMLElement[];
 
   const text = (value: unknown) => String(value ?? '');
 
@@ -147,17 +175,17 @@ function renderNode(node: UiNode, root: ShadowRoot, pluginId: string): HTMLEleme
       return el;
     }
     case 'divider': {
-      const el = document.createElement('hr');
-      el.className = 'vp-divider';
-      return el;
+      const hr = document.createElement('hr');
+      hr.className = 'vp-divider';
+      return hr;
     }
     case 'image': {
       const src = text(props.src);
       if (!/^https?:\/\//i.test(src)) return null;
-      const el = document.createElement('img');
-      el.className = 'vp-image';
-      el.src = src;
-      return el;
+      const img = document.createElement('img');
+      img.className = 'vp-image';
+      img.src = src;
+      return img;
     }
     case 'table': {
       const table = document.createElement('table');
