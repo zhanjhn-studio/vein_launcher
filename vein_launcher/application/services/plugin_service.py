@@ -126,6 +126,14 @@ class PluginService:
             event_bus.publish("ui.notify", title=title, message=message)
             return True
 
+        async def ui_open_page(plugin_id: str, page: str) -> bool:
+            """请求前端切换到指定页面（前端只认 NAV 里的 key，越界即忽略）"""
+            key = str(page or "").strip()
+            if not key or len(key) > 32:
+                raise ValueError(f"非法页面标识：{page!r}")
+            event_bus.publish("ui.open_page", page=key, plugin_id=plugin_id)
+            return True
+
         async def http_json(plugin_id: str, url: str) -> Any:
             from vein_launcher.infrastructure.network.http_client import HttpClient
 
@@ -162,6 +170,7 @@ class PluginService:
         reg.register("config.read", "config.read", config_read)
         reg.register("config.write", "config.write", config_write)
         reg.register("ui.notify", "ui.notify", ui_notify)
+        reg.register("ui.openPage", "ui.open_page", ui_open_page)
         reg.register("ui.render", "ui.lua", ui_render)
         reg.register("network.http.getJson", "network.http", http_json)
         reg.register("download.queueTask", "download.queue", queue_task)
@@ -222,6 +231,7 @@ class PluginService:
                     "enabled": self._is_enabled(name),
                     "loaded": name in self._plugins,
                     "path": str(plugin.path),
+                    "dataDir": str(plugin.data_dir),
                 }
             )
         return {
@@ -229,9 +239,41 @@ class PluginService:
                 "running": self._host.running,
                 "pid": self._host.pid,
                 "node": self._host.node_path,
+                "restarts": getattr(self._host, "_restarts", 0),
             },
+            "root": str(self._loader.root),
             "plugins": plugins,
+            "examples": self.examples(),
+            "capabilities": self._registry.describe(),
         }
+
+    def examples(self) -> List[Dict[str, str]]:
+        """可安装的内置示例插件（扫描 plugins_examples/）"""
+        items: List[Dict[str, str]] = []
+        if not EXAMPLES_DIR.is_dir():
+            return items
+        installed = {p.manifest.name for p in self._loader.scan()}
+        for child in sorted(EXAMPLES_DIR.iterdir()):
+            if not child.is_dir() or child.name.startswith("."):
+                continue
+            try:
+                manifest = PluginLoader.parse_manifest(child)
+            except Exception as exc:
+                logger.debug("示例清单解析失败 %s：%s", child.name, exc)
+                continue
+            items.append(
+                {
+                    "name": child.name,
+                    "displayName": manifest.display_name,
+                    "description": manifest.description,
+                    "installed": manifest.name in installed or child.name in installed,
+                }
+            )
+        return items
+
+    def capabilities(self) -> List[Dict[str, str]]:
+        """宿主开放的全部能力及其所需权限"""
+        return self._registry.describe()
 
     async def set_enabled(self, name: str, enabled: bool) -> Dict[str, Any]:
         plugin = next((p for p in self._loader.scan() if p.manifest.name == name), None)

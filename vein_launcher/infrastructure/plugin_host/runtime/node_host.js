@@ -77,6 +77,7 @@ function buildApi(pluginId, manifest, dataDir) {
     },
     ui: {
       async notify(title, message) { guard("ui.notify"); return callHost(pluginId, "ui.notify", [title, message]); },
+      async openPage(page) { guard("ui.open_page"); return callHost(pluginId, "ui.openPage", [String(page)]); },
       async render(tree) {
         guard("ui.lua");
         const clean = sanitize(tree);

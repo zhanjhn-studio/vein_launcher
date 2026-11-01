@@ -1,4 +1,4 @@
-﻿# Teamwork Log
+# Teamwork Log
 
 Shared change log for the Vein Launcher repository. **Read this file before making any
 change, and append an entry after every change** so the other members stay in sync.
@@ -36,6 +36,25 @@ change, and append an entry after every change** so the other members stay in sy
       waiting on Minecraft Services approval.
 
 ## Change log
+
+- **2026-11-01 · domain/pydantic** — migrated 6 Pydantic models in `version.py` from the
+  deprecated v1 class-style `Config` to `model_config = ConfigDict(populate_by_name=True)`;
+  `PydanticDeprecatedSince20` warnings cleared to zero · `domain/models/version.py` ·
+  tests 44 OK, 0 pydantic warnings
+- **2026-11-01 · plugins** — plugin system hardening:
+  (1) host auto-restart on unexpected exit, up to 3 retries with backoff, reloads
+  previously loaded plugins; `_stopping` guards clean shutdown;
+  (2) `CapabilityRegistry` gains per-capability timeout (default 30 s) →
+  `CapabilityTimeoutError`, plus `describe()` for the plugin page;
+  (3) new `ui.openPage` capability (permission `ui.open_page`) exposed as
+  `vein.ui.openPage(page)` in the Node runtime;
+  (4) `PluginService.state()` now returns host `restarts`, `examples`, `capabilities`,
+  and per-plugin `dataDir`; new `examples()` / `capabilities()` helpers;
+  (5) plugin template documents the sandbox rule and the `openPage` call ·
+  `plugin_host/host.py`, `capabilities.py`, `runtime/node_host.js`,
+  `plugins_examples/template/index.js`, `application/services/plugin_service.py` ·
+  `tools/plugin_selftest.py` 9/9 PASS (load → capability call → path escape blocked →
+  undeclared permission blocked → timeout → unload), `node --check` OK, tests 44 OK
 
 - **2026-11-01 · repo** — removed the nested `vein_launcher v0.5/` copy (158 files), archived its
   docs to `docs/`, dropped duplicate `src/bridge.js` and `zh_strings.txt`, moved `scan_left.py`

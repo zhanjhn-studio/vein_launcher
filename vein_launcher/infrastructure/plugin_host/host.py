@@ -44,6 +44,11 @@ class PluginHost:
         self._next_id = 0
         self._plugins: Dict[str, InstalledPlugin] = {}
         self._logs: List[str] = []
+        # 崩溃自动重启：记录启动次数与是否在主动停止（避免主动 stop 触发重启）
+        self._stopping = False
+        self._restarts = 0
+        self._max_restarts = 3
+        self._watch: Optional[asyncio.Task] = None
 
     @property
     def running(self) -> bool:
@@ -69,6 +74,7 @@ class PluginHost:
         if not RUNTIME.is_file():
             raise PluginHostError(f"宿主脚本缺失：{RUNTIME}")
 
+        self._stopping = False
         self._proc = await asyncio.create_subprocess_exec(
             self._node, str(RUNTIME),
             stdin=asyncio.subprocess.PIPE,
@@ -78,12 +84,50 @@ class PluginHost:
         )
         self._reader = asyncio.create_task(self._read_stdout())
         self._errors = asyncio.create_task(self._read_stderr())
+        self._watch = asyncio.create_task(self._watch_exit())
         info = await self._request("host.ping", {}, timeout=10)
         logger.info("插件宿主就绪 pid=%s node=%s", self.pid, (info or {}).get("node"))
+
+    async def _watch_exit(self) -> None:
+        """监视宿主进程意外退出并自动重启（最多 MAX_RESTARTS 次）。"""
+        proc = self._proc
+        if proc is None:
+            return
+        try:
+            await proc.wait()
+        except asyncio.CancelledError:
+            return
+        if self._stopping:
+            return
+        code = proc.returncode
+        text = f"[host] 宿主进程意外退出 code={code}"
+        self._logs.append(text)
+        logger.warning(text)
+        if self._restarts >= self._max_restarts:
+            logger.error("宿主连续重启 %d 次仍失败，停止自动恢复", self._restarts)
+            return
+        # 清理旧状态后重启，并重新加载此前已加载的插件
+        loaded = [p for p in self._plugins.values()]
+        self._proc = None
+        self._restarts += 1
+        delay = min(2 ** self._restarts * 0.5, 5.0)
+        await asyncio.sleep(delay)
+        try:
+            await self.start()
+            logger.info("宿主已自动重启（第 %d 次）", self._restarts)
+            for plugin in loaded:
+                try:
+                    await self.load(plugin)
+                    logger.info("重启后已恢复插件：%s", plugin.manifest.name)
+                except Exception as exc:
+                    logger.error("重启后恢复插件失败 %s：%s", plugin.manifest.name, exc)
+        except Exception as exc:
+            logger.error("宿主自动重启失败：%s", exc)
 
     async def stop(self) -> None:
         if self._proc is None:
             return
+        self._stopping = True
         try:
             await self._request("host.shutdown", {}, timeout=3)
         except Exception:
@@ -95,7 +139,7 @@ class PluginHost:
             except asyncio.TimeoutError:
                 self._proc.kill()
                 await self._proc.wait()
-        for task in (self._reader, self._errors):
+        for task in (self._reader, self._errors, self._watch):
             if task:
                 task.cancel()
         self._proc = None

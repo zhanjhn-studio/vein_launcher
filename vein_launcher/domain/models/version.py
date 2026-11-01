@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class VersionInfo(BaseModel):
@@ -12,8 +12,7 @@ class VersionInfo(BaseModel):
     url: str = Field(..., description="版本 JSON 下载地址")
     release_time: datetime = Field(..., description="发布时间")
     
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class LibraryRules(BaseModel):
@@ -37,8 +36,7 @@ class LibraryNativeDependencies(BaseModel):
     """原生库依赖链"""
     id_: str = Field(..., alias="id")
     
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class LibraryArtifact(BaseModel):
@@ -55,8 +53,7 @@ class LibraryNatives(BaseModel):
     osx64: Optional[str] = None
     windows64: Optional[str] = Field(None, alias="win64")
     
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class Library(BaseModel):
@@ -83,8 +80,7 @@ class Library(BaseModel):
     # 依赖项
     depends: Optional[List["Library"]] = Field(default=None, alias="dependencies")
     
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class AssetsIndex(BaseModel):
@@ -139,8 +135,7 @@ class VersionJSON(VersionInfo):
     
     changes: Optional[Dict[str, Any]] = None  # 变更说明
     
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ParsedVersion(BaseModel):
@@ -160,5 +155,4 @@ class ParsedVersion(BaseModel):
     # 继承链（用于调试）
     inheritance_chain: List[str] = Field(default_factory=list)
     
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
