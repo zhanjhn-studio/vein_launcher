@@ -36,6 +36,37 @@ def _is_older(current: str, minimum: str) -> bool:
     return parse(current) < parse(minimum)
 
 
+# ----------------------------------------------------------------------
+# 界面偏好：自定义壁纸的媒体类型判定与前端载荷
+# ----------------------------------------------------------------------
+WALLPAPER_IMAGE_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".avif"}
+WALLPAPER_VIDEO_EXT = {".mp4", ".webm", ".mov", ".m4v", ".ogv"}
+
+
+def _wallpaper_kind(path: Path) -> str:
+    ext = path.suffix.lower()
+    if ext in WALLPAPER_VIDEO_EXT:
+        return "video"
+    if ext in WALLPAPER_IMAGE_EXT:
+        return "image"
+    return ""
+
+
+def _wallpaper_payload(raw: str) -> Optional[dict]:
+    """把配置里的壁纸路径转成前端可直接用的 file:// URL；无效/已删除时返回 None"""
+    if not raw:
+        return None
+    try:
+        path = Path(raw).expanduser().resolve()
+    except OSError:
+        return None
+    if not path.is_file():
+        return None
+    kind = _wallpaper_kind(path)
+    if not kind:
+        return None
+    return {"url": path.as_uri(), "kind": kind, "name": path.name, "path": str(path)}
+
 
 class AsyncRunner:
     """后台 asyncio 事件循环"""
@@ -138,6 +169,9 @@ class ApiBridge(QObject):
             "update.latest": self._update_latest,
             "update.download": self._update_download,
             "update.install": self._update_install,
+            "ui.prefs": self._ui_prefs,
+            "ui.setPrefs": self._ui_set_prefs,
+            "ui.importWallpaper": self._ui_import_wallpaper,
             "minecraft.getDir": self._minecraft_get_dir,
             "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
@@ -783,6 +817,85 @@ class ApiBridge(QObject):
 
     async def _update_install(self, path: str) -> dict:
         return await asyncio.to_thread(self._ctx.update.install, str(path))
+
+    @staticmethod
+    def _ui_config():
+        from vein_launcher.common.config.settings import settings_manager
+
+        return settings_manager.get().ui
+
+    async def _ui_prefs(self) -> dict:
+        ui = self._ui_config()
+        return {
+            "compactMode": bool(getattr(ui, "compact_mode", False)),
+            "idleSeconds": int(getattr(ui, "idle_seconds", 60) or 0),
+            "wallpaper": _wallpaper_payload(getattr(ui, "wallpaper", "")),
+        }
+
+    async def _ui_set_prefs(
+        self,
+        compact_mode: Any = None,
+        idle_seconds: Any = None,
+        clear_wallpaper: bool = False,
+        wallpaper: str = "",
+    ) -> dict:
+        from vein_launcher.common.config.settings import settings_manager
+
+        manager = settings_manager
+        ui = manager.get().ui
+        if compact_mode is not None:
+            ui.compact_mode = bool(compact_mode)
+        if idle_seconds is not None:
+            try:
+                seconds = int(idle_seconds)
+            except (TypeError, ValueError):
+                seconds = 60
+            ui.idle_seconds = 0 if seconds <= 0 else max(5, min(3600, seconds))
+        if clear_wallpaper:
+            ui.wallpaper = ""
+        elif wallpaper:
+            ui.wallpaper = str(Path(str(wallpaper)).expanduser())
+        manager.save()
+        return await self._ui_prefs()
+
+    async def _ui_import_wallpaper(self) -> dict:
+        """弹出文件选择框，把壁纸复制进数据目录后持久化"""
+        import shutil
+
+        from vein_launcher.common.config.settings import settings_manager
+        from vein_launcher.common.utils.path_utils import get_config_dir
+
+        picked = await self._pick_file(
+            "Select wallpaper",
+            "Media (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.avif *.mp4 *.webm *.mov *.m4v);;"
+            "Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.avif);;"
+            "Videos (*.mp4 *.webm *.mov *.m4v);;All files (*.*)",
+        )
+        source = str(picked.get("path") or "")
+        if not source:
+            prefs = await self._ui_prefs()
+            prefs["cancelled"] = True
+            return prefs
+
+        src = Path(source)
+        kind = _wallpaper_kind(src)
+        if not kind:
+            raise ValueError("Unsupported wallpaper type")
+
+        target_dir = get_config_dir() / "wallpapers"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        for stale in target_dir.glob("wallpaper.*"):
+            try:
+                stale.unlink()
+            except OSError:
+                logger.warning("旧壁纸清理失败：%s", stale)
+        target = target_dir / f"wallpaper{src.suffix.lower()}"
+        shutil.copy2(src, target)
+
+        settings_manager.get().ui.wallpaper = str(target)
+        settings_manager.save()
+        logger.info("自定义壁纸已导入：%s", target)
+        return await self._ui_prefs()
 
     async def _instance_toggle(self, version_id: str, kind: str, name: str, enabled: bool) -> dict:
         return self._ctx.instances.set_enabled(str(version_id), str(kind), str(name), bool(enabled))

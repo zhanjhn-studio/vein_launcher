@@ -4,6 +4,7 @@ import type { AppInfo, JavaRuntime } from './types';
 import { applyTheme, currentTheme, Theme } from './theme';
 import { currentLang, setLang as applyLang, type Lang } from './i18n';
 import { LayuiProgress } from './ui';
+import { clearWallpaper, importWallpaper, savePrefs, usePrefs } from './prefs';
 
 interface AccountRow {
   id: string;
@@ -45,6 +46,54 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [updateMsg, setUpdateMsg] = useState('');
   const [updatePct, setUpdatePct] = useState(0);
   const [downloaded, setDownloaded] = useState('');
+  const prefs = usePrefs();
+  const [idleDraft, setIdleDraft] = useState(String(prefs.idleSeconds));
+  const [wallBusy, setWallBusy] = useState(false);
+
+  useEffect(() => {
+    setIdleDraft(String(prefs.idleSeconds));
+  }, [prefs.idleSeconds]);
+
+  const toggleCompact = async () => {
+    try {
+      const next = await savePrefs({ compactMode: !prefs.compactMode });
+      notify(next.compactMode ? 'Compact mode on' : 'Compact mode off');
+    } catch (err) {
+      notify(`Failed: ${(err as Error).message}`);
+    }
+  };
+
+  const commitIdle = async () => {
+    const parsed = Number.parseInt(idleDraft, 10);
+    const seconds = Number.isFinite(parsed) ? Math.max(0, Math.min(3600, parsed)) : 60;
+    setIdleDraft(String(seconds));
+    try {
+      await savePrefs({ idleSeconds: seconds });
+    } catch (err) {
+      notify(`Failed: ${(err as Error).message}`);
+    }
+  };
+
+  const pickWallpaper = async () => {
+    setWallBusy(true);
+    try {
+      const next = await importWallpaper();
+      if (next) notify('Wallpaper updated');
+    } catch (err) {
+      notify(`Import failed: ${(err as Error).message}`);
+    } finally {
+      setWallBusy(false);
+    }
+  };
+
+  const dropWallpaper = async () => {
+    try {
+      await clearWallpaper();
+      notify('Wallpaper removed');
+    } catch (err) {
+      notify(`Failed: ${(err as Error).message}`);
+    }
+  };
 
   const reloadAccounts = () =>
     rpc<AccountRow[]>('accounts.list').then(setAccounts).catch(() => {});
@@ -232,6 +281,79 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                 </select>
               </b>
             </div>
+            <div className="kv">
+              <span>Compact mode</span>
+              <b>
+                <button
+                  className={`btn sm ${prefs.compactMode ? 'primary' : ''}`}
+                  onClick={toggleCompact}
+                >
+                  {prefs.compactMode ? 'On' : 'Off'}
+                </button>
+              </b>
+            </div>
+            <p className="muted" style={{ margin: '-4px 0 8px' }}>
+              Hides the sidebar; a translucent handle on the left edge slides it back in. Clicking a
+              page closes it again.
+            </p>
+            <div className="kv">
+              <span>Fade out after idle</span>
+              <b>
+                <input
+                  className="input"
+                  style={{ width: 92 }}
+                  type="number"
+                  min={0}
+                  max={3600}
+                  value={idleDraft}
+                  onChange={(e) => setIdleDraft(e.target.value)}
+                  onBlur={commitIdle}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                  }}
+                />
+                <span className="muted" style={{ marginLeft: 8 }}>seconds</span>
+              </b>
+            </div>
+            <p className="muted" style={{ margin: '-4px 0 8px' }}>
+              On the Launch page, the whole UI fades to transparent after this many seconds without
+              mouse, keyboard, wheel or touch input; any input brings it back. 0 turns it off
+              (default 60).
+            </p>
+            <div className="kv">
+              <span>Wallpaper</span>
+              <b>
+                <button className="btn sm" onClick={pickWallpaper} disabled={wallBusy}>
+                  {wallBusy ? 'Importing…' : prefs.wallpaper ? 'Change…' : 'Import…'}
+                </button>
+                {prefs.wallpaper && (
+                  <button className="btn sm ghost" style={{ marginLeft: 6 }} onClick={dropWallpaper}>
+                    Remove
+                  </button>
+                )}
+              </b>
+            </div>
+            <p className="muted" style={{ margin: '-4px 0 8px' }}>
+              PNG / JPG / WEBP / GIF / BMP / MP4 / WEBM. The file is copied into the launcher data
+              folder, so moving the original afterwards is safe.
+            </p>
+            {prefs.wallpaper && (
+              <div className="wall-preview-wrap">
+                {prefs.wallpaper.kind === 'video' ? (
+                  <video
+                    className="wall-preview"
+                    src={prefs.wallpaper.url}
+                    muted
+                    loop
+                    autoPlay
+                    playsInline
+                  />
+                ) : (
+                  <img className="wall-preview" src={prefs.wallpaper.url} alt="" />
+                )}
+                <span className="mono muted">{prefs.wallpaper.name}</span>
+              </div>
+            )}
           </div>
         </details>
 

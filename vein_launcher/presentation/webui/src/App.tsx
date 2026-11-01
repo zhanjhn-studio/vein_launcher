@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { on, rpc } from './bridge';
 import type { AccountInfo, AppInfo, VersionInfo } from './types';
 import {
@@ -18,6 +18,7 @@ import { PluginUiHost } from './pluginUi';
 import { initI18n, t, useI18n } from './i18n';
 import { initTheme, Theme } from './theme';
 import { Onboarding, Splash } from './onboarding';
+import { loadPrefs, usePrefs } from './prefs';
 
 const NAV = [
   { key: 'launch', label: 'Launch', icon: 'layui-icon-play', iconImg: 'arrow.png' },
@@ -70,7 +71,9 @@ function useHashRoute(): [string, (page: string) => void] {
 
 export function App() {
   useI18n();
+  const prefs = usePrefs();
   const [page, setPage] = useHashRoute();
+  const [sideOpen, setSideOpen] = useState(false);
   const [toast, setToast] = useState('');
   const [installed, setInstalled] = useState<VersionInfo[]>([]);
   const [accounts, setAccounts] = useState<AccountInfo[]>([]);
@@ -101,11 +104,37 @@ export function App() {
     return list;
   }, []);
 
+  /**
+   * 壁纸不落在独立图层上：图片直接铺成 body 的背景。
+   * 之前用 fixed + z-index:-1 的 <img> 图层，切页时 Chromium 要新建/销毁合成层，
+   * 在无 GPU 的 QtWebEngine 里会连着重绘好几帧（整窗抽动）。
+   * 背景图属于同一个绘制对象，切换就是一次普通重绘。
+   */
+  useLayoutEffect(() => {
+    const active = page === 'launch' && prefs.wallpaper?.kind === 'image';
+    const root = document.documentElement;
+    const body = document.body;
+    if (active && prefs.wallpaper) {
+      body.style.backgroundImage = `url("${prefs.wallpaper.url}")`;
+      body.style.backgroundSize = 'cover';
+      body.style.backgroundPosition = 'center center';
+      body.style.backgroundRepeat = 'no-repeat';
+      root.dataset.wall = 'on';
+    } else {
+      body.style.backgroundImage = '';
+      body.style.backgroundSize = '';
+      body.style.backgroundPosition = '';
+      body.style.backgroundRepeat = '';
+      delete root.dataset.wall;
+    }
+  }, [page, prefs.wallpaper]);
+
   useEffect(() => {
     const alpha = localStorage.getItem('vl.transparent') === 'on';
     document.documentElement.dataset.transparent = alpha ? 'on' : 'off';
     setTheme(initTheme());
     initI18n();
+    loadPrefs().catch(() => {});
     refreshInstalled().catch(() => {});
     rpc<AccountInfo[]>('accounts.list').then(setAccounts).catch(() => {});
     rpc<AppInfo>('app.info')
@@ -143,8 +172,23 @@ export function App() {
   }
 
   return (
-    <div className="app">
-      <aside className="side">
+    <div className={`app ${prefs.compactMode ? 'compact' : ''}`}>
+      {/* 图片壁纸走 body 背景（无独立图层）；只有视频才需要真实元素 */}
+      {page === 'launch' && prefs.wallpaper?.kind === 'video' && (
+        <WallpaperLayer wallpaper={prefs.wallpaper} />
+      )}
+      {prefs.compactMode && (
+        <button
+          type="button"
+          className={`side-handle ${sideOpen ? 'open' : ''}`}
+          aria-label={sideOpen ? 'Hide sidebar' : 'Show sidebar'}
+          title={sideOpen ? 'Hide sidebar' : 'Show sidebar'}
+          onClick={() => setSideOpen((v) => !v)}
+        >
+          <i className={`chev ${sideOpen ? 'left' : 'right'}`} />
+        </button>
+      )}
+      <aside className={`side ${prefs.compactMode ? 'compact' : ''} ${sideOpen ? 'open' : ''}`}>
         <div className="side-brand">
           <img src="logo.png" alt="Vein" />
           <span>VEIN</span>
@@ -154,7 +198,10 @@ export function App() {
             <button
               key={item.key}
               className={`side-btn ${page === item.key ? 'active' : ''} ${item.star ? 'star' : ''}`}
-              onClick={() => setPage(item.key)}
+              onClick={() => {
+                setPage(item.key);
+                if (prefs.compactMode) setSideOpen(false);
+              }}
             >
               <img className="side-ico" src={`icons/${item.iconImg}`} alt="" />
               <span className="txt">{t(item.label)}</span>
@@ -268,6 +315,19 @@ export function App() {
         />
       )}
       <Toast text={toast} />
+    </div>
+  );
+}
+
+/**
+ * 视频壁纸层：只有视频需要真实元素（图片走 body 背景）。
+ * 挂载即显示，不再做透明度过渡——过渡会触发合成层回收，就是整窗抽动的来源。
+ */
+function WallpaperLayer({ wallpaper }: { wallpaper: { url: string; kind: string } }) {
+  return (
+    <div className="vl-wall on" aria-hidden="true">
+      <video src={wallpaper.url} autoPlay muted loop playsInline preload="auto" />
+      <div className="vl-wall-scrim" />
     </div>
   );
 }

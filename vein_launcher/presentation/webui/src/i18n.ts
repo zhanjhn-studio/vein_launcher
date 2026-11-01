@@ -202,6 +202,22 @@ const ZH: Record<string, string> = {
   'Your data stays on your PC': '数据保存在你自己的电脑上',
   'Choose your account': '选择账号',
   'Everything in one window': '所有功能集中在一个窗口',
+  'Compact mode': '简洁模式',
+  'Fade out after idle': '空闲后淡出',
+  Wallpaper: '壁纸',
+  seconds: '秒',
+  'Import…': '导入…',
+  'Change…': '更换…',
+  'Importing…': '导入中…',
+  'Show sidebar': '展开侧边栏',
+  'Hide sidebar': '收起侧边栏',
+  'Wallpaper updated': '壁纸已更新',
+  'Wallpaper removed': '壁纸已移除',
+  'Compact mode on': '已开启简洁模式',
+  'Compact mode off': '已关闭简洁模式',
+  'Import failed': '导入失败',
+  On: '开',
+  Off: '关',
 };
 
 export function t(source: string): string {

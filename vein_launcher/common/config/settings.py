@@ -46,6 +46,9 @@ class UIConfig(BaseModel):
     language: str = "zh_CN"     # zh_CN / en_US
     window_width: int = 1200
     window_height: int = 800
+    compact_mode: bool = False  # 简洁模式：侧栏收起，用悬浮按钮展开
+    idle_seconds: int = 60      # 启动页空闲后淡出秒数（0 = 关闭）
+    wallpaper: str = ""         # 自定义壁纸路径（图片或视频）
 
 
 class Settings(BaseModel):

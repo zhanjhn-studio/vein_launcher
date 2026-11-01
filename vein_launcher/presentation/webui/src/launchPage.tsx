@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { rpc } from './bridge';
 import type { AccountInfo, VersionInfo } from './types';
 import { LogPanel } from './ui';
+import { usePrefs } from './prefs';
 
 export function LaunchPage({
   installed,
@@ -23,6 +24,61 @@ export function LaunchPage({
   const [busy, setBusy] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const account = accounts.find((a) => a.selected) || null;
+  const prefs = usePrefs();
+
+  // 空闲淡出：启动页在设定秒数内无任何输入（鼠标/键盘/滚轮/触摸）后，UI 变透明只留壁纸。
+  // 注意：淡出会给 .main/.side 加 pointer-events:none，这会让浏览器合成一次 mousemove，
+  // 若直接把它当成用户操作就会「淡出→立刻恢复→再淡出」无限闪烁。所以：
+  //   · 坐标没真正变化的 mousemove 忽略；
+  //   · 刚进入透明态的头 600ms 内的任何事件都不算恢复操作。
+  useEffect(() => {
+    const root = document.documentElement;
+    const seconds = Number(prefs.idleSeconds) || 0;
+    if (seconds <= 0) {
+      delete root.dataset.idle;
+      return;
+    }
+    let timer = 0;
+    let armedAt = 0;
+    let lastX = Number.NaN;
+    let lastY = Number.NaN;
+
+    const arm = () => {
+      armedAt = Date.now();
+      root.dataset.idle = 'on';
+    };
+
+    const reset = (event: Event) => {
+      const now = Date.now();
+      if (armedAt && now - armedAt < 600) return;
+      if (event.type === 'mousemove') {
+        const { clientX, clientY } = event as MouseEvent;
+        if (clientX === lastX && clientY === lastY) return;
+        lastX = clientX;
+        lastY = clientY;
+      }
+      armedAt = 0;
+      if (root.dataset.idle) delete root.dataset.idle;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(arm, seconds * 1000);
+    };
+
+    const events: (keyof WindowEventMap)[] = [
+      'mousemove',
+      'mousedown',
+      'wheel',
+      'keydown',
+      'touchstart',
+      'pointerdown',
+    ];
+    events.forEach((name) => window.addEventListener(name, reset, { passive: true }));
+    timer = window.setTimeout(arm, seconds * 1000);
+    return () => {
+      events.forEach((name) => window.removeEventListener(name, reset));
+      window.clearTimeout(timer);
+      delete root.dataset.idle;
+    };
+  }, [prefs.idleSeconds]);
 
   useEffect(() => {
     const handler = (event: Event) =>
@@ -48,8 +104,9 @@ export function LaunchPage({
   };
 
   return (
-    <div className="page">
-      <div className="launch-grid">
+    <>
+      <div className="page no-anim">
+        <div className="launch-grid">
         <div>
           <div className="page-head">
             <h1>Launch</h1>
@@ -132,7 +189,8 @@ export function LaunchPage({
           </div>
           <LogPanel lines={logs} height={360} />
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

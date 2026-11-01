@@ -895,3 +895,93 @@ html[data-transparent="on"] body {
 .library-card img { width: 100%; height: 132px; object-fit: contain; image-rendering: auto; background: var(--surface-3); border-radius: 8px; }
 .library-card b { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .library-card span { font-size: 10.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- 简洁模式：侧栏收起 + 左侧半透明展开手柄 ---------- */
+.app { position: relative; z-index: 1; }
+
+.side.compact {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 60;
+  width: 208px;
+  transform: translateX(-100%);
+  transition: transform .28s cubic-bezier(.2, .8, .3, 1);
+  box-shadow: 14px 0 38px rgba(0, 0, 0, .28);
+}
+.side.compact:hover { width: 208px; }
+.side.compact.open { transform: none; }
+.side.compact.open .side-brand span,
+.side.compact.open .side-btn .txt,
+.side.compact.open .theme-btn .txt,
+.side.compact.open .side-ver { opacity: 1; }
+.side.compact.open .monitor-mini { display: none; }
+.side.compact.open .monitor { width: 100%; }
+.side.compact.open .monitor-full { display: flex; }
+
+.side-handle {
+  position: fixed; left: 0; top: 50%; z-index: 61;
+  width: 22px; height: 58px;
+  transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  border: 0; padding: 0;
+  border-radius: 0 15px 15px 0;
+  color: #1f2a3a;
+  background: rgba(255, 255, 255, .42);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  backdrop-filter: blur(12px) saturate(130%);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .16), inset 0 0 0 1px rgba(255, 255, 255, .55);
+  opacity: .55;
+  transition: opacity .2s ease, background .2s ease, left .28s cubic-bezier(.2, .8, .3, 1);
+}
+.side-handle:hover { opacity: 1; background: rgba(255, 255, 255, .74); }
+.side-handle.open { left: 208px; }
+.side-handle .chev {
+  width: 8px; height: 8px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  transition: transform .2s ease;
+}
+.side-handle .chev.right { transform: rotate(45deg); margin-left: -3px; }
+.side-handle .chev.left { transform: rotate(-135deg); margin-left: 3px; }
+html[data-theme="dark"] .side-handle {
+  color: #e9eef8;
+  background: rgba(26, 32, 42, .55);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .38), inset 0 0 0 1px rgba(255, 255, 255, .12);
+}
+html[data-theme="dark"] .side-handle:hover { background: rgba(38, 46, 60, .82); }
+
+/* ---------- 自定义壁纸层 ---------- */
+.vl-wall {
+  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  visibility: hidden;
+}
+.vl-wall.on { visibility: visible; }
+.page.no-anim { animation: none; }
+.vl-wall img, .vl-wall video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vl-wall-scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(8, 12, 18, .16), rgba(8, 12, 18, .34));
+}
+html[data-theme="light"] .vl-wall-scrim {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .20));
+}
+
+/* ---------- 空闲淡出：启动页无操作后 UI 透明 ---------- */
+.side, .main, .side-handle { transition: opacity .9s ease; }
+html[data-idle="on"] .side,
+html[data-idle="on"] .main,
+html[data-idle="on"] .side-handle { opacity: 0; pointer-events: none; }
+
+/* ---------- 设置页壁纸预览 ---------- */
+.wall-preview-wrap { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.wall-preview {
+  width: 168px; height: 94px; object-fit: cover;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--bg);
+}
+
+/* 壁纸不再改写任何 surface token：面板外观跨页面一致，切页不会重绘突变 */
+
+/* 有壁纸时关掉顶栏模糊：大面积 backdrop-filter 在无 GPU 合成下会反复重栅格化，
+   表现就是切到启动页时整窗抽动几下。 */
+html[data-wall="on"] .main-head {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
