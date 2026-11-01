@@ -26,6 +26,28 @@ self-designed control layer (MLC) that lets plugins drive the game.
 - Python 3.11+
 - Node.js 18+ (plugin host)
 
+## Project layout
+
+```
+vein_launcher/            Python package (five layers)
+├── common/               event bus, config, logging, i18n, utils
+├── domain/               models, repository contracts, domain rules
+├── infrastructure/       network, download, process, mc2, plugin host
+├── application/          services (version/skin/instance/update/…)
+├── mlc/                  Minecraft Launcher Control bridge
+└── presentation/         Qt window + JSON-RPC bridge + webui/
+    └── webui/            React 19 + TS frontend
+        ├── src/          app source (pages, components, lib)
+        ├── assets/       icons + Layui vendor (tracked)
+        └── build.ps1     bundle + copy static assets to dist/
+tests/                    pytest/unittest suite
+tools/                    maintenance scripts
+packaging/                PyInstaller entry + build output (ignored)
+docs/                     extra notes archived from team branches
+assets/                   logo, wordmark
+plugins_examples/         sample Node plugins
+```
+
 ## Run from source
 
 ```bash
