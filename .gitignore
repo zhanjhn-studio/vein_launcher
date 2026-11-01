@@ -1,4 +1,4 @@
-# Python
+# ===== Python =====
 __pycache__/
 *.py[cod]
 *$py.class
@@ -11,60 +11,56 @@ dist/
 .venv/
 venv/
 env/
-
-# PyInstaller
 *.spec.bak
 
-# Testing
+# ===== Testing / coverage =====
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
 .tox/
+.mypy_cache/
+.ruff_cache/
 
-# IDE
+# ===== IDE / editors =====
 .idea/
 .vscode/
 *.swp
 *~
 
-# OS
+# ===== OS =====
 Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
-# 杩愯鏈熸暟鎹紙鏃ュ織銆佷笅杞界紦瀛樸�佸疄渚嬬洰褰曪級
+# ===== Runtime data (logs / download cache / instances) =====
 logs/
 *.log
 *.part
-
-# 前端依赖
-vein_launcher/presentation/webui/node_modules/
-
-# 浏览器预览（不提交）
-preview.html
-
-# Word 文档不纳入版本库
-*.docx
-
-# 非项目文件
-make_*.py
-assets/_slide.png
-01_*.png
-preview.html
-
-# 内部文档（仅本地）
-PLAN.md
-progress.md
-PROJECT_STRUCTURE.md
-
-assets/logo.svg
-assets/wordmark.png
-
-# 运行时数据根目录
+*.tmp
 /VeinLauncher/
 
-# 打包产物
+# ===== Frontend =====
+vein_launcher/presentation/webui/node_modules/
+vein_launcher/presentation/webui/dist/
+
+# ===== Build artifacts =====
 packaging/build/
 packaging/dist/
 *.spec
 packaging/*.zip
+
+# ===== Local-only files =====
+.local/
+PLAN.md
+progress.md
+PROJECT_STRUCTURE.md
+*.docx
+make_*.py
+scan_*.py
+01_*.png
+assets/_slide.png
+assets/logo.svg
+assets/wordmark.png
+preview.html
+zh_strings.txt
