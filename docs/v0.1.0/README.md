@@ -1,4 +1,4 @@
-# Vein Launcher 0.1.0 — 内部文档索引
+﻿# Vein Launcher 0.1.0 — 内部文档索引
 
 面向团队的内部文档（不对外发布），对应仓库 `main` 上的 **v0.1.0** 公开版。
 
@@ -8,6 +8,17 @@
 | [DISCUSSION.md](DISCUSSION.md) | **讨论页**：待决议题、已定决议、议题模板、同步记录 |
 | [../../teamwork.md](../../teamwork.md) | 日常变更日志（每次改动都要追加） |
 | [../../CONTRIBUTING.md](../../CONTRIBUTING.md) | 参与规范：分层约束、编码/提交规范、工作流 |
+
+## Word 版
+
+生成 `.docx`（含封面、目录、表格排版、页脚页码、讨论页）：
+
+```powershell
+python tools\gen_internal_doc.py
+# → docs\v0.1.0\VeinLauncher_v0.1.0_Internal.docx
+```
+
+`*.docx` 按仓库约定不入库，文档内容以 Markdown 为准，Word 版用于分发/评审。
 
 ## 一页速览
 
@@ -27,3 +38,4 @@
 - 已知阻塞：微软登录被 Minecraft Services 拒绝（`Invalid app registration`），离线与 LittleSkin 不受影响
 - 默认：英文界面 + 深色主题 + 简洁模式**关闭**
 - 协作方式已固定：先读 `teamwork.md`，改动后追加记录，与代码一起提交
+

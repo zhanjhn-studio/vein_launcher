@@ -85,4 +85,7 @@ change, and append an entry after every change** so the other members stay in sy
   Modrinth icon loads (96×96), `ebf7f6a`
 
 - **2026-11-03 · docs** — added v0.1.0 internal doc (architecture, modules, release flow, risks)
-  and a dedicated discussion page · `docs/v0.1.0/*` · 44 tests OK · `9131847`
+  and a dedicated discussion page · `docs/v0.1.0/*` · 44 tests OK · `5794fd1`
+- **2026-11-04 · docs/word** — Word generator for the v0.1.0 internal doc (cover, TOC, styled
+  tables, page footer, discussion page) · `tools/make_doc_v010.py`, `docs/v0.1.0/README.md` ·
+  docx reopened: 107 paragraphs / 10 tables / 19 headings · `c4a4566`
