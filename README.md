@@ -6,6 +6,9 @@ A Minecraft Java Edition launcher for Windows, built to be practical rather than
 strict layering in Python, a React + TypeScript interface, a Node.js plugin host, and a
 self-designed control layer (MLC) that lets plugins drive the game.
 
+Team docs: [v0.1.0 internal](docs/v0.1.0/README.md) ·
+[discussion board](docs/v0.1.0/DISCUSSION.md) · [change log](teamwork.md)
+
 ---
 
 ## Highlights

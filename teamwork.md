@@ -84,3 +84,5 @@ change, and append an entry after every change** so the other members stay in sy
   (`LocalContentCanAccessRemoteUrls`), `RemoteIcon` fallback · `main.py`, `ui.tsx` ·
   Modrinth icon loads (96×96), `ebf7f6a`
 
+- **2026-11-03 · docs** — added v0.1.0 internal doc (architecture, modules, release flow, risks)
+  and a dedicated discussion page · `docs/v0.1.0/*` · 44 tests OK · `9131847`

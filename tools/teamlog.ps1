@@ -1,5 +1,7 @@
 # Append one entry to teamwork.md
-# Usage: powershell -File tools\teamlog.ps1 -Area "ui/sidebar" -What "280ms expand" -Files "src/styles.css" -Verification "tests 44 OK" -Commit "38942ad"
+# Usage: powershell -File tools\teamlog.ps1 -Area "ui/sidebar" -What "280ms expand" `
+#          -Files "styles.css" -Verification "tests 44 OK" -Commit "38942ad"
+# Keep arguments ASCII: the Windows console can mangle non-ASCII arguments.
 param(
   [Parameter(Mandatory = $true)][string]$Area,
   [Parameter(Mandatory = $true)][string]$What,
@@ -15,11 +17,14 @@ $log = Join-Path $root $LogPath
 if (-not (Test-Path $log)) { throw "teamwork.md not found at $log" }
 
 $date = Get-Date -Format "yyyy-MM-dd"
-$parts = @("**$date · $Area** — $What")
-if ($Files) { $parts += "` · $Files" }
-if ($Verification) { $parts += "` · $Verification" }
-if ($Commit) { $parts += "` · ``$Commit``" }
+$parts = @("**$date | $Area** - $What")
+if ($Files) { $parts += " | files: $Files" }
+if ($Verification) { $parts += " | verify: $Verification" }
+if ($Commit) { $parts += " | commit: $Commit" }
 $line = "- " + ($parts -join "")
 
-Add-Content -Path $log -Value $line -Encoding UTF8
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+$existing = [System.IO.File]::ReadAllText($log, [System.Text.Encoding]::UTF8)
+if (-not $existing.EndsWith("`n")) { $existing += "`n" }
+[System.IO.File]::WriteAllText($log, $existing + $line + "`n", $utf8)
 Write-Host "appended: $line"

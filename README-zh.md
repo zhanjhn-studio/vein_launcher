@@ -5,6 +5,9 @@
 面向 Windows 的 Minecraft Java 版启动器。设计取向是实用：Python 严格分层、React + TypeScript
 界面、Node.js 插件宿主，以及自研的 MLC 控制层（插件据此操控游戏）。
 
+团队文档：[v0.1.0 内部文档](docs/v0.1.0/README.md) ·
+[讨论页](docs/v0.1.0/DISCUSSION.md) · [变更日志](teamwork.md)
+
 ---
 
 ## 特性概览

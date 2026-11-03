@@ -64,3 +64,5 @@ assets/logo.svg
 assets/wordmark.png
 preview.html
 zh_strings.txt
+# 发布会物料（本地留存，不入库）
+docs/launch_deck/
