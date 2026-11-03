@@ -66,3 +66,7 @@ preview.html
 zh_strings.txt
 # 发布会物料（本地留存，不入库）
 docs/launch_deck/
+
+# 内部文档预览产物
+docs/v0.1.0/preview.*
+docs/v0.1.0/preview_page_*.png

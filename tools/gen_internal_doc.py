@@ -12,13 +12,15 @@ from pathlib import Path
 from docx import Document
 from docx.enum.section import WD_SECTION
 from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK, WD_TAB_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "v0.1.0" / "VeinLauncher_v0.1.0_Internal.docx"
+LOGO = ROOT / "assets" / "logo.png"
+STUDIO = "ZHANJHN Studio"
 
 ACCENT = RGBColor(0x2D, 0x6C, 0xF0)
 DARK = RGBColor(0x1F, 0x2A, 0x3A)
@@ -37,22 +39,47 @@ def set_cell_shading(cell, hex_color: str) -> None:
     tc_pr.append(shd)
 
 
-def add_page_number_footer(section) -> None:
+def setup_header_footer(section) -> None:
+    """除封面外每页：左上角 logo + 页眉说明；页脚：机密提示 + 页码"""
+    section.different_first_page_header_footer = True
+
+    header = section.header
+    header.is_linked_to_previous = False
+    para = header.paragraphs[0]
+    para.text = ""
+    para.paragraph_format.space_after = Pt(2)
+    para.paragraph_format.tab_stops.add_tab_stop(Cm(16.6), WD_TAB_ALIGNMENT.RIGHT)
+    logo_run = para.add_run()
+    logo_run.add_picture(str(LOGO), height=Cm(0.72))
+    tab = para.add_run("\t")
+    tab.font.size = Pt(8)
+    text = para.add_run(f"{STUDIO}　|　Vein Launcher v0.1.0 内部文档　|　内部资料，请勿上传 GitHub")
+    text.font.size = Pt(8)
+    text.font.color.rgb = GREY
+    text.font.name = BODY_FONT
+    text._element.rPr.rFonts.set(qn("w:eastAsia"), BODY_FONT)
+
     footer = section.footer
-    para = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
-    para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = para.add_run()
+    footer.is_linked_to_previous = False
+    fpara = footer.paragraphs[0]
+    fpara.text = ""
+    fpara.paragraph_format.tab_stops.add_tab_stop(Cm(16.6), WD_TAB_ALIGNMENT.RIGHT)
+    left = fpara.add_run("内部资料 · 禁止外传")
+    left.font.size = Pt(8)
+    left.font.color.rgb = GREY
+    fpara.add_run("\t").font.size = Pt(8)
+    r = fpara.add_run()
     fld = OxmlElement("w:fldSimple")
     fld.set(qn("w:instr"), "PAGE")
-    run._r.addnext(fld)
-    para.add_run("  /  ").font.size = Pt(8)
-    run2 = para.add_run()
+    r._r.addnext(fld)
+    fpara.add_run(" / ").font.size = Pt(8)
+    r2 = fpara.add_run()
     fld2 = OxmlElement("w:fldSimple")
     fld2.set(qn("w:instr"), "NUMPAGES")
-    run2._r.addnext(fld2)
-    for r in para.runs:
-        r.font.size = Pt(8)
-        r.font.color.rgb = GREY
+    r2._r.addnext(fld2)
+    for run in fpara.runs:
+        run.font.size = Pt(8)
+        run.font.color.rgb = GREY
 
 
 def style_document(doc: Document) -> None:
@@ -126,7 +153,7 @@ def code(doc, text):
     return para
 
 
-def table(doc, headers, rows, widths=None):
+def table(doc, headers, rows, widths=None, font_size=9.0, header_size=9.5, compact=False):
     tbl = doc.add_table(rows=1, cols=len(headers))
     tbl.style = "Table Grid"
     tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -135,7 +162,7 @@ def table(doc, headers, rows, widths=None):
         hdr[i].text = ""
         run = hdr[i].paragraphs[0].add_run(str(text))
         run.bold = True
-        run.font.size = Pt(9.5)
+        run.font.size = Pt(header_size)
         run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
         set_cell_shading(hdr[i], "2D6CF0")
     for row in rows:
@@ -143,12 +170,32 @@ def table(doc, headers, rows, widths=None):
         for i, value in enumerate(row):
             cells[i].text = ""
             run = cells[i].paragraphs[0].add_run(str(value))
-            run.font.size = Pt(9)
+            run.font.size = Pt(font_size)
     if widths:
         for row in tbl.rows:
             for i, w in enumerate(widths):
                 row.cells[i].width = Cm(w)
-    doc.add_paragraph().paragraph_format.space_after = Pt(2)
+    # 表头跨页重复 + 单行不跨页拆分
+    hdr_pr = tbl.rows[0]._tr.get_or_add_trPr()
+    tbl_header = OxmlElement("w:tblHeader")
+    tbl_header.set(qn("w:val"), "true")
+    hdr_pr.append(tbl_header)
+    for row in tbl.rows:
+        tr_pr = row._tr.get_or_add_trPr()
+        cant_split = OxmlElement("w:cantSplit")
+        tr_pr.append(cant_split)
+    if compact:
+        for row in tbl.rows:
+            for cell in row.cells:
+                for para in cell.paragraphs:
+                    para.paragraph_format.space_after = Pt(0)
+                    para.paragraph_format.space_before = Pt(0)
+                    para.paragraph_format.line_spacing = 1.05
+        gap = doc.add_paragraph()
+        gap.paragraph_format.space_after = Pt(0)
+        gap.paragraph_format.line_spacing = 0.6
+    else:
+        doc.add_paragraph().paragraph_format.space_after = Pt(2)
     return tbl
 
 
@@ -161,52 +208,96 @@ def build() -> Path:
     section.bottom_margin = Cm(1.8)
     section.left_margin = Cm(2.2)
     section.right_margin = Cm(2.0)
-    add_page_number_footer(section)
+    setup_header_footer(section)
 
-    # ---------------- 封面 ----------------
-    for _ in range(4):
+    # ---------------- 封面（开篇页：只有 logo、版本与归属） ----------------
+    for _ in range(2):
         doc.add_paragraph()
+    logo_para = doc.add_paragraph()
+    logo_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    logo_para.add_run().add_picture(str(LOGO), width=Cm(8.4))
+
+    doc.add_paragraph()
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = title.add_run("VEIN LAUNCHER")
-    run.font.size = Pt(34)
+    run.font.size = Pt(38)
     run.bold = True
     run.font.color.rgb = ACCENT
 
     sub = doc.add_paragraph()
     sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = sub.add_run("v0.1.0 内部文档")
-    run.font.size = Pt(20)
+    run = sub.add_run("v0.1.0 · 内部版本")
+    run.font.size = Pt(18)
     run.bold = True
 
-    line = doc.add_paragraph()
-    line.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = line.add_run("团队内部 · 含讨论页 · 不对外发布")
-    run.font.size = Pt(11)
-    run.font.color.rgb = GREY
+    warn = doc.add_paragraph()
+    warn.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = warn.add_run("内部版本 · 请勿上传至 GitHub")
+    run.font.size = Pt(12)
+    run.bold = True
+    run.font.color.rgb = RGBColor(0xC0, 0x39, 0x2B)
 
     doc.add_paragraph()
-    info = doc.add_table(rows=0, cols=2)
-    info.style = "Table Grid"
-    info.alignment = WD_TABLE_ALIGNMENT.CENTER
-    today = dt.date.today().isoformat()
-    for key, value in (
-        ("版本", "0.1.0（公开版）"),
-        ("Git tag", "v0.1.0 · 提交 34a1dba"),
-        ("发布日期", "2026-10-31"),
-        ("文档日期", today),
-        ("平台", "Windows 10/11 x64"),
-        ("读者", "VL 项目团队成员"),
-    ):
-        cells = info.add_row().cells
-        cells[0].text = ""
-        r = cells[0].paragraphs[0].add_run(key)
-        r.bold = True
-        r.font.size = Pt(9.5)
-        set_cell_shading(cells[0], "EEF3FF")
-        cells[1].text = ""
-        cells[1].paragraphs[0].add_run(value).font.size = Pt(9.5)
+    studio = doc.add_paragraph()
+    studio.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = studio.add_run(STUDIO)
+    run.font.size = Pt(13)
+    run.bold = True
 
+    date_para = doc.add_paragraph()
+    date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = date_para.add_run(dt.date.today().isoformat())
+    run.font.size = Pt(10)
+    run.font.color.rgb = GREY
+
+    doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+
+    # ---------------- 关于我们 ----------------
+    h1(doc, "关于我们")
+    h2(doc, "我们是做什么的")
+    p(
+        doc,
+        f"{STUDIO}（GitHub 组织 zhanjhn-studio）是一支做 Minecraft Java 版工具链的小团队。"
+        "Vein Launcher 是我们的主线产品：一个面向 Windows 的轻量启动器，"
+        "目标是把「装游戏、管实例、看存档、接插件」这些事做得干净利落。",
+    )
+    bullets(
+        doc,
+        [
+            "产品：Vein Launcher — Python 五层后端 + React 19 界面 + Node 插件宿主 + 自研 MLC 控制层",
+            "当前版本：v0.1.0（公开版），Windows 10/11 x64，便携免安装",
+            "团队仓库：github.com/zhanjhn-studio/vein_launcher",
+            "本文档性质：内部版本，包含未公开的构建、风险与讨论内容，请勿上传至 GitHub 或对外分发",
+        ],
+    )
+    h2(doc, "这份文档包含什么")
+    table(
+        doc,
+        ["章节", "内容", "读者"],
+        [
+            ["一、版本与发布", "版本号、tag、发布资产、包体信息", "全员"],
+            ["二、架构总览", "五层结构、通信协议、前后端边界", "开发"],
+            ["三、模块与状态", "14 个模块的当前状态与关键文件", "开发 / 测试"],
+            ["四、数据目录与日志", "运行时目录、日志分类约定", "开发 / 运维"],
+            ["五、构建、打包与发布", "前端构建、测试、PyInstaller、gh release", "开发 / 发布负责人"],
+            ["六、验证记录", "测试与实测结果（下载、更新、打包、插件）", "测试"],
+            ["七、团队协作规则", "改动流程、记录方式、提交规范", "全员"],
+            ["八、已知问题与风险", "阻塞项、功能欠账、风险清单", "全员 / 负责人"],
+            ["九、下一步建议", "按优先级排列的后续工作", "负责人"],
+            ["十、讨论页（两页）", "议题看板、待决详情、已定决议、模板、同步记录", "全员"],
+        ],
+        widths=[4.2, 8.6, 3.0],
+    )
+    h2(doc, "文档使用约定")
+    bullets(
+        doc,
+        [
+            "Word 版仅供团队评审与分发，内容以仓库 docs/v0.1.0/*.md 为准",
+            "内部版本不要上传到 GitHub Release、网盘或公开群",
+            "每次改动后同步更新 teamwork.md，并在讨论页追加/关闭议题",
+        ],
+    )
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
 
     # ---------------- 目录（手动） ----------------
@@ -459,80 +550,67 @@ def build() -> Path:
             ["D-013", "Layui 仅用于控件层，不接管页面", "accepted", "lead"],
         ],
         widths=[1.6, 9.6, 2.0, 2.6],
+        font_size=8.5,
+        header_size=8.5,
+        compact=True,
     )
 
     h2(doc, "10.2 待讨论议题详情")
-    for title, lines in (
-        (
-            "D-001 微软登录通道 · blocked",
+    table(
+        doc,
+        ["议题", "背景 / 现状", "倾向 / 待定"],
+        [
             [
-                "背景：设备码 → XBL → XSTS 全通，login_with_xbox 返回 403 Invalid app registration"
-                "（Minecraft 服务端应用白名单）。",
-                "选项 A：申请登记（aka.ms/AppRegInfo 目前只跳帮助页，实际几乎无入口）。",
-                "选项 B：用官方启动器 client id 走旧版授权码（可行，灰色地带，可能违反条款/随时失效）。",
-                "选项 C：本版本只保留离线 + LittleSkin，微软入口标注「等待官方开放」。",
-                "倾向：C（不引入合规风险），B 需负责人书面同意。",
+                "D-001 微软登录通道 · blocked",
+                "XBL/XSTS 全通，login_with_xbox 403 Invalid app registration（服务端应用白名单）。",
+                "倾向 C：只保留离线 + LittleSkin，微软入口标注等待开放；B（官方旧版授权）需负责人书面同意。",
             ],
-        ),
-        (
-            "D-002 世界分析表格化 · open",
             [
-                "现状：点开存档展示 mc2.scan 原始 JSON。",
-                "建议：顶部显示种子/版本/难度，卡片列出出生点群系、附近结构；数据不足显示「未探测」。",
-                "待定：是否引入 region 扫描（耗时）还是只读 level.dat 摘要。",
+                "D-002 世界分析表格化 · open",
+                "点存档展示 mc2.scan 原始 JSON。",
+                "顶部种子/版本/难度 + 出生点群系、结构卡片；是否引入 region 扫描待定。",
             ],
-        ),
-        (
-            "D-003 原地更新器 · open",
             [
-                "现状：zip 更新解压到 downloads/update/extracted-<ts>/，用户手动覆盖。",
-                "方案：生成 updater 脚本，主程序退出后替换 _internal 并重启；失败回滚备份。",
-                "待定：是否需要管理员权限（当前便携版不需要）。",
+                "D-003 原地更新器 · open",
+                "zip 更新解压到 downloads/update/extracted-<ts>/，需手动覆盖。",
+                "生成 updater：退出后替换 _internal 并重启，失败回滚；是否需管理员权限待定。",
             ],
-        ),
-        (
-            "D-004 中文覆盖率 · open",
             [
-                "现状：ZH 词表覆盖主导航、设置、实例页标签；页面正文仍英文。",
-                "方案 A：全量 t() 包裹（改动大，回归风险）；方案 B：只补高频路径（启动/下载/设置）。",
+                "D-004 中文覆盖率 · open",
+                "ZH 词表覆盖主导航、设置、实例标签，正文仍英文。",
+                "A 全量 t() 包裹（回归风险大）/ B 只补高频路径（启动、下载、设置）。",
             ],
-        ),
-        (
-            "D-005 令牌加密 · open",
             [
-                "现状：config/accounts.json 明文存 access/refresh token。",
-                "方案：Windows DPAPI（CryptProtectData），跨机器不可解密。",
-                "待定：是否影响后续跨平台。",
+                "D-005 令牌加密 · open",
+                "config/accounts.json 明文存 access/refresh token。",
+                "Windows DPAPI 加密，跨机器不可解密；是否影响跨平台待定。",
             ],
-        ),
-        (
-            "D-006 包体与安装器 · open",
             [
-                "现状：onedir 615 MB，zip 238 MB。",
-                "方案：拆分 QtWebEngine 共享运行时 / 增量更新 / 换 NSIS 安装器。",
-                "待定：用户是否接受安装器（便携版更受欢迎）。",
+                "D-006 包体与安装器 · open",
+                "onedir 615 MB，zip 238 MB。",
+                "拆分 QtWebEngine / 增量更新 / NSIS 安装器；是否接受安装器待定。",
             ],
-        ),
-        (
-            "D-007 公告站版本 · open",
-            ["zhanjhn.github.io/vl/public.js 仍是 0.0.3，应用内横幅显示旧版本，需要更新 Pages 仓库。"],
-        ),
-        (
-            "D-008 插件市场 · open",
-            ["现状：宿主、权限、示例插件可用，没有市场页。待定 0.2.0 是否做浏览/安装/更新最小闭环。"],
-        ),
-        (
-            "D-009 镜像 SSL 降级 · open",
-            ["现状：BMCLAPI 部分节点证书链不完整 → 自动改用不校验会话并记住。"
-             "权衡：可用性↑、中间人风险↑；是否改用 CA 补全/固定公钥。"],
-        ),
-    ):
-        h3title = doc.add_paragraph()
-        run = h3title.add_run(title)
-        run.bold = True
-        run.font.size = Pt(10.5)
-        run.font.color.rgb = ACCENT
-        bullets(doc, lines)
+            [
+                "D-007 公告站版本 · open",
+                "public.js 仍写 0.0.3，应用内横幅版本落后。",
+                "更新 Pages 仓库到 0.1.0。",
+            ],
+            [
+                "D-008 插件市场 · open",
+                "宿主、权限、示例插件可用，没有市场页。",
+                "0.2.0 是否做浏览 / 安装 / 更新最小闭环。",
+            ],
+            [
+                "D-009 镜像 SSL 降级 · open",
+                "BMCLAPI 部分节点证书链不完整 → 自动改用不校验会话并记住。",
+                "可用性↑、中间人风险↑；评估 CA 补全或固定公钥。",
+            ],
+        ],
+        widths=[4.0, 6.3, 5.9],
+        font_size=8.5,
+        header_size=8.5,
+        compact=True,
+    )
 
     h2(doc, "10.3 已定决议")
     table(
@@ -545,17 +623,18 @@ def build() -> Path:
             ["D-013", "Layui 只用于控件层，页面由 React 掌控", "架构约定", "长期"],
         ],
         widths=[1.6, 7.4, 4.6, 2.2],
+        font_size=8.5,
+        header_size=8.5,
+        compact=True,
     )
 
     h2(doc, "10.4 新议题模板")
-    code(
+    p(
         doc,
-        "### D-0xx 标题  open\n\n"
-        "- 背景：为什么需要讨论（现象/数据/链接）\n"
-        "- 选项：A … / B … / C …\n"
-        "- 影响：涉及模块、风险、工期\n"
-        "- 倾向：建议选哪个，理由一句话\n"
-        "- 待定：还缺什么信息 / 谁去确认",
+        "新议题按「编号 D-xxx / 背景 / 选项 / 影响 / 倾向 / 待定」六行记录，"
+        "定案后把状态改为 accepted 并补一行结论。",
+        size=9,
+        color=GREY,
     )
 
     h2(doc, "10.5 同步记录")
@@ -569,6 +648,9 @@ def build() -> Path:
             ["2026-11-03", "lead", "建立 v0.1.0 内部文档与讨论页"],
         ],
         widths=[2.2, 2.6, 11.0],
+        font_size=8.5,
+        header_size=8.5,
+        compact=True,
     )
     p(doc, "下一次同步请在此表追加一行，并把有结论的议题移到 10.3。", color=GREY, italic=True)
 
