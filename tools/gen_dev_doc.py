@@ -318,7 +318,48 @@ def build() -> Path:
         compact=True,
     )
 
+    # ---------------- 9 开发约定 ----------------
+    h1(doc, "9　开发约定与常见任务")
+    table(
+        doc,
+        ["要做什么", "改哪里（按顺序）"],
+        [
+            ["新增一个 RPC 方法", "① bridge.py 的 _handlers 注册 ② 写 async 方法 ③ 需要进度就调 self._progress ④ 前端 rpc<T>('x.y', [args])"],
+            ["新增一个页面", "① App.tsx 的 NAV 加项 ② 加 page 分支渲染 ③ 组件放 pages/ ④ 需要深链用 hash #/key"],
+            ["新增一个插件能力", "① capabilities.py 注册 + 权限名 ② host.js 暴露 vein.* ③ 更新示例插件与权限弹窗文案"],
+            ["改 UI 样式", "只动 styles.css 的 token/组件段；先跑 tools/ui_preview.py 看效果，再重启验证"],
+            ["改版本相关逻辑", "version_service 只做编排；下载细节在 download/，网络在 network/"],
+        ],
+        widths=[4.2, 11.2],
+        font_size=8.2,
+        header_size=8.4,
+        compact=True,
+    )
+    p(
+        doc,
+        "提交前：python -m unittest discover -s tests（44 项）→ build.ps1 构建前端 → "
+        "在 teamwork.md 追加一条记录 → 与代码一起提交。跨层依赖一律自上而下，层间用 event_bus。",
+        size=9,
+        color=GREY,
+    )
+    table(
+        doc,
+        ["现象", "先查什么"],
+        [
+            ["窗口白屏 / 前端未构建", "dist/index.html 是否存在；先跑 build.ps1"],
+            ["下载全部失败", "镜像是否可达；日志里是 HTTP 还是证书错误（会自动降级）"],
+            ["插件不加载", "node -v ≥ 18；plugin/*/package.json 是否合法；plugin 日志"],
+            ["界面卡住", "launcher 日志里的 JS 错误；rpc 是否 resolve（bridge.call）"],
+            ["更新检查失败", "GitHub API 403 → 看 latest.json 是否可下载；公告站是否可访问"],
+        ],
+        widths=[5.0, 10.4],
+        font_size=8.2,
+        header_size=8.4,
+        compact=True,
+    )
+
     # ---------------- 附录 A ----------------
+    doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
     h1(doc, "附录 A　帖子系统（API 预留）")
     p(doc, "仅有契约与模型；服务端、鉴权、审核、分页缓存与 UI 均未实现。", color=GREY)
     table(
@@ -342,12 +383,37 @@ def build() -> Path:
         "hot_score = likes / pow(hours_since_created + 2, 1.5)",
         size=8.5,
     )
+    h2(doc, "A.1　落地建议（按顺序做）")
+    table(
+        doc,
+        ["阶段", "要做的事", "验收"],
+        [
+            ["1 存储", "SQLite 建 posts / tags / post_tags / likes 四表", "本地 CRUD 单测通过"],
+            ["2 接口", "按上表实现 5 个端点，分页默认 20 条", "curl 全部 200"],
+            ["3 鉴权", "复用账号体系签 JWT，发帖/点赞要求登录", "未登录 401"],
+            ["4 内容", "标题长度、标签白名单、敏感词过滤", "越界输入被拒"],
+            ["5 前端", "广场页：列表 + 详情 + 发帖弹窗", "与设计稿一致"],
+            ["6 缓存", "热点列表 30s 进程内缓存，点赞后失效", "压测 QPS 达标"],
+        ],
+        widths=[2.2, 9.6, 3.6],
+        font_size=8.2,
+        header_size=8.4,
+        compact=True,
+    )
+    bullets(
+        doc,
+        [
+            "热度排序可直接用 SQL 计算，不必存 hot_score 字段；数据量上来后再做离线重算",
+            "点赞用 (post_id, user_id) 唯一索引保证幂等，重复点赞返回当前总数",
+            "帖子正文只存纯文本/Markdown 源，渲染放前端，避免服务端 XSS 过滤遗漏",
+        ],
+    )
 
-    # ---------------- 附录 B：3 页团队记录 ----------------
-    for page in range(3):
+    # ---------------- 附录 B：2 页团队记录 ----------------
+    for page in range(2):
         doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
         if page == 0:
-            h1(doc, "附录 B　团队记录（预留 3 页）")
+            h1(doc, "附录 B　团队记录（预留 2 页）")
             p(doc, "供项目组记录会议结论、待办与交接。", color=GREY)
         else:
             p(doc, " ", space_after=0)

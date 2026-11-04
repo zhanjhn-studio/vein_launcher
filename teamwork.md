@@ -103,9 +103,9 @@ change, and append an entry after every change** so the other members stay in sy
   on hover); launch page gains three quick-action cards; removed large `backdrop-filter` layers
   that caused flicker · `styles.css`, `App.tsx`, `launchPage.tsx`, `theme.ts` ·
   offline preview (`tools/ui_preview.py`) rendered launch/download/skins · `90924f6`
-- **2026-11-05 · docs/dev** — developer Word doc for v0.1.0 condensed from 15 → **8 pages**:
-  merged chapters (frontend+protocol, download+plugin+instance, account+skin+update,
-  logs+data, build+status+limits), tables tightened (8–8.5pt, compact spacing),
-  appendix A moved onto page 5, appendix B keeps 3 blank pages · `tools/gen_dev_doc.py`,
-  `tools/gen_internal_doc.py` · Word export 8 pages, pages 1/2/3/5 reviewed ·
-  `git log -- tools/gen_dev_doc.py`
+- **2026-11-05 · docs/dev** — developer Word doc for v0.1.0 stays at **8 pages** but is denser:
+  added chapter 9「开发约定与常见任务」(how to add an RPC method / page / plugin capability,
+  pre-commit checklist, troubleshooting table) and appendix A.1「帖子系统落地建议」
+  (6-step rollout + 3 design notes); appendix B trimmed from 3 → **2 blank pages**;
+  appendix A gets its own page so its table no longer splits · `tools/gen_dev_doc.py` ·
+  Word export 8 pages, pages 2/3/5/6 reviewed · `git log -- tools/gen_dev_doc.py`
