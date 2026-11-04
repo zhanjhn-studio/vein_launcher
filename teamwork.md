@@ -96,3 +96,10 @@ change, and append an entry after every change** so the other members stay in sy
   reviewed · `b8a92f1`
 - docx stays local: `*.docx` is gitignored, preview PDF/PNGs added to `.gitignore` — internal
   doc is **not** uploaded to GitHub
+- **2026-11-04 · ui/polish** — sidebar gets a sliding active pill, icon spring/glow, hover light
+  sweep, brand-logo tilt; dark theme is now the real default (`currentTheme()` fallback was
+  `light`); primary buttons get the accent gradient in dark too; page mount uses staggered
+  fade-up; cards lift on hover; version cards decluttered (mark shows 1.20, manage icon appears
+  on hover); launch page gains three quick-action cards; removed large `backdrop-filter` layers
+  that caused flicker · `styles.css`, `App.tsx`, `launchPage.tsx`, `theme.ts` ·
+  offline preview (`tools/ui_preview.py`) rendered launch/download/skins · `90924f6`
