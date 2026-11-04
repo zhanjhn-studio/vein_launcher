@@ -194,9 +194,17 @@ export function App() {
           <span>VEIN</span>
         </div>
         <nav className="side-nav">
-          {NAV.map((item) => (
+          <span
+            className="side-pill"
+            aria-hidden="true"
+            style={{
+              transform: `translateY(${Math.max(0, NAV.findIndex((n) => n.key === page)) * 46}px)`,
+            }}
+          />
+          {NAV.map((item, index) => (
             <button
               key={item.key}
+              style={{ ['--i' as string]: index } as React.CSSProperties}
               className={`side-btn ${page === item.key ? 'active' : ''} ${item.star ? 'star' : ''}`}
               onClick={() => {
                 setPage(item.key);
@@ -250,6 +258,7 @@ export function App() {
                 setSelected(id);
                 setPage('mlc');
               }}
+              onNavigate={(target) => setPage(target)}
               notify={notify}
               announcements={lightNews}
             />

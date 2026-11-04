@@ -10,6 +10,7 @@ export function LaunchPage({
   selected,
   onSelect,
   onManage,
+  onNavigate,
   notify,
   announcements = [],
 }: {
@@ -18,6 +19,7 @@ export function LaunchPage({
   selected: string;
   onSelect: (id: string) => void;
   onManage?: (id: string) => void;
+  onNavigate?: (page: string) => void;
   notify: (text: string) => void;
   announcements?: { id?: string; title: string; content?: string }[];
 }) {
@@ -132,21 +134,21 @@ export function LaunchPage({
                     if (e.key === 'Enter' || e.key === ' ') onSelect(version.id);
                   }}
                 >
-                  <span className="mark">{version.id.split('.')[0]}</span>
+                  <span className="mark">{version.id.split('.').slice(0, 2).join('.')}</span>
                   <span className="meta">
                     <span className="name">{version.id}</span>
                     <span className="tag">{version.type || 'release'}</span>
                   </span>
-                  {selected === version.id && <span className="status">Selected</span>}
                   {onManage && (
                     <button
                       className="btn sm ghost card-manage"
+                      title="Manage mods and files"
                       onClick={(e) => {
                         e.stopPropagation();
                         onManage(version.id);
                       }}
                     >
-                      Manage
+                      <i className="layui-icon layui-icon-set" />
                     </button>
                   )}
                 </div>
@@ -171,6 +173,26 @@ export function LaunchPage({
               </div>
             </div>
           </div>
+
+          {onNavigate && (
+            <div className="quick-grid">
+              <button className="quick-card" onClick={() => onNavigate('download')}>
+                <i className="layui-icon layui-icon-download-circle" />
+                <b>Install a version</b>
+                <span>Vanilla, Fabric, Forge, Quilt, NeoForge</span>
+              </button>
+              <button className="quick-card" onClick={() => onNavigate('mlc')}>
+                <i className="layui-icon layui-icon-set" />
+                <b>Manage instance</b>
+                <span>Mods, resource packs, worlds and seeds</span>
+              </button>
+              <button className="quick-card" onClick={() => onNavigate('skins')}>
+                <i className="layui-icon layui-icon-picture" />
+                <b>Skin library</b>
+                <span>Import a PNG or download from LittleSkin</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

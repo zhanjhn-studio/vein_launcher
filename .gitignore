@@ -70,3 +70,6 @@ docs/launch_deck/
 # 内部文档预览产物
 docs/v0.1.0/preview.*
 docs/v0.1.0/preview_page_*.png
+
+# UI 预览截图（本地）
+docs/preview_*.png

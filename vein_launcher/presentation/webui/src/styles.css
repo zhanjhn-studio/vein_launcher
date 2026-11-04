@@ -156,7 +156,6 @@ input, select, textarea { font: inherit; color: inherit; }
   height: 58px; flex: none; display: flex; align-items: center; gap: 12px;
   padding: 0 22px; border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, var(--bg-2), color-mix(in srgb, var(--bg-2) 82%, transparent));
-  backdrop-filter: blur(10px);
 }
 .main-head h1 { font-size: 16px; font-weight: 700; letter-spacing: .2px; }
 .main-head .sub { font: 11px var(--mono); color: var(--text-3); }
@@ -392,7 +391,7 @@ select { cursor: pointer; }
 .notice-bar .btn.sm { margin-left: auto; }
 .notice-close { border: 0; background: transparent; color: var(--text-3); }
 
-.force-mask { position: fixed; inset: 0; z-index: 200; background: rgba(6, 9, 14, .72); backdrop-filter: blur(6px); display: grid; place-items: center; }
+.force-mask { position: fixed; inset: 0; z-index: 200; background: rgba(6, 9, 14, .9); display: grid; place-items: center; }
 .force-modal {
   width: 520px; padding: 22px; background: var(--surface); border: 1px solid var(--line-2);
   border-radius: 16px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; gap: 12px;
@@ -400,7 +399,7 @@ select { cursor: pointer; }
 .force-modal h2 { font-size: 18px; }
 .force-item { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 4px; }
 
-.modal-mask { position: fixed; inset: 0; z-index: 150; background: rgba(6, 9, 14, .68); backdrop-filter: blur(5px); display: grid; place-items: center; }
+.modal-mask { position: fixed; inset: 0; z-index: 150; background: rgba(6, 9, 14, .88); display: grid; place-items: center; }
 .modal {
   width: 430px; background: var(--surface); border: 1px solid var(--line-2);
   border-top-color: var(--edge); border-radius: 16px; padding: 20px;
@@ -992,3 +991,437 @@ html[data-wall="on"] .main-head {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
+
+/* =========================================================
+   Motion & polish v3
+   统一缓动/时长 token、主按钮渐变、卡片抬升、页面错峰入场、
+   焦点环、滚动条与减少动效支持。只做叠加，不改组件类名。
+   ========================================================= */
+:root,
+[data-theme='dark'] {
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-spring: cubic-bezier(.22, 1.15, .36, 1);
+  --dur-fast: .16s;
+  --dur-base: .24s;
+  --dur-slow: .36s;
+  --ring: 0 0 0 3px var(--accent-soft);
+}
+[data-theme='light'] {
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-spring: cubic-bezier(.22, 1.15, .36, 1);
+  --dur-fast: .16s;
+  --dur-base: .24s;
+  --dur-slow: .36s;
+  --ring: 0 0 0 3px var(--accent-soft);
+}
+
+/* ---- 主按钮：暗色主题也使用渐变（此前只有浅色主题有） ---- */
+.btn.primary {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: #0c1120;
+  font-weight: 600;
+  box-shadow: 0 2px 10px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, .22);
+  transition: transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out), filter var(--dur-base) ease;
+}
+.btn.primary:hover {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: #0c1120;
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, .28);
+}
+.btn.primary:active { transform: translateY(0) scale(.985); filter: brightness(.98); }
+.btn.primary:disabled { filter: none; }
+
+/* ---- 卡片：统一过渡 + 悬停抬升（仅可点击卡片） ---- */
+.version-card,
+.proj-card,
+.loader-card,
+.library-card,
+.cat-card,
+.method-card,
+.instance-item,
+.skin-account,
+.acc-item {
+  transition: transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) ease, background-color var(--dur-base) ease;
+}
+.version-card:hover,
+.proj-card:hover,
+.loader-card:hover,
+.library-card:hover,
+.cat-card:hover,
+.method-card:hover,
+.instance-item:hover,
+.skin-account:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line-2));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .30), inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+.version-card:active,
+.proj-card:active,
+.loader-card:active,
+.library-card:active,
+.cat-card:active { transform: translateY(0) scale(.995); }
+[data-theme='light'] .version-card:hover,
+[data-theme='light'] .proj-card:hover,
+[data-theme='light'] .loader-card:hover,
+[data-theme='light'] .library-card:hover,
+[data-theme='light'] .cat-card:hover {
+  box-shadow: 0 12px 26px rgba(30, 40, 60, .12), inset 0 1px 0 rgba(255, 255, 255, .8);
+}
+
+/* ---- 面板/卡片：顶部一层极淡高光，增加“浮起”质感 ---- */
+.card,
+.pane,
+.acc-item {
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, .045);
+}
+[data-theme='light'] .card,
+[data-theme='light'] .pane,
+[data-theme='light'] .acc-item {
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+/* ---- 页面入场：淡入 + 上浮 + 轻微缩放，子块错峰 ---- */
+.page { animation: page-in var(--dur-slow) var(--ease-out) both; }
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(10px) scale(.998); }
+  to { opacity: 1; transform: none; }
+}
+.page > * { animation: item-in var(--dur-slow) var(--ease-out) both; }
+.page > *:nth-child(1) { animation-delay: 0s; }
+.page > *:nth-child(2) { animation-delay: .04s; }
+.page > *:nth-child(3) { animation-delay: .08s; }
+.page > *:nth-child(4) { animation-delay: .12s; }
+.page > *:nth-child(5) { animation-delay: .16s; }
+.page > *:nth-child(6) { animation-delay: .2s; }
+.page > *:nth-child(n + 7) { animation-delay: .22s; }
+@keyframes item-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- 侧栏：激活条从中间滑出 ---- */
+.side-btn { position: relative; }
+.side-btn::before {
+  content: ""; position: absolute; left: 0; top: 50%;
+  width: 3px; height: 0; border-radius: 0 3px 3px 0;
+  background: var(--accent); transform: translateY(-50%);
+  transition: height var(--dur-base) var(--ease-out), opacity var(--dur-fast) ease;
+  opacity: 0;
+}
+.side-btn.active::before { height: 18px; opacity: 1; }
+
+/* ---- 文件行/日志行 hover 反馈 ---- */
+.file-row,
+.world-row,
+.library-card {
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease,
+    transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.file-row:hover,
+.world-row:hover { border-color: var(--line-2); background: var(--surface-3); }
+
+/* ---- 浮层进场 ---- */
+.modal-mask,
+.force-mask { animation: mask-in var(--dur-base) ease both; }
+@keyframes mask-in { from { opacity: 0; } to { opacity: 1; } }
+.modal,
+.force-modal { animation: dialog-in var(--dur-base) var(--ease-spring) both; }
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(10px) scale(.97); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- 焦点可见性（键盘） ---- */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 82%, #fff);
+  outline-offset: 2px;
+}
+.input:focus,
+select:focus,
+button:focus { outline: none; }
+.input:focus,
+select:focus { border-color: var(--accent); box-shadow: var(--ring); }
+
+/* ---- 滚动条：悬停加深 ---- */
+::-webkit-scrollbar-thumb:hover { background: var(--line-2); filter: brightness(1.25); }
+
+/* ---- 骨架/加载：更柔的微光 ---- */
+.skeleton { animation-duration: 1.7s; animation-timing-function: cubic-bezier(.4, 0, .2, 1); }
+
+/* ---- 尊重“减少动效”设置 ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .page, .page > * { animation: none !important; }
+}
+
+/* =========================================================
+   左侧导航特效
+   滑动的选中胶囊 + 图标弹性 + 悬停光扫 + 展开边缘辉光
+   ========================================================= */
+.side {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-2) 92%, var(--accent) 8%), var(--bg-2) 42%);
+  transition: width .34s cubic-bezier(.16, 1, .3, 1), opacity .25s ease,
+    box-shadow .34s ease;
+}
+.side:hover {
+  box-shadow: 12px 0 34px rgba(0, 0, 0, .26), inset -1px 0 0 var(--accent-soft);
+}
+
+.side-nav {
+  position: relative;
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+/* 滑动的选中胶囊 */
+.side-pill {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 4px;
+  height: 42px;
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(90deg, var(--accent-soft), color-mix(in srgb, var(--accent-soft) 35%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .06);
+  transition: transform .38s cubic-bezier(.22, 1.18, .36, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+.side-pill::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 50%;
+  width: 3px; height: 18px;
+  transform: translateY(-50%);
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.side-btn {
+  position: relative;
+  z-index: 1;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  transition: color .2s ease, background-color .2s ease;
+  overflow: hidden;
+}
+.side-btn:hover { background: transparent; transform: none; }
+.side-btn.active { background: transparent; box-shadow: none; }
+/* 旧版左侧竖条由胶囊内的 ::after 取代，避免双条 */
+.side-btn::before { content: none; }
+
+/* 悬停光扫 */
+.side-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(140px 120px at 0% 50%, var(--accent-soft), transparent 70%);
+  opacity: 0;
+  transform: translateX(-18px);
+  transition: opacity .28s ease, transform .34s cubic-bezier(.16, 1, .3, 1);
+  pointer-events: none;
+}
+.side-btn:hover::after { opacity: 1; transform: none; }
+.side-btn.active::after { opacity: .55; transform: none; }
+
+/* 图标：弹性缩放 + 发光 */
+.side-ico {
+  position: relative;
+  z-index: 1;
+  transition: transform .34s cubic-bezier(.22, 1.18, .36, 1), filter .3s ease;
+}
+.side-btn:hover .side-ico { transform: translateY(-1px) scale(1.12); }
+.side-btn:active .side-ico { transform: scale(.94); }
+.side-btn.active .side-ico {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 9px var(--accent-glow)) saturate(1.2);
+}
+
+.side-btn .txt {
+  position: relative;
+  z-index: 1;
+  transition: opacity .24s ease calc(var(--i, 0) * 22ms + 50ms),
+    transform .28s cubic-bezier(.16, 1, .3, 1) calc(var(--i, 0) * 22ms + 50ms),
+    color .2s ease;
+}
+.side-btn.active .txt { color: var(--accent); font-weight: 600; letter-spacing: .2px; }
+
+/* 品牌 logo：悬停轻微旋转 + 辉光 */
+.side-brand img {
+  transition: transform .45s cubic-bezier(.22, 1.18, .36, 1), filter .45s ease;
+}
+.side:hover .side-brand img {
+  transform: rotate(-7deg) scale(1.07);
+  filter: drop-shadow(0 0 14px var(--accent-glow));
+}
+
+/* 展开时文字逐个出现（已有延迟），再加一点上浮 */
+.side:hover .side-btn .txt { transform: none; }
+
+/* 亮色主题下胶囊更收敛 */
+[data-theme='light'] .side-pill {
+  background: linear-gradient(90deg, rgba(63, 143, 214, .14), rgba(63, 143, 214, .05));
+  box-shadow: 0 4px 12px rgba(30, 40, 60, .08), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+/* ---- 侧栏图标：放大 + 像素清晰 + 悬停高亮 ---- */
+.side-ico {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .45));
+  transition: transform .34s cubic-bezier(.22, 1.18, .36, 1), filter .3s ease;
+}
+.side-btn:hover .side-ico { filter: drop-shadow(0 0 8px var(--accent-glow)) brightness(1.12); }
+.side-btn.active .side-ico { filter: drop-shadow(0 0 10px var(--accent-glow)) brightness(1.15); }
+
+/* ---- 版本卡片：编号块与状态徽章 ---- */
+.version-card .mark {
+  width: 38px; height: 38px; border-radius: 11px;
+  background: linear-gradient(150deg, var(--surface-3), color-mix(in srgb, var(--accent) 16%, var(--surface-2)));
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  color: var(--text);
+  font: 700 10.5px var(--mono);
+  letter-spacing: -.2px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+.version-card.active .mark {
+  background: linear-gradient(150deg, var(--accent), var(--accent-2));
+  color: #0c1120; border-color: transparent;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+.version-card .status {
+  margin-left: auto;
+  font: 600 9.5px var(--mono);
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 32%, transparent);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+/* 卡片右上角的管理按钮：默认隐藏，悬停淡入 */
+.version-card { position: relative; }
+.version-card .card-manage {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity var(--dur-fast) ease, transform var(--dur-fast) ease,
+    background-color var(--dur-fast) ease;
+}
+.version-card:hover .card-manage,
+.version-card:focus-within .card-manage { opacity: 1; transform: none; }
+.version-card .card-manage:hover { background: var(--surface-3); color: var(--accent); }
+
+/* ---- 公告条：左侧渐变强调 + 悬停浮起 ---- */
+.notice-bar {
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--accent) 9%, var(--surface)),
+    var(--surface) 42%);
+  border-left-color: var(--accent);
+  transition: border-color var(--dur-base) ease, background-color var(--dur-base) ease,
+    transform var(--dur-base) var(--ease-out);
+}
+.notice-bar:hover { border-left-color: var(--accent-2); }
+.notice-close {
+  display: grid; place-items: center;
+  width: 24px; height: 24px; border-radius: 7px;
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+.notice-close:hover { background: var(--surface-3); color: var(--text); }
+
+/* ---- 快捷入口卡片（启动页下半区） ---- */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.quick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 16px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-top-color: var(--edge);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface) 92%, var(--bg)));
+  color: var(--text);
+  transition: transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) ease;
+}
+.quick-card .layui-icon {
+  font-size: 20px;
+  color: var(--accent);
+  margin-bottom: 2px;
+  transition: transform var(--dur-base) var(--ease-spring), filter var(--dur-base) ease;
+}
+.quick-card b { font-size: 13px; }
+.quick-card span { font-size: 11.5px; color: var(--text-3); line-height: 1.5; }
+.quick-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line-2));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .28);
+}
+.quick-card:hover .layui-icon { transform: translateY(-1px) scale(1.12); filter: drop-shadow(0 0 8px var(--accent-glow)); }
+.quick-card:active { transform: translateY(0) scale(.995); }
+
+/* ---- 图标可读性：深色像素贴图提亮，悬停发光 ---- */
+.side-ico {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5)) saturate(1.05) brightness(1.12);
+}
+[data-theme='light'] .side-ico { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .18)) brightness(1); }
+.side-btn:hover .side-ico { filter: drop-shadow(0 0 9px var(--accent-glow)) saturate(1.15) brightness(1.22); }
+.side-btn.active .side-ico { filter: drop-shadow(0 0 11px var(--accent-glow)) saturate(1.2) brightness(1.25); }
+
+/* 下载分类卡片：图标更大、描边更清晰 */
+.cat-card { position: relative; overflow: hidden; }
+.cat-card::after {
+  content: "";
+  position: absolute;
+  inset: -40% -60% auto auto;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, var(--accent-soft), transparent 68%);
+  opacity: 0;
+  transition: opacity var(--dur-base) ease;
+  pointer-events: none;
+}
+.cat-card:hover::after { opacity: 1; }
+.cat-card img {
+  width: 46px; height: 46px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .45));
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+.cat-card:hover img { transform: scale(1.08) translateY(-1px); }
+.cat-card b { font-size: 14.5px; }
+.cat-card p { margin-top: 4px; font-size: 12px; color: var(--text-3); line-height: 1.6; }

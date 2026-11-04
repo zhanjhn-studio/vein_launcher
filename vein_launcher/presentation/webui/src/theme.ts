@@ -18,7 +18,7 @@ export function applyTheme(theme: Theme): void {
 
 export function currentTheme(): Theme {
   const saved = localStorage.getItem(KEY) as Theme | null;
-  return saved === 'dark' || saved === 'clear' || saved === 'system' ? saved : 'light';
+  return saved === 'light' || saved === 'clear' || saved === 'system' ? saved : 'dark';
 }
 
 export function initTheme(): Theme {
