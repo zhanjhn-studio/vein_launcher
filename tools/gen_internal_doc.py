@@ -39,8 +39,13 @@ def set_cell_shading(cell, hex_color: str) -> None:
     tc_pr.append(shd)
 
 
-def setup_header_footer(section) -> None:
-    """除封面外每页：左上角 logo + 页眉说明；页脚：机密提示 + 页码"""
+def setup_header_footer(
+    section,
+    title: str = "Vein Launcher v0.1.0 内部文档",
+    note: str = "内部资料，请勿上传 GitHub",
+    footer_left: str = "内部资料 · 禁止外传",
+) -> None:
+    """除封面外每页：左上角 logo + 页眉说明；页脚：左侧说明 + 页码"""
     section.different_first_page_header_footer = True
 
     header = section.header
@@ -53,7 +58,7 @@ def setup_header_footer(section) -> None:
     logo_run.add_picture(str(LOGO), height=Cm(0.72))
     tab = para.add_run("\t")
     tab.font.size = Pt(8)
-    text = para.add_run(f"{STUDIO}　|　Vein Launcher v0.1.0 内部文档　|　内部资料，请勿上传 GitHub")
+    text = para.add_run(f"{STUDIO}　|　{title}　|　{note}")
     text.font.size = Pt(8)
     text.font.color.rgb = GREY
     text.font.name = BODY_FONT
@@ -64,7 +69,7 @@ def setup_header_footer(section) -> None:
     fpara = footer.paragraphs[0]
     fpara.text = ""
     fpara.paragraph_format.tab_stops.add_tab_stop(Cm(16.6), WD_TAB_ALIGNMENT.RIGHT)
-    left = fpara.add_run("内部资料 · 禁止外传")
+    left = fpara.add_run(footer_left)
     left.font.size = Pt(8)
     left.font.color.rgb = GREY
     fpara.add_run("\t").font.size = Pt(8)
