@@ -108,4 +108,4 @@ change, and append an entry after every change** so the other members stay in sy
   architecture/protocol/plugin/instance/auth/update chapters, competitor comparison, status
   matrix, known limits, posts-API appendix, 3 blank team-record pages; generator reuses the
   internal-doc styling helpers · `tools/gen_dev_doc.py`, `tools/gen_internal_doc.py` ·
-  Word export 15 pages, pages 1/2/15 reviewed · `33f820f`
+  Word export 15 pages, pages 1/2/15 reviewed · `git log -- tools/gen_dev_doc.py`
