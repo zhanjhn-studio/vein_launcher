@@ -139,7 +139,7 @@ def bullets(doc, items, style="List Bullet"):
         run.font.size = Pt(10)
 
 
-def code(doc, text):
+def code(doc, text, size: float = 8.5):
     para = doc.add_paragraph()
     para.paragraph_format.space_before = Pt(4)
     para.paragraph_format.space_after = Pt(8)
@@ -147,7 +147,7 @@ def code(doc, text):
     run = para.add_run(text)
     run.font.name = MONO_FONT
     run._element.rPr.rFonts.set(qn("w:eastAsia"), MONO_FONT)
-    run.font.size = Pt(8.5)
+    run.font.size = Pt(size)
     run.font.color.rgb = GREY
     p_pr = para._p.get_or_add_pPr()
     shd = OxmlElement("w:shd")
