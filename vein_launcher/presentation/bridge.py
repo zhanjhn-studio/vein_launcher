@@ -420,7 +420,7 @@ class ApiBridge(QObject):
             str(username),
             java_path=java_path,
             access_token=access_token,
-            uuid=auth_uuid,
+            auth_uuid=auth_uuid,
             user_type=user_type,
             extra_jvm=extra_jvm,
         )
@@ -1034,6 +1034,7 @@ class ApiBridge(QObject):
     def _on_game_exited(self, exit_code: int = 0, **_) -> None:
         self._mlc_connected = False
         self._mlc_pid = None
+        self._run_js(f"window.__veinGameExited && window.__veinGameExited({int(exit_code or 0)})")
 
     async def _open_log_dir(self) -> dict:
         import subprocess

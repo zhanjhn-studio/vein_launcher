@@ -11,6 +11,7 @@ import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from vein_launcher import __version__ as LAUNCHER_VERSION
 from vein_launcher.application.services.version_service import VersionService
 from vein_launcher.common.config.settings import settings_manager
 from vein_launcher.common.exceptions import GameLaunchError, JavaNotFoundError
@@ -85,13 +86,21 @@ class LauncherService:
             "classpath": classpath,
             "library_directory": str(get_libraries_dir()),
             "launcher_name": "vein_launcher",
-            "launcher_version": "0.0.1",
+            "launcher_version": LAUNCHER_VERSION,
             "resolution_width": str(cfg.launch.resolution_width),
             "resolution_height": str(cfg.launch.resolution_height),
         }
 
         jvm_args = self._render((merged.get("arguments") or {}).get("jvm", []), replacements)
         game_args = self._render((merged.get("arguments") or {}).get("game", []), replacements)
+
+        # ≤1.12.2 的版本 JSON 只有 minecraftArguments 字符串（没有 arguments 对象）
+        legacy_arguments = merged.get("minecraftArguments")
+        if not game_args and isinstance(legacy_arguments, str) and legacy_arguments.strip():
+            game_args = self._render(legacy_arguments.split(), replacements)
+            if not jvm_args:
+                # 老版本没有 arguments.jvm，原生库目录只能由 java.library.path 传入
+                jvm_args = [f"-Djava.library.path={natives_dir}"]
 
         java_bin = java_path or (str(java.path) if java else "")
         command = [

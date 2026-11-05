@@ -1,0 +1,53 @@
+name: Bug 报告
+description: 程序崩溃、功能异常或行为不符合预期
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请先读 [CONTRIBUTING.md](https://github.com/zhanjhn-studio/vein_launcher/blob/main/CONTRIBUTING.md)。
+        请**不要**粘贴 access token / refresh token / Azure 客户端密钥，日志里的账号信息请先打码。
+        内部文档 `*.docx` 仅本地留存，**不要上传**到 issue。
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 设置 → 关于 里显示的版本号；从源码运行时填 commit
+      placeholder: "0.1.0 / 90075eb"
+    validations:
+      required: false
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      options:
+        - Windows 10
+        - Windows 11
+        - 其他（请在描述里说明）
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开 …
+        2. 点击 …
+        3. 出现 …
+    validations:
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果 / 实际结果
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志（可选，务必脱敏）
+      description: 日志在数据目录 `VeinLauncher/log/`，按 launcher / plugin / mlc / download 分类、按天切分
+      render: text
+    validations:
+      required: false

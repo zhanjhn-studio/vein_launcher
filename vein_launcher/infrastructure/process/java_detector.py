@@ -141,12 +141,10 @@ class JavaDetector:
             return None
 
         text = (out or b"").decode("utf-8", errors="replace")
-        match = _VERSION_RE.search(text)
-        if not match:
+        parsed = parse_version(text)
+        if parsed is None:
             return None
-
-        major = int(match.group(1))
-        full = match.group(0).split('"')[1] if '"' in match.group(0) else str(major)
+        major, full = parsed
         lower = text.lower()
         vendor = next(
             (v for hint, v in (
@@ -158,4 +156,21 @@ class JavaDetector:
         return JavaRuntime(path=exe, major=major, version=full, vendor=vendor)
 
 
-__all__ = ["JavaDetector", "JavaRuntime"]
+def parse_version(text: str) -> Optional[tuple]:
+    """从 `java -version` 输出解析 (major, version_text)
+
+    1.8.0_x / 1.7.0_x 时代用的是 1.x 编号，对外统一成 8 / 7，
+    否则 Java 8 会被误判成 major=1（匹配不到版本要求、还会重复下载）。
+    """
+    match = _VERSION_RE.search(text)
+    if not match:
+        return None
+    major = int(match.group(1))
+    minor = int(match.group(2) or 0)
+    if major == 1 and minor:
+        major = minor
+    full = match.group(0).split('"')[1] if '"' in match.group(0) else str(major)
+    return major, full
+
+
+__all__ = ["JavaDetector", "JavaRuntime", "parse_version"]

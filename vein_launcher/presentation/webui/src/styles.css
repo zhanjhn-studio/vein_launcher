@@ -1425,3 +1425,112 @@ select:focus { border-color: var(--accent); box-shadow: var(--ring); }
 .cat-card:hover img { transform: scale(1.08) translateY(-1px); }
 .cat-card b { font-size: 14.5px; }
 .cat-card p { margin-top: 4px; font-size: 12px; color: var(--text-3); line-height: 1.6; }
+
+/* =========================================================
+   一致性收尾 v3.1
+   1) 焦点态统一  2) 空状态卡片  3) 浅色滚动条  4) 侧栏收起溢出
+   只做叠加覆盖，不改组件类名与既有结构。
+   ========================================================= */
+
+/* ---- 1. 焦点态：键盘可见、鼠标点击不打扰 ----
+   旧规则 `button:focus { outline: none }` 的特异性 (0,1,1) 高于全局
+   `:focus-visible` (0,1,0)，会把所有按钮的键盘焦点环吃掉。这里只让
+   “非键盘触发的 focus” 去掉轮廓，键盘焦点交给下方统一规则。 */
+button:focus:not(:focus-visible) { outline: none; }
+
+/* 侧栏按钮 / 快捷卡片 / 版本卡片：同一个细环 + 主题色 */
+.side-btn:focus-visible,
+.quick-card:focus-visible,
+.version-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* 侧栏被 overflow 裁切，环内缩绘制，保证 68px 收起态也能看见 */
+.side-btn:focus-visible { outline-offset: -2px; }
+
+.quick-card:focus-visible,
+.version-card:focus-visible {
+  box-shadow: 0 0 0 5px var(--accent-soft), 0 12px 26px rgba(0, 0, 0, .22);
+}
+[data-theme='light'] .quick-card:focus-visible,
+[data-theme='light'] .version-card:focus-visible {
+  box-shadow: 0 0 0 5px var(--accent-soft), 0 10px 22px rgba(30, 40, 60, .12);
+}
+/* 键盘聚焦时不再叠加 hover 抬升，避免“悬停+聚焦”双重位移 */
+.quick-card:focus-visible:hover,
+.version-card:focus-visible:hover { transform: none; }
+
+/* ---- 2. 空状态：居中虚线卡片 + 图标 + muted 文案 ---- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  grid-column: 1 / -1;
+  margin: 10px 0;
+  padding: 36px 22px;
+  color: var(--text-3);
+  font-size: 12.5px;
+  line-height: 1.7;
+  text-align: center;
+  border: 1px dashed color-mix(in srgb, var(--line-2) 78%, transparent);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--accent-faint), transparent 62%),
+    color-mix(in srgb, var(--surface-2) 42%, transparent);
+}
+.empty::before {
+  /* layui-icon-file，与全站图标字体同源 */
+  content: "\e621";
+  font-family: "layui-icon";
+  font-size: 22px;
+  font-style: normal;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: color-mix(in srgb, var(--accent) 58%, var(--text-3));
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+}
+[data-theme='light'] .empty {
+  border-color: color-mix(in srgb, var(--line-2) 90%, transparent);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--accent-faint), transparent 62%),
+    color-mix(in srgb, var(--surface-2) 70%, transparent);
+}
+[data-theme='light'] .empty::before {
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-2));
+  background: color-mix(in srgb, var(--accent) 8%, #fff);
+}
+
+/* ---- 3. 浅色主题滚动条：更浅的 --line-2，悬停才加深 ---- */
+[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--line-2) 55%, #fff);
+}
+[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
+  background: var(--line-2);
+}
+
+/* ---- 4. 侧栏收起（68px）溢出兜底 ----
+   实测 68px 下 .side scrollWidth 92 > clientWidth 67，来自收起时不可见的
+   导航文字；圆环/角标/版本号本身未裁切。这里显式收口，避免以后新增元素
+   把侧栏撑出横向溢出，并防止版本号在窄宽度换行。 */
+.side-nav,
+.side-foot { min-width: 0; overflow: hidden; }
+.side-btn .txt { min-width: 0; }
+.monitor,
+.monitor-mini,
+.monitor-ring { min-width: 0; }
+.monitor-mini { flex: none; }
+.monitor-ring { flex: none; }
+.monitor-count { max-width: 100%; }
+.side-ver {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

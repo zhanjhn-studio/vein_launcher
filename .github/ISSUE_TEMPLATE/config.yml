@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 贡献指南（环境 / 架构约束 / 提交规范 / 本地测试）
+    url: https://github.com/zhanjhn-studio/vein_launcher/blob/main/CONTRIBUTING.md
+    about: 提 PR 或 issue 前先看这里：五层依赖规则、Conventional Commits、pytest/编译自检
+  - name: 内部文档（*.docx）请勿上传
+    url: https://github.com/zhanjhn-studio/vein_launcher/blob/main/.gitignore
+    about: 内部开发文档仅本地留存（已在 .gitignore 排除）；不要把 .docx 作为附件或提交内容上传到 issue / PR

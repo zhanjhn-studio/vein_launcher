@@ -1,0 +1,38 @@
+name: 功能建议
+description: 想要的新能力、改进或体验优化
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先说清"要解决什么问题"，再说"希望怎么做"；已有 issue 可先搜一下。
+        内部文档 `*.docx` 仅本地留存，**不要上传**。
+  - type: textarea
+    id: problem
+    attributes:
+      label: 需求背景 / 遇到的问题
+    validations:
+      required: false
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 期望的方案或行为
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 考虑过的替代方案（可选）
+    validations:
+      required: false
+  - type: dropdown
+    id: willing
+    attributes:
+      label: 是否愿意自己提 PR
+      options:
+        - "是"
+        - "否"
+        - "需要指导"
+    validations:
+      required: false

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { rpc } from './bridge';
+import React, { useEffect, useRef, useState } from 'react';
+import { on, rpc } from './bridge';
 import type { AccountInfo, VersionInfo } from './types';
 import { LogPanel } from './ui';
 import { usePrefs } from './prefs';
@@ -27,6 +27,9 @@ export function LaunchPage({
   const [logs, setLogs] = useState<string[]>([]);
   const account = accounts.find((a) => a.selected) || null;
   const prefs = usePrefs();
+  // Synchronous in-flight guard: `disabled` only takes effect after a re-render,
+  // so a fast double click could still fire two launches.
+  const inFlight = useRef(false);
 
   // 空闲淡出：启动页在设定秒数内无任何输入（鼠标/键盘/滚轮/触摸）后，UI 变透明只留壁纸。
   // 注意：淡出会给 .main/.side 加 pointer-events:none，这会让浏览器合成一次 mousemove，
@@ -89,11 +92,34 @@ export function LaunchPage({
     return () => window.removeEventListener('vein:log', handler);
   }, []);
 
+  /**
+   * GAME_EXITED: the backend reports the game process exit so the Launch button
+   * leaves its busy state even when the JVM dies on its own. Payload is either
+   * the raw exit code or `{ exitCode }` (bridge wiring is landing separately).
+   */
+  useEffect(() => {
+    const off = on<{ exitCode?: number; exit_code?: number } | number | null>(
+      'vein:gameExited',
+      (payload) => {
+        inFlight.current = false;
+        setBusy(false);
+        const code =
+          typeof payload === 'number'
+            ? payload
+            : Number(payload?.exitCode ?? payload?.exit_code ?? 0);
+        if (Number.isFinite(code) && code !== 0) notify(`Game exited with code ${code}`);
+      }
+    );
+    return () => off();
+  }, [notify]);
+
   const launch = async () => {
+    if (inFlight.current) return;
     if (!selected) {
       notify('Install a version first');
       return;
     }
+    inFlight.current = true;
     setBusy(true);
     try {
       const result = await rpc<{ pid: number }>('launch', [selected, account?.username ?? 'Player']);
@@ -101,6 +127,7 @@ export function LaunchPage({
     } catch (err) {
       notify(`Launch failed：${(err as Error).message}`);
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };
@@ -131,7 +158,11 @@ export function LaunchPage({
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') onSelect(version.id);
+                    // Space must not scroll the page: same behaviour as Enter.
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSelect(version.id);
+                    }
                   }}
                 >
                   <span className="mark">{version.id.split('.').slice(0, 2).join('.')}</span>

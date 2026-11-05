@@ -109,3 +109,30 @@ change, and append an entry after every change** so the other members stay in sy
   (6-step rollout + 3 design notes); appendix B trimmed from 3 → **2 blank pages**;
   appendix A gets its own page so its table no longer splits · `tools/gen_dev_doc.py` ·
   Word export 8 pages, pages 2/3/5/6 reviewed · `git log -- tools/gen_dev_doc.py`
+- **2026-11-05 · tests/contracts** — 新增两条 AST 静态契约回归：`bridge` 调用
+  `LauncherService.launch` 的关键字/位置参数必须匹配签名（抓本次 `uuid=` 漂移）；
+  `download/` 下 `DownloadError` 家族构造必须匹配各自 `__init__`（抓 `status=` 漂移，
+  含子类 `super().__init__` 校验与 `status` 不进 `DownloadError` 的回归锚点） ·
+  `tests/test_rpc_launch_contract.py`、`tests/test_download_error_contract.py` ·
+  `python -m unittest discover -s tests` → 51 OK；把旧 bug 注入临时桩文件反向验证两条
+  都会 fail（不空转） · 未提交
+- **2026-11-05 · tools/doc** — 新增文档事实提取器 `tools/doc_facts.py`（stdlib only：
+  AST 取 RPC/版本，正则取 NAV/插件能力，subprocess 跑 unittest 取测试数）：
+  RPC 66（20 组）· NAV 8 · 测试 51 · 版本 0.1.0 · 插件能力 17 · 前端 LOC 5015；
+  单锚点失败只进 `errors` 不中断，`check()` 暂留空实现等 docs 侧规则 ·
+  `tools/doc_facts.py`（未改 `gen_internal_doc.py` / `gen_dev_doc.py`） ·
+  `python tools/doc_facts.py` exit 0 · 未提交
+- **2026-11-05 · fix/launch-chain** — Lead 接替并验收被中断的改动：
+  bridge 启动调用 `uuid=` → `auth_uuid=`；Downloader 新增
+  `HTTPStatusDownloadError` 区分可重试状态（408/425/429/5xx），不再向
+  `DownloadError` 传非法 `status`；version_service 补 `VeinError` /
+  `get_assets_dir` import；FileStorage 拆 `version_path`（查询不建目录）；
+  launcher_service 支持 legacy `minecraftArguments` 并用
+  `vein_launcher.__version__` 作 launcher_version；game_process 后台
+  `_watch_exit` 只发布一次 `GAME_EXITED`；java_detector 把 `1.8.0_x`
+  解析成 major=8；domain 版本模型补齐 camelCase alias，实测可解析真实
+  1.20.4 JSON 与 Fabric 子版本；bridge 新增 `__veinGameExited` 推送、
+  bridge.ts 转发 `vein:gameExited`，启动页据此复位 busy ·
+  `python -m unittest discover -s tests` → 51 OK · frontend build OK
+- **2026-11-05 · team/dismiss** — 按要求停用全部 8 个伙伴，后续由 Lead
+  单独推进；遗留工作区改动逐项复核后保留并提交，临时截图与 `$null` 已清理

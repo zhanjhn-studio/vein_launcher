@@ -210,7 +210,7 @@ export function DownloadPage({
   return (
     <div className="page">
       <div className="dl-head">
-        <button className="btn sm" onClick={() => setCategory(null)}>
+        <button className="btn sm ghost" onClick={() => setCategory(null)}>
           ← Back
         </button>
         <h1>{CATEGORIES.find((c) => c.key === category)?.label}</h1>

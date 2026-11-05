@@ -26,15 +26,21 @@ class FileStorage:
     # ------------------------------------------------------------------
     @staticmethod
     def version_dir(version_id: str) -> Path:
+        """创建并返回版本目录（写入路径用）"""
         return ensure_dir(get_version_dir(version_id))
+
+    @staticmethod
+    def version_path(version_id: str) -> Path:
+        """只拼路径、不落盘（查询用；is_installed 不应创建目录）"""
+        return get_version_dir(version_id)
 
     @classmethod
     def version_json_path(cls, version_id: str) -> Path:
-        return cls.version_dir(version_id) / f"{version_id}.json"
+        return cls.version_path(version_id) / f"{version_id}.json"
 
     @classmethod
     def client_jar_path(cls, version_id: str) -> Path:
-        return cls.version_dir(version_id) / f"{version_id}.jar"
+        return cls.version_path(version_id) / f"{version_id}.jar"
 
     # ------------------------------------------------------------------
     # 依赖库 / 资源

@@ -11,9 +11,10 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from vein_launcher.common.config.settings import settings_manager
-from vein_launcher.common.exceptions import DownloadError, VersionNotFoundError
+from vein_launcher.common.exceptions import DownloadError, VeinError, VersionNotFoundError
 from vein_launcher.common.utils.path_utils import (
     ensure_dir,
+    get_assets_dir,
     get_libraries_dir,
     get_version_dir,
     safe_join,

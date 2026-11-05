@@ -21,6 +21,17 @@ logger = logging.getLogger(__name__)
 CHUNK_SIZE = 64 * 1024
 ProgressCallback = Callable[[int, int], None]  # downloaded, total
 
+# 可重试的 HTTP 状态：限流 / 网关 / 服务端临时故障；其余 4xx（403/404…）立即失败
+RETRYABLE_HTTP = {408, 425, 429, 500, 502, 503, 504}
+
+
+class HTTPStatusDownloadError(DownloadError):
+    """HTTP 状态异常（保留 status 供重试判定；状态码同时写在 message 里）"""
+
+    def __init__(self, message: str, url: str = "", status: int = 0):
+        super().__init__(message, url=url)
+        self.status = status
+
 # 同一目标文件的并发下载会互相踩踏（WinError 32 / SHA-1 失败），按目标串行
 _LOCKS: "weakref.WeakValueDictionary[str, asyncio.Lock]" = weakref.WeakValueDictionary()
 
@@ -112,6 +123,14 @@ class Downloader:
                     if attempt >= self._retries:
                         break
                     logger.debug("SHA-1 不匹配，重下（%d/%d）：%s", attempt + 1, self._retries + 1, dest.name)
+                except HTTPStatusDownloadError as exc:
+                    last_error = exc
+                    if attempt >= self._retries or exc.status not in RETRYABLE_HTTP:
+                        logger.warning("下载失败 %s：HTTP %s", url, exc.status)
+                        break
+                    logger.debug("HTTP %s，重试（%d/%d）：%s", exc.status, attempt + 1,
+                                 self._retries + 1, dest.name)
+                    await asyncio.sleep(min(2 ** attempt, 8))
                 except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as exc:
                     last_error = exc
                     text = str(exc)
@@ -145,7 +164,9 @@ class Downloader:
                 part.replace(dest)
                 return
             if response.status not in (200, 206):
-                raise DownloadError(f"HTTP {response.status}", url=url, status=response.status)
+                raise HTTPStatusDownloadError(
+                    f"HTTP {response.status}", url=url, status=response.status
+                )
 
             if response.status == 200:
                 resume_from = 0
@@ -196,4 +217,4 @@ class Downloader:
             return False
 
 
-__all__ = ["Downloader", "ProgressCallback"]
+__all__ = ["Downloader", "ProgressCallback", "HTTPStatusDownloadError", "RETRYABLE_HTTP"]
