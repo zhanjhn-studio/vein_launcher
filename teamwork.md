@@ -23,8 +23,8 @@
 | 名称 | Vein Launcher（VL） |
 | 定位 | Minecraft Java 版启动器，Windows 10/11 x64，便携免安装 |
 | 仓库 | github.com/zhanjhn-studio/vein_launcher（public，MIT） |
-| 版本 | **0.1.0**（`vein_launcher/presentation/context.py` 的 `VERSION`；包内 `__version__ = 0.1.0-alpha`） |
-| 当前 HEAD | `95bd910`（fix: 启动链路与下载重试修复 + 契约回归测试） |
+| 版本 | **0.5.0**（`vein_launcher/presentation/context.py` 的 `VERSION`；包内 `__version__ = 0.5.0`） |
+| 当前 HEAD | `02650f8`（feat(tools): 指令构建器 + 全局热键 + Ctrl+Alt+Q 速查小窗） |
 | 发布 | tag `v0.1.0`（`5e66188`，**落后 main**）；资产 `VeinLauncher-0.1.0-win64.zip`（249,873,131 B）+ `latest.json` |
 | 技术栈 | Python 3.13 · PySide6 6.12 + QWebEngine · React 19 + TypeScript（esbuild）· Layui 仅控件结构 · Node 18+（插件宿主）· aiohttp · pydantic v2 · PyInstaller onedir |
 | 规模 | Python 70 个文件 ≈9,469 行 · 前端 17 个文件 5,017 行 · RPC 66 个方法（20 组）· 测试 51 项 |
@@ -42,7 +42,7 @@
 | domain | `vein_launcher/domain/` | 模型与契约（不依赖框架） | `models/version.py`、`models/account.py`、`services/version_resolver.py` |
 | infrastructure | `vein_launcher/infrastructure/` | 网络、下载、进程、NBT/MC2、存储、插件宿主 | `download/{downloader,queue,sha_checker}.py`、`network/{http_client,mirror,microsoft_auth,littleskin}.py`、`process/{game_process,java_detector,java_manager}.py`、`plugin_host/` |
 | application | `vein_launcher/application/` | 业务编排 | `services/{version,launcher,loader,account,skin,instance,update,plugin,modpack,mlc}_service.py` |
-| presentation | `vein_launcher/presentation/` | Qt 窗口、RPC 桥、前端 | `main.py`（无边框窗口）、`bridge.py`（66 个 RPC handler）、`context.py`（服务装配）、`webui/` |
+| presentation | `vein_launcher/presentation/` | Qt 窗口、RPC 桥、全局热键、前端 | `main.py`（无边框窗口）、`bridge.py`（RPC handler）、`hotkeys.py`（Win32 全局热键）、`palette.py`（Ctrl+Alt+Q 速查小窗）、`context.py`（服务装配）、`webui/` |
 | mlc | `vein_launcher/mlc/` | 游戏控制层与插件能力入口 | `service.py` |
 
 ### 2.2 前端（`vein_launcher/presentation/webui/src/`）
@@ -61,8 +61,11 @@
 | `bridge.ts` | JSON-RPC 封装 + 事件订阅（**Lead 保留区**） |
 | `prefs.ts` / `theme.ts` / `i18n.ts` | 界面偏好、主题（默认深色）、中英文 |
 | `styles.css` | 设计系统：token、组件、动效、无障碍（含末尾 v3 / v3.1 覆盖段） |
+| `toolsPage.tsx` | 工具页：单卡「指令」，内含 构建器 / 快捷键 / 指令列表 三小节（默认收起） |
+| `commandTree.ts` | 指令树：88 条 Java 指令 + 161 件物品 + 物品组件/实体 NBT/方块 NBT，684 前缀 / 6660 候选 |
+| `package.json` / `package-lock.json` | 前端构建清单（react 19 / react-dom / esbuild 0.28） |
 
-一级导航 8 项：`launch / skins / download / plugins / mlc / multiplayer / settings / toolbox`（路由 `#/key`）。
+一级导航 8 项：`launch / skins / download / plugins / mlc / multiplayer / settings / tools`（路由 `#/key`；`Toolbox` 已并入 `tools` 并删除）。
 
 ### 2.3 工具链（`tools/`）
 
@@ -429,3 +432,29 @@ window.__veinResult(12, true, {ok: 1})
   session-inherited model), protocol cheatsheet, status matrix, P1–P3 risk register, repo
   governance gaps, doc drift list, decisions, asset inventory, migration checklist ·
   `teamwork.md` · tests 51 OK · `git log -- teamwork.md`
+- **2026-11-07 · tools/tree** — 指令树 `commandTree.ts`：对照 minecraft.wiki/w/Commands 补全
+  Java 版 **88 条**指令（7 个分组），**161 件**物品，物品组件（`[custom_name=...]` /
+  `[enchantments=...]` / `[unbreakable={}]`…）、实体 NBT（`{NoAI:1b}` / `{ArmorItems:[...]}`…）、
+  方块 NBT（`{Items:[...]}` / `{Lock:"..."}`）；循环批量注册节点，
+  共 **684 个前缀 / 6660 条候选** · `toolsPage.tsx`、`styles.css` · build OK
+- **2026-11-07 · tools/ui** — 工具页：指令构建器（输入前缀 → 列出可接项 → 点击追加、回退、清空、
+  复制）+ 中英文检索（命中给出完整路径）；单卡「指令」默认收起，内含 构建器 / 快捷键 / 指令列表
+  三小节；删除 `ToolboxPage` 与 `toolbox` 导航项，数据目录/日志入口合并进工具页 ·
+  `toolsPage.tsx`、`App.tsx`、`pages.tsx`、`styles.css` · esbuild 354 KB
+- **2026-11-07 · tools/hotkeys** — `hotkeys.py`：Win32 `RegisterHotKey` + `QAbstractNativeEventFilter`，
+  `Ctrl+Alt+0..9` 直接复制指令（250 ms 去重，Qt 会投递两种原生事件），复制后
+  `SetForegroundWindow` 把焦点还给游戏 · `main.py`、`bridge.py` · 实测剪贴板命中
+- **2026-11-07 · tools/palette** — `palette.py`：`Ctrl+Alt+Q` 唤起无边框置顶速查小窗，
+  搜索/↑↓/Enter 追加/Ctrl+Enter 复制/Esc 关闭；`AttachThreadInput` 抢焦点（否则按键进不了输入框）；
+  位置按 dpr 换算；点击检索结果=填入输入框（不关窗），Enter=直接复制 ·
+  `main.py`、`bridge.py`、`App.tsx` · 实测 `Ctrl+Alt+Q → kill → @e → 复制 /kill @e`
+- **2026-11-07 · tools/custom** — 自定义常用指令：`config/tools.json` 持久化
+  `favorites[{id,title,cmd,slot}]` + `paletteKey`；自定义优先占槽、内置让位；
+  小窗唤出键可选 A–Z / F1–F12；`tools.config` / `tools.saveConfig` RPC ·
+  `bridge.py`、`hotkeys.py`、`toolsPage.tsx` · 读配置兼容 BOM（`utf-8-sig`）
+- **2026-11-07 · app/update** — 移除启动强制更新弹窗（`force-mask` / `min_version` 判定），
+  只保留可关闭的浅色公告条与设置页手动检查更新 · `App.tsx`
+- **2026-11-07 · ui/fixes** — 勾选框 `i` 被 layui.css 的 `position:absolute` 压到文字上（改回 static +
+  flex order）；侧栏收起态图标居中（150% 缩放下 5 css px ≈ 7 物理像素） · `styles.css`
+- **2026-11-07 · docs/teamwork** — 本次变更并入总账（速览版本 0.5.0、代码地图补
+  `hotkeys.py` / `palette.py` / `toolsPage.tsx` / `commandTree.ts`、导航 8 项说明） · `teamwork.md`
