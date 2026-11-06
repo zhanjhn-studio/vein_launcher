@@ -77,3 +77,5 @@ docs/preview_*.png
 # 本地静态站点（按负责人要求：不提交、不发布 GitHub）
 veinwebsite-don'tupdategithub/
 docs/site_*.png
+docs/motion_*.png
+docs/motion_after.png

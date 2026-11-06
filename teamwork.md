@@ -458,3 +458,13 @@ window.__veinResult(12, true, {ok: 1})
   flex order）；侧栏收起态图标居中（150% 缩放下 5 css px ≈ 7 物理像素） · `styles.css`
 - **2026-11-07 · docs/teamwork** — 本次变更并入总账（速览版本 0.5.0、代码地图补
   `hotkeys.py` / `palette.py` / `toolsPage.tsx` / `commandTree.ts`、导航 8 项说明） · `teamwork.md`
+
+- **2026-11-07 · ui/motion-v4** — 追加一层顺滑动效（只动 opacity/transform，无大面积滤镜）：
+  切页用 View Transitions API 做整页交叉淡入（`startViewTransition`，`html.vt` 期间关掉
+  `.page` 的重复入场，不支持或 reduced-motion 时自动退回原动画）；版本卡/快捷卡/分类卡/
+  插件卡按 nth-child 35ms 错峰；日志行左滑淡入；进度条宽度 380ms 弹性过渡；标题栏滚动
+  后收缩 58→50px 并加投影（捕获阶段监听 `.main-body`，因为它在启动画面后才挂载）；主题
+  切换挂 340ms `theme-fade` 只过渡颜色；Toast 从右侧滑入；分类项 hover 右移 2px；
+  弹窗按钮组依次浮现 · `styles.css`、`App.tsx`、`theme.ts` ·
+  `python -m unittest discover -s tests` → 51 OK · frontend build OK ·
+  预览页实测 `hasVT=true`、滚动后 `.main.scrolled=true` 且标题栏 50px

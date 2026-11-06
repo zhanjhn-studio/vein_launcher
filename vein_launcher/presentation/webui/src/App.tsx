@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { on, rpc } from './bridge';
 import type { AccountInfo, AppInfo, VersionInfo } from './types';
 import {
@@ -64,8 +64,27 @@ function useHashRoute(): [string, (page: string) => void] {
   }, []);
   const navigate = useCallback((next: string) => {
     const target = KNOWN_PAGES.has(next) ? next : 'launch';
-    if (pageFromHash() !== target) window.location.hash = `#/${target}`;
-    setPageState(target);
+    const apply = () => {
+      if (pageFromHash() !== target) window.location.hash = `#/${target}`;
+      setPageState(target);
+    };
+    // 浏览器支持 View Transitions 时，切页做整页交叉淡入；否则退回 mount 动画
+    const doc = document as Document & {
+      startViewTransition?: (cb: () => void) => unknown;
+    };
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (typeof doc.startViewTransition === 'function' && !reduced) {
+      const root = document.documentElement;
+      root.classList.add('vt');
+      const transition = doc.startViewTransition(apply) as
+        | { finished?: Promise<void> }
+        | undefined;
+      const clear = () => root.classList.remove('vt');
+      if (transition && transition.finished) transition.finished.then(clear, clear);
+      else window.setTimeout(clear, 420);
+    } else {
+      apply();
+    }
   }, []);
   return [page, navigate];
 }
@@ -74,6 +93,18 @@ export function App() {
   useI18n();
   const prefs = usePrefs();
   const [page, setPage] = useHashRoute();
+  // 内容区滚动时给 .main 挂 scrolled（标题栏收缩）。用捕获阶段监听，
+  // 因为 .main-body 在启动画面之后才挂载，绑定具体元素会错过首帧。
+  useEffect(() => {
+    const onScroll = (event: Event) => {
+      const el = event.target as HTMLElement | null;
+      if (!el || !el.classList || !el.classList.contains('main-body')) return;
+      const main = el.closest('.main');
+      if (main) main.classList.toggle('scrolled', el.scrollTop > 6);
+    };
+    document.addEventListener('scroll', onScroll, true);
+    return () => document.removeEventListener('scroll', onScroll, true);
+  }, []);
   const [sideOpen, setSideOpen] = useState(false);
   const [toast, setToast] = useState('');
   const [installed, setInstalled] = useState<VersionInfo[]>([]);
