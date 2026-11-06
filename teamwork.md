@@ -1,4 +1,4 @@
-# Teamwork Log — Vein Launcher 协作总账（可迁移）
+﻿# Teamwork Log — Vein Launcher 协作总账（可迁移）
 
 > 目的：**这份文件 + 仓库 = 可在任意新环境/新会话接手本项目**。
 > 上半部分是项目事实、团队分工、硬规则、当前状态与风险；底部是完整变更日志（最新在最后）。
@@ -24,7 +24,7 @@
 | 定位 | Minecraft Java 版启动器，Windows 10/11 x64，便携免安装 |
 | 仓库 | github.com/zhanjhn-studio/vein_launcher（public，MIT） |
 | 版本 | **0.5.0**（`vein_launcher/presentation/context.py` 的 `VERSION`；包内 `__version__ = 0.5.0`） |
-| 当前 HEAD | `02650f8`（feat(tools): 指令构建器 + 全局热键 + Ctrl+Alt+Q 速查小窗） |
+| 当前 HEAD | `ac86ef1`（feat(tools): 指令构建器 + 全局热键 + Ctrl+Alt+Q 速查小窗） |
 | 发布 | tag `v0.1.0`（`5e66188`，**落后 main**）；资产 `VeinLauncher-0.1.0-win64.zip`（249,873,131 B）+ `latest.json` |
 | 技术栈 | Python 3.13 · PySide6 6.12 + QWebEngine · React 19 + TypeScript（esbuild）· Layui 仅控件结构 · Node 18+（插件宿主）· aiohttp · pydantic v2 · PyInstaller onedir |
 | 规模 | Python 70 个文件 ≈9,469 行 · 前端 17 个文件 5,017 行 · RPC 66 个方法（20 组）· 测试 51 项 |
