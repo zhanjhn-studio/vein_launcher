@@ -1534,3 +1534,108 @@ button:focus:not(:focus-visible) { outline: none; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---------- 工具页：游戏内指令列表 ---------- */
+.tool-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface-2); cursor: pointer;
+  transition: border-color .14s ease, background .14s ease;
+}
+.tool-row + .tool-row { margin-top: 8px; }
+.tool-row:hover { border-color: var(--accent); background: var(--surface-3); }
+.tool-hk {
+  flex: none; margin-top: 1px; white-space: nowrap;
+  font: 10.5px var(--mono); color: var(--text-3);
+  border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 7px;
+  background: var(--surface);
+}
+.tool-hk.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.tool-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tool-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.tool-tag {
+  font: 10px var(--mono); font-weight: 400; color: var(--text-3);
+  border: 1px solid var(--line); border-radius: 5px; padding: 0 5px;
+}
+.tool-desc { font-size: 11.5px; color: var(--text-3); line-height: 1.55; }
+.tool-cmd {
+  align-self: flex-start; user-select: text;
+  font: 11.5px var(--mono); color: var(--text);
+  background: var(--surface-3); border-radius: 6px; padding: 3px 8px;
+}
+.tool-warn { font-size: 11.5px; color: var(--warn); margin-top: 6px; }
+.tool-row > .btn { flex: none; align-self: center; }
+
+/* ---------- 工具页：指令构建器 ---------- */
+.cmd-input-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.cmd-slash { font: 700 16px var(--mono); color: var(--accent); }
+.cmd-input { flex: 1; min-width: 220px; font-family: var(--mono); }
+.cmd-current {
+  display: flex; align-items: center; gap: 10px; margin-top: 10px;
+  padding: 8px 12px; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); background: var(--surface-2); user-select: text;
+}
+.cmd-current code { font: 12.5px var(--mono); color: var(--text); }
+.cmd-badge {
+  font: 10.5px var(--mono); color: var(--ok);
+  border: 1px solid var(--line-2); border-radius: 5px; padding: 1px 6px;
+}
+.cmd-hint { margin-top: 12px; font-size: 12px; font-weight: 700; color: var(--text-2); }
+.cmd-options { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.cmd-option {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px;
+  background: var(--surface-2); color: var(--text);
+  transition: border-color .14s ease, background .14s ease;
+}
+.cmd-option:hover { border-color: var(--accent); background: var(--surface-3); }
+.cmd-option code { font: 12px var(--mono); color: var(--accent); min-width: 150px; }
+.cmd-option span { font-size: 11.5px; color: var(--text-3); }
+
+/* ---------- 工具页：候选检索 ---------- */
+.cmd-search { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.cmd-search .input { flex: 1; min-width: 180px; }
+.cmd-option.search { align-items: flex-start; }
+.cmd-option.search code {
+  min-width: 0; flex: 0 1 auto; white-space: normal; overflow-wrap: anywhere; line-height: 1.5;
+}
+.cmd-option.search span { flex: none; white-space: nowrap; }
+.cmd-option.search code em { font-style: normal; color: var(--text-3); }
+
+/* ---------- 工具页：候选分组标题 ---------- */
+.cmd-group {
+  margin: 12px 0 2px; padding-left: 2px;
+  font-size: 10.5px; letter-spacing: .6px; color: var(--text-3);
+  text-transform: uppercase;
+}
+.cmd-group:first-child { margin-top: 4px; }
+
+/* ---------- 工具页：可收起的卡片标题 ---------- */
+.card-toggle {
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer; user-select: none;
+}
+.card-toggle:hover { color: var(--text); }
+.card-caret {
+  display: inline-block; width: 12px; font-size: 10px; color: var(--text-3);
+  transition: transform .15s ease;
+}
+.card-caret.open { transform: rotate(90deg); }
+.card-toggle-hint {
+  margin-left: auto; font-size: 10.5px; font-weight: 400; color: var(--text-3);
+}
+.card-toggle + * { margin-top: 10px; }
+
+/* ---------- 工具页：指令区块内的小节 ---------- */
+.tool-section + .tool-section {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line);
+}
+.tool-section-title {
+  font-size: 12px; font-weight: 700; color: var(--text-2); margin-bottom: 6px;
+}
+
+/* ---------- 工具页：自定义常用指令行 ---------- */
+.fav-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.fav-row .fav-slot { width: 130px; flex: none; }
+.fav-row .fav-title { width: 190px; flex: none; }
+.fav-row .fav-cmd { flex: 1; min-width: 150px; font: 12px var(--mono); }

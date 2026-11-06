@@ -13,7 +13,6 @@ import type {
   VersionInfo,
 } from './types';
 import { CategoryList, Empty, PermissionDialog, StatusDot, ThreePane } from './ui';
-import { layuiVersion, layerMsg, openLayuiPreview } from './layui';
 import { currentLang, setLang, t } from './i18n';
 
 const CATEGORIES: { key: Category; label: string; hint?: string }[] = [
@@ -900,49 +899,3 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   );
 }
 
-// ---------------------------------------------------------------- Toolbox
-export function ToolboxPage({ notify }: { notify: (text: string) => void }) {
-  const [info, setInfo] = useState<AppInfo | null>(null);
-  useEffect(() => {
-    rpc<AppInfo>('app.info').then(setInfo).catch(() => {});
-  }, []);
-
-  return (
-    <div className="page">
-      <div className="page-head"><h1>{t('Toolbox')}</h1><span className="muted">Quick actions</span></div>
-      <div className="cards">
-        <div className="card">
-          <div className="card-title">{t('Folders')}</div>
-          <div className="kv"><span>Data folder</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
-          <div className="row-actions">
-            <button className="btn" onClick={() => rpc('logs.openDir').catch(() => {})}>{t('Open log folder')}</button>
-            <button className="btn" onClick={() => rpc('app.openDataDir').catch((e) => notify((e as Error).message))}>
-              Open data folder
-            </button>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-title">{t('Notes')}</div>
-          <p className="muted">Downloads are cached in assets/objects; interrupted files keep .part for resume.。</p>
-          <div className="row-actions" style={{ marginTop: 10, alignItems: "center" }}>
-            <button
-              className="btn sm"
-              onClick={() =>
-                layerMsg(`Layui ${layuiVersion()} Ready`).catch(() => notify("layui Load failed"))
-              }
-            >
-              Test Layui layer
-            </button>
-            <button
-              className="btn sm"
-              onClick={() => openLayuiPreview().catch(() => notify("layui Component failed to load"))}
-            >
-              Layui Component preview
-            </button>
-            <span className="muted">layui {layuiVersion()}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

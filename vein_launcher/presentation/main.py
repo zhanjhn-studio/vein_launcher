@@ -33,6 +33,8 @@ from vein_launcher.common.logging.logger import (
 )
 from vein_launcher.presentation.bridge import ApiBridge
 from vein_launcher.presentation.context import AppContext, VERSION
+from vein_launcher.presentation.hotkeys import GlobalHotkeys
+from vein_launcher.presentation.palette import CommandPalette
 
 logger = logging.getLogger("vein_launcher.presentation.main")
 
@@ -193,9 +195,22 @@ class MainWindow(QMainWindow):
         self._grip = QSizeGrip(container)
         self._grip.setFixedSize(16, 16)
 
+        # 全局热键（Ctrl+Alt+0..9）：工具页把指令绑上来，游戏在前台时也能复制
+        self.hotkeys = GlobalHotkeys(lambda: int(self.winId()), self._on_hotkey_fired)
+        self.hotkeys.install()
+
+        # 指令速查小窗（Ctrl+Alt+Q）：游戏内唤起，搜索后回车复制
+        self.palette = CommandPalette()
+        self.palette.set_source(lambda: (self.bridge.palette_entries, self.bridge.palette_nodes))
+        self.palette.picked.connect(self._on_palette_picked)
+        self.hotkeys.set_palette_callback(self.palette.open_palette)
+        self.hotkeys.enable_palette()
+
         self.channel = QWebChannel(page)
         self.bridge = ApiBridge(context, page, self)
         self.bridge._pick_request.connect(self._on_pick_directory)
+        self.bridge._clip_request.connect(self._on_clipboard_request)
+        self.bridge._hotkey_request.connect(self._on_hotkey_request)
         self.channel.registerObject("bridge", self.bridge)
         page.setWebChannel(self.channel)
 
@@ -252,6 +267,62 @@ class MainWindow(QMainWindow):
         holder["result"] = chosen or ""
         holder["event"].set()
 
+    # ------------------------------------------------------------------
+    # 工具页：剪贴板 / 全局热键（都在 UI 线程执行）
+    # ------------------------------------------------------------------
+    def _on_clipboard_request(self, text: str, holder: dict) -> None:
+        """把文本写进系统剪贴板（由 bridge 的 tools.copy 触发）"""
+        from PySide6.QtGui import QGuiApplication
+
+        try:
+            clipboard = QGuiApplication.clipboard()
+            clipboard.setText(str(text))
+            holder["ok"] = clipboard.text() == str(text)
+            if not holder["ok"]:
+                logger.warning("剪贴板回读不一致：%r", text[:60])
+        except Exception:
+            logger.exception("写入剪贴板失败")
+            holder["ok"] = False
+        finally:
+            holder["event"].set()
+
+    def _on_hotkey_request(self, holder: dict) -> None:
+        """注册 Ctrl+Alt+0..9 与小窗热键（由 bridge 的 tools.bindHotkeys 触发）"""
+        try:
+            key = holder.get("palette_key")
+            if key:
+                holder["palette_key"] = self.hotkeys.set_palette_key(str(key))
+            holder["result"] = self.hotkeys.bind(holder.get("entries") or [])
+            holder["result"]["paletteKey"] = self.hotkeys._palette_key
+        except Exception as exc:
+            logger.exception("注册全局热键失败")
+            holder["result"] = {"ok": False, "error": str(exc), "bound": [], "failed": []}
+        finally:
+            holder["event"].set()
+
+    def _on_hotkey_fired(self, slot: int, text: str, title: str) -> None:
+        """热键按下：复制指令并提示前端"""
+        from PySide6.QtGui import QGuiApplication
+
+        try:
+            clipboard = QGuiApplication.clipboard()
+            clipboard.setText(text)
+            readback = clipboard.text()
+        except Exception:
+            logger.exception("热键复制失败")
+            return
+        logger.info(
+            "全局热键 Ctrl+Alt+%s 触发，已复制：%s（回读=%r）",
+            slot,
+            title or text,
+            readback[:60],
+        )
+        self.bridge.push_hotkey(slot, text, title)
+
+    def _on_palette_picked(self, command: str) -> None:
+        """速查窗里选中并复制了一条指令"""
+        logger.info("速查窗选中：%s", command)
+
     def resizeEvent(self, event) -> None:  # noqa: N802
         super().resizeEvent(event)
         if hasattr(self, "_grip"):
@@ -263,6 +334,10 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt 约定
         logger.info("窗口关闭，开始释放资源")
+        try:
+            self.hotkeys.uninstall()
+        except Exception:
+            logger.debug("注销全局热键失败", exc_info=True)
         try:
             self.bridge.shutdown(self._ctx)
             self._ctx.launcher.process.kill()
@@ -350,6 +425,11 @@ def main() -> int:
 
     window = MainWindow(context)
     window.show()
+    # 窗口真正显示后句柄才稳定，这里再注册一次 Ctrl+Alt+Q
+    try:
+        window.hotkeys.enable_palette()
+    except Exception:
+        logger.exception("注册速查窗热键失败")
     logger.info("窗口已显示")
     _schedule_auto_exit(app)
 

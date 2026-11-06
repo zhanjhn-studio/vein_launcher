@@ -101,6 +101,8 @@ class ApiBridge(QObject):
     # 线程安全的 JS 执行通道：后台线程 emit，UI 线程执行
     _js_request = Signal(str)
     _pick_request = Signal(object)
+    _clip_request = Signal(str, object)
+    _hotkey_request = Signal(object)
 
     def __init__(self, context: AppContext, page, parent: Optional[QObject] = None):
         super().__init__(parent)
@@ -113,6 +115,9 @@ class ApiBridge(QObject):
         self._downloads: dict[str, dict] = {}
         self._mlc_connected = False
         self._mlc_pid: Optional[int] = None
+        # 指令速查窗的数据源（前端 tools.syncPalette 推过来）
+        self.palette_entries: list[dict] = []
+        self.palette_nodes: list[str] = []
         self._js_request.connect(self._execute_js)
         page.loadFinished.connect(self._on_page_loaded)
         self._handlers: dict[str, Callable[..., Any]] = {
@@ -172,6 +177,11 @@ class ApiBridge(QObject):
             "ui.prefs": self._ui_prefs,
             "ui.setPrefs": self._ui_set_prefs,
             "ui.importWallpaper": self._ui_import_wallpaper,
+            "tools.copy": self._tools_copy,
+            "tools.bindHotkeys": self._tools_bind_hotkeys,
+            "tools.syncPalette": self._tools_sync_palette,
+            "tools.config": self._tools_config,
+            "tools.saveConfig": self._tools_save_config,
             "minecraft.getDir": self._minecraft_get_dir,
             "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
@@ -896,6 +906,170 @@ class ApiBridge(QObject):
         settings_manager.save()
         logger.info("自定义壁纸已导入：%s", target)
         return await self._ui_prefs()
+
+    # ------------------------------------------------------------------
+    # 工具页：复制指令 / 绑定全局热键
+    # ------------------------------------------------------------------
+    async def _tools_copy(self, text: str = "") -> dict:
+        """把指令写进系统剪贴板（Qt 剪贴板只能在 UI 线程操作，这里转发过去）"""
+        payload = str(text or "")
+        if not payload:
+            raise ValueError("要复制的内容为空")
+        holder = {"text": payload, "ok": False, "event": threading.Event()}
+        self._clip_request.emit(payload, holder)
+        if not holder["event"].wait(2.0):
+            raise RuntimeError("剪贴板操作超时")
+        if not holder["ok"]:
+            raise RuntimeError("写入剪贴板失败")
+        return {"ok": True, "length": len(payload), "text": payload}
+
+    async def _tools_bind_hotkeys(
+        self, entries: Any = None, palette_key: Any = None
+    ) -> dict:
+        """把 [{slot, text, title}] 注册成 Ctrl+Alt+<slot> 全局热键，同时应用小窗热键"""
+        payload = entries if isinstance(entries, list) else []
+        holder: dict = {
+            "entries": payload,
+            "palette_key": palette_key,
+            "result": None,
+            "event": threading.Event(),
+        }
+        self._hotkey_request.emit(holder)
+        if not holder["event"].wait(3.0):
+            return {"ok": False, "error": "热键注册超时", "bound": [], "failed": []}
+        return holder["result"] or {
+            "ok": False,
+            "error": "热键注册失败",
+            "bound": [],
+            "failed": [],
+        }
+
+    # ------------------------------------------------------------------
+    # 工具页：常用指令配置（自定义指令 + 小窗热键）
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _tools_config_path():
+        from vein_launcher.common.utils.path_utils import get_config_dir
+
+        return get_config_dir() / "tools.json"
+
+    def _read_tools_config(self) -> dict:
+        data: dict = {"favorites": [], "paletteKey": "Q"}
+        try:
+            raw = json.loads(self._tools_config_path().read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            return data
+        if not isinstance(raw, dict):
+            return data
+
+        favorites = []
+        for item in raw.get("favorites") or []:
+            if not isinstance(item, dict):
+                continue
+            cmd = str(item.get("cmd") or "").strip()
+            if not cmd:
+                continue
+            if not cmd.startswith("/"):
+                cmd = "/" + cmd
+            try:
+                slot = int(item.get("slot"))
+            except (TypeError, ValueError):
+                slot = None
+            favorites.append(
+                {
+                    "id": str(item.get("id") or f"fav-{len(favorites) + 1}"),
+                    "title": str(item.get("title") or cmd),
+                    "cmd": cmd,
+                    "slot": slot if slot in range(0, 10) else None,
+                }
+            )
+        data["favorites"] = favorites
+        key = str(raw.get("paletteKey") or "Q").upper()
+        data["paletteKey"] = key
+        return data
+
+    async def _tools_config(self) -> dict:
+        return self._read_tools_config()
+
+    async def _tools_save_config(
+        self, favorites: Any = None, palette_key: Any = None
+    ) -> dict:
+        import uuid
+
+        rows: list[dict] = []
+        for item in favorites or []:
+            if not isinstance(item, dict):
+                continue
+            cmd = str(item.get("cmd") or "").strip()
+            if not cmd:
+                continue
+            if not cmd.startswith("/"):
+                cmd = "/" + cmd
+            try:
+                slot = int(item.get("slot"))
+            except (TypeError, ValueError):
+                slot = None
+            rows.append(
+                {
+                    "id": str(item.get("id") or uuid.uuid4().hex[:8]),
+                    "title": str(item.get("title") or cmd).strip() or cmd,
+                    "cmd": cmd,
+                    "slot": slot if slot in range(0, 10) else None,
+                }
+            )
+
+        key = str(palette_key or "Q").upper()
+        data = {"favorites": rows, "paletteKey": key}
+        path = self._tools_config_path()
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        except OSError as exc:
+            raise RuntimeError(f"保存失败：{exc}") from exc
+        logger.info("常用指令已保存：%d 条，小窗热键 Ctrl+Alt+%s", len(rows), key)
+        return {"ok": True, "config": data}
+
+    async def _tools_sync_palette(self, payload: Any = None) -> dict:
+        """前端把全量候选 + 合法前缀推给 Python，供 Ctrl+Alt+Q 速查窗检索/构建"""
+        entries: Any = payload
+        nodes: Any = []
+        if isinstance(payload, dict):
+            entries = payload.get("entries") or []
+            nodes = payload.get("nodes") or []
+
+        rows: list[dict] = []
+        seen: set[str] = set()
+        for item in entries or []:
+            if not isinstance(item, dict):
+                continue
+            token = str(item.get("token") or "").strip()
+            parent = str(item.get("parent") or "").strip()
+            if not token:
+                continue
+            command = f"{parent} {token}".strip()
+            if command in seen:
+                continue
+            seen.add(command)
+            rows.append(
+                {
+                    "token": token,
+                    "hint": str(item.get("hint") or ""),
+                    "parent": parent,
+                    "command": command,
+                }
+            )
+        self.palette_entries = rows
+        self.palette_nodes = [str(n).strip() for n in nodes if str(n).strip()]
+        logger.info("指令速查表已同步：%d 条候选 / %d 个前缀", len(rows), len(self.palette_nodes))
+        return {"ok": True, "count": len(rows), "nodes": len(self.palette_nodes)}
+
+    def push_hotkey(self, slot: int, text: str, title: str) -> None:
+        """热键触发后通知前端弹提示"""
+        self._run_js(
+            "window.__veinHotkey && window.__veinHotkey("
+            f"{int(slot)},{json.dumps(text, ensure_ascii=False)},"
+            f"{json.dumps(title, ensure_ascii=False)})"
+        )
 
     async def _instance_toggle(self, version_id: str, kind: str, name: str, enabled: bool) -> dict:
         return self._ctx.instances.set_enabled(str(version_id), str(kind), str(name), bool(enabled))

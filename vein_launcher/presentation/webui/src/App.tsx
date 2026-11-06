@@ -6,19 +6,20 @@ import {
   MlcPage,
   MultiplayerPage,
   PluginsPage,
-  ToolboxPage,
 } from './pages';
 import { LaunchPage } from './launchPage';
 import { DownloadPage } from './downloadPage';
 import { SettingsPage } from './settingsPage';
 import { SkinsPage } from './skinsPage';
 import { InstancePage } from './instancePage';
+import { ToolsPage } from './toolsPage';
 import { DownloadMonitor, Toast } from './ui';
 import { PluginUiHost } from './pluginUi';
 import { initI18n, t, useI18n } from './i18n';
 import { initTheme, Theme } from './theme';
 import { Onboarding, Splash } from './onboarding';
 import { loadPrefs, usePrefs } from './prefs';
+import { buildPaletteEntries, COMMAND_NODES } from './commandTree';
 
 const NAV = [
   { key: 'launch', label: 'Launch', icon: 'layui-icon-play', iconImg: 'arrow.png' },
@@ -28,7 +29,7 @@ const NAV = [
   { key: 'mlc', label: 'MLC', icon: 'layui-icon-console', iconImg: 'chest.png' },
   { key: 'multiplayer', label: 'Multiplayer', icon: 'layui-icon-link', iconImg: 'oak_sign.png' },
   { key: 'settings', label: 'Settings', icon: 'layui-icon-set', iconImg: 'crafting_table.png' },
-  { key: 'toolbox', label: 'Toolbox', icon: 'layui-icon-util', iconImg: 'bucket.png' },
+  { key: 'tools', label: 'Tools', icon: 'layui-icon-util', iconImg: 'anvil.png' },
 ];
 
 interface Announcement {
@@ -152,6 +153,8 @@ export function App() {
       })
       .catch(() => setBooted(true));
     rpc<AnnouncementPayload>('announcements.get').then(setNews).catch(() => setNews(null));
+    // 把全量指令表推给 Python，Ctrl+Alt+Q 速查窗用它检索
+    rpc('tools.syncPalette', [{ entries: buildPaletteEntries(), nodes: COMMAND_NODES }]).catch(() => {});
     const offNav = on<string>('vein:navigate', (p) => setPage(p));
     const offNotify = on<{ title: string; message: string }>('vein:notify', (d) =>
       notify(`${d.title}锛?{d.message}`)
@@ -163,8 +166,6 @@ export function App() {
   }, [notify, refreshInstalled, setPage]);
 
   const lightNews = (news?.announcements ?? []).filter((a) => a.level !== 'heavy');
-  const forced = Boolean(news?.force_update);
-  const forcedItems = (news?.announcements ?? []).filter((a) => a.level === 'heavy');
   const current = NAV.find((n) => n.key === page) ?? NAV[0];
 
   if (!booted) {
@@ -281,37 +282,9 @@ export function App() {
           )}
           {page === 'multiplayer' && <MultiplayerPage />}
           {page === 'settings' && <SettingsPage notify={notify} />}
-          {page === 'toolbox' && <ToolboxPage notify={notify} />}
+          {page === 'tools' && <ToolsPage notify={notify} />}
         </div>
       </main>
-
-      {forced && !dismissed && (
-        <div className="force-mask">
-          <div className="force-modal">
-            <h2>Update required</h2>
-            <p className="muted">
-              This build is blocked by an urgent announcement. Please update to continue.
-              {news?.min_version ? ` Minimum: ${news.min_version}` : ''}
-            </p>
-            {forcedItems.map((item, index) => (
-              <div className="force-item" key={item.id ?? index}>
-                <b>{item.title}</b>
-                {item.content && <div className="muted">{item.content}</div>}
-              </div>
-            ))}
-            <div className="row-actions">
-              {news?.update?.url && (
-                <button className="btn primary" onClick={() => rpc('app.openUrl', [news.update?.url])}>
-                  Download update
-                </button>
-              )}
-              <button className="btn" onClick={() => setDismissed(true)}>
-                Not now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <PluginUiHost />
       {showOnboarding && (
