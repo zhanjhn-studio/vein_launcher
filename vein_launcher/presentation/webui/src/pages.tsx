@@ -655,9 +655,11 @@ export function MlcPage({
 
   useEffect(() => {
     let alive = true;
+    // 页面打开就开启事件监听（进世界/离开/切维度/死亡）
+    rpc('mlc.watchStart', [1.0]).catch(() => {});
     const tick = async () => {
       try {
-        const state = await rpc<{ ok?: boolean; inGame?: boolean; player?: any }>('mlc.agentState', [25566]);
+        const state = await rpc<{ ok?: boolean; inGame?: boolean; player?: any }>('mlc.agentState', [0]);
         if (alive) setAgent(state);
       } catch (err) {
         if (alive) setAgent({ ok: false, error: (err as Error).message });
@@ -668,6 +670,7 @@ export function MlcPage({
     return () => {
       alive = false;
       window.clearInterval(timer);
+      rpc('mlc.watchStop').catch(() => {});
     };
   }, []);
 
@@ -676,7 +679,7 @@ export function MlcPage({
     setSending(true);
     try {
       try {
-        await rpc('mlc.agentChat', [command.trim(), 25566]);
+        await rpc('mlc.agentChat', [command.trim(), 0]);
         notify(`Agent sent: ${command.trim()}`);
         setResult(`mlc.agentChat → ${command.trim()}`);
       } catch {

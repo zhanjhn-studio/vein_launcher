@@ -32,6 +32,7 @@ export function initBridge(): Promise<void> {
         fire('vein:progress', { taskId, done, total });
 
       (window as any).__veinLog = (line: string) => fire('vein:log', String(line));
+      (window as any).__veinMlcEvent = (payload: any) => fire('vein:mlcEvent', payload);
       (window as any).__veinNotify = (title: string, message: string) =>
         fire('vein:notify', { title, message });
       (window as any).__veinNavigate = (page: string) => fire('vein:navigate', String(page));

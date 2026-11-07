@@ -61,6 +61,11 @@ public final class VeinAgent {
     private static final String M_CONNECTION = "__M_CONNECTION__";
     private static final String M_GETSTRING = "__M_GETSTRING__";
     private static final String M_DIMENSION = "__M_DIMENSION__";
+    private static final String F_XP = "__F_XP__";
+    private static final String M_YAW = "__M_YAW__";
+    private static final String M_PITCH = "__M_PITCH__";
+    private static final String M_FOODDATA = "__M_FOODDATA__";
+    private static final String M_FOODLEVEL = "__M_FOODLEVEL__";
 
     public static void premain(String args, java.lang.instrument.Instrumentation inst) {
         int port = Integer.getInteger("vein.agent.port", 25566);
@@ -162,10 +167,17 @@ public final class VeinAgent {
                     dim = String.valueOf(level);
                 }
             }
+            Object xp = readField(player, F_XP);
+            Object yaw = safeInvoke(player, M_YAW);
+            Object pitch = safeInvoke(player, M_PITCH);
+            Object foodData = safeInvoke(player, M_FOODDATA);
+            Object food = foodData == null ? null : safeInvoke(foodData, M_FOODLEVEL);
             return "{\"inGame\":true,\"player\":{"
                 + "\"name\":\"" + escape(name) + "\","
                 + "\"x\":" + num(x) + ",\"y\":" + num(y) + ",\"z\":" + num(z) + ","
-                + "\"health\":" + num(hp) + ",\"dimension\":\"" + escape(dim) + "\"}}";
+                + "\"health\":" + num(hp) + ",\"dimension\":\"" + escape(dim) + "\","
+                + "\"food\":" + num(food) + ",\"xpLevel\":" + num(xp) + ","
+                + "\"yaw\":" + num(yaw) + ",\"pitch\":" + num(pitch) + "}}";
         } catch (Throwable t) {
             return "{\"inGame\":false,\"error\":\"" + escape(String.valueOf(t)) + "\"}";
         }
@@ -212,8 +224,32 @@ public final class VeinAgent {
         return method.invoke(target, args);
     }
 
+    private static Object safeInvoke(Object target, String name) {
+        if (target == null || name == null || name.isEmpty()) return null;
+        try {
+            return invoke(target, name, 0);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
     private static Object invoke(Object target, String name, int argc) throws Exception {
         return invoke(target, name, argc, new Class<?>[0], new Object[0]);
+    }
+
+    private static Object readField(Object target, String name) {
+        if (name == null || name.isEmpty()) return null;
+        Class<?> cls = target.getClass();
+        while (cls != null) {
+            try {
+                Field field = cls.getDeclaredField(name);
+                field.setAccessible(true);
+                return field.get(target);
+            } catch (ReflectiveOperationException ignored) {
+            }
+            cls = cls.getSuperclass();
+        }
+        return null;
     }
 
     private static String num(Object value) {
@@ -327,6 +363,12 @@ def main() -> int:
         "M_CHAT": need(classes, fields, methods, "net.minecraft.client.multiplayer.ClientPacketListener", method="sendCommand"),
         "M_GETSTRING": need(classes, fields, methods, "net.minecraft.network.chat.Component", method="getString"),
         "M_DIMENSION": need(classes, fields, methods, "net.minecraft.world.level.Level", method="dimension"),
+        "F_XP": fields.get("net.minecraft.world.entity.player.Player", {}).get("experienceLevel", ""),
+        "M_YAW": methods.get("net.minecraft.world.entity.Entity", {}).get("getYRot", ""),
+        "M_PITCH": methods.get("net.minecraft.world.entity.Entity", {}).get("getXRot", ""),
+        "M_FOODDATA": methods.get("net.minecraft.client.player.LocalPlayer", {}).get("getFoodData")
+        or methods.get("net.minecraft.world.entity.player.Player", {}).get("getFoodData", ""),
+        "M_FOODLEVEL": methods.get("net.minecraft.world.food.FoodData", {}).get("getFoodLevel", ""),
     }
     print("tokens:", json.dumps(tokens, ensure_ascii=False))
 

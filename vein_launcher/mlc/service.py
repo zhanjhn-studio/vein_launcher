@@ -243,11 +243,73 @@ class MlcService:
             raise MlcError("MLC agent closed the connection")
         return json.loads(line.decode("utf-8", errors="replace"))
 
-    async def agent_state(self, port: int = 25566) -> dict:
-        return await self._agent_call({"cmd": "state"}, port)
+    def _resolve_agent_port(self, port: int) -> int:
+        if port:
+            return int(port)
+        resolver = getattr(self._launcher, "agent_port", None)
+        if callable(resolver):
+            resolved = resolver()
+            if resolved:
+                return int(resolved)
+        return 25566
 
-    async def agent_chat(self, text: str, port: int = 25566) -> dict:
-        return await self._agent_call({"cmd": "chat", "text": text}, port)
+    # ------------------------------------------------------------------ agent 事件
+    AGENT_EVENTS = ("game.enter", "game.leave", "player.dimension", "player.death")
+
+    def start_agent_watch(self, interval: float = 1.0, port: int = 0) -> None:
+        """轮询 agent 状态，状态变化时发布 mlc.agent.* 事件（幂等）"""
+        import asyncio
+
+        if getattr(self, "_agent_watch_task", None) and not self._agent_watch_task.done():
+            return
+        self._agent_watch_task = asyncio.create_task(self._agent_watch_loop(interval, port))
+
+    def stop_agent_watch(self) -> None:
+        task = getattr(self, "_agent_watch_task", None)
+        if task and not task.done():
+            task.cancel()
+        self._agent_watch_task = None
+
+    async def _agent_watch_loop(self, interval: float, port: int) -> None:
+        import asyncio
+
+        previous: dict = {}
+        while True:
+            try:
+                state = await self.agent_state(port)
+            except Exception:
+                await asyncio.sleep(max(interval, 2.0))
+                continue
+
+            events = []
+            was_in = bool(previous.get("inGame"))
+            now_in = bool(state.get("inGame"))
+            if previous and was_in != now_in:
+                events.append("game.enter" if now_in else "game.leave")
+            if was_in and now_in:
+                before = previous.get("player") or {}
+                after = state.get("player") or {}
+                if before.get("dimension") != after.get("dimension"):
+                    events.append("player.dimension")
+                if (before.get("health") or 0) > 0 and (after.get("health") or 0) <= 0:
+                    events.append("player.death")
+            for name in events:
+                try:
+                    event_bus.publish(f"mlc.agent.{name}", state=state)
+                    logger.info("MLC agent 事件：%s", name)
+                except Exception:
+                    logger.exception("发布 MLC agent 事件失败：%s", name)
+            if events:
+                previous = state
+            elif not previous:
+                previous = state
+            await asyncio.sleep(interval)
+
+    async def agent_state(self, port: int = 0) -> dict:
+        return await self._agent_call({"cmd": "state"}, self._resolve_agent_port(port))
+
+    async def agent_chat(self, text: str, port: int = 0) -> dict:
+        return await self._agent_call({"cmd": "chat", "text": text}, self._resolve_agent_port(port))
 
     # ------------------------------------------------------------------ 玩家
     def player_info(self, version_id: str, world: str = "") -> Dict[str, Any]:

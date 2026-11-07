@@ -44,6 +44,10 @@ class LauncherService:
         self._process = process or GameProcess()
         # 多实例：每次启动一个独立 GameProcess，按 pid 跟踪，互不覆盖
         self._processes: Dict[int, GameProcess] = {}
+        # 原版 agent：每个实例一个端口
+        self._agent_ports: Dict[int, int] = {}
+        self._pending_agent_ports: list[int] = []
+        self._reserved_agent_ports: set[int] = set()
         if process is not None:
             pid = process.pid
             if pid:
@@ -52,6 +56,36 @@ class LauncherService:
     @property
     def process(self) -> GameProcess:
         return self._process
+
+    def _free_agent_port(self, start: int = 25566, end: int = 25600) -> int:
+        """从 start 开始找一个没被占用、也没被预留的本地端口，并预留它"""
+        import socket
+
+        for port in range(start, end):
+            if port in self._reserved_agent_ports:
+                continue
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+                probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                try:
+                    probe.bind(("127.0.0.1", port))
+                except OSError:
+                    continue
+            self._reserved_agent_ports.add(port)
+            return port
+        return start
+
+    def agent_port(self, pid: Optional[int] = None) -> int:
+        """返回某个实例（默认最近启动且仍在运行）的 agent 端口，拿不到就返回 0"""
+        alive = {p: port for p, port in self._agent_ports.items() if p in self.running_processes}
+        self._agent_ports = alive
+        if pid:
+            return alive.get(int(pid), 0)
+        if not alive:
+            return 0
+        return alive[max(alive)]
+
+    def forget_agent_port(self, pid: int) -> None:
+        self._agent_ports.pop(int(pid), None)
 
     @property
     def running_processes(self) -> Dict[int, GameProcess]:
@@ -137,8 +171,10 @@ class LauncherService:
 
             agent_jar = get_root_dir() / "agent" / f"vein-agent-{version_id}.jar"
             if agent_jar.is_file():
-                agent_flags = [f"-javaagent:{agent_jar}", "-Dvein.agent.port=25566"]
-                logger.info("挂载原版 MLC agent：%s", agent_jar.name)
+                port = self._free_agent_port()
+                self._pending_agent_ports.append(port)
+                agent_flags = [f"-javaagent:{agent_jar}", f"-Dvein.agent.port={port}"]
+                logger.info("挂载原版 MLC agent：%s（端口 %s）", agent_jar.name, port)
 
         command = [
             java_bin,
@@ -187,6 +223,10 @@ class LauncherService:
         self._process = process
         if isinstance(process, GameProcess):
             self._processes[pid] = process
+            if self._pending_agent_ports:
+                port = self._pending_agent_ports.pop(0)
+                self._agent_ports[pid] = port
+                self._reserved_agent_ports.discard(port)
             game_registry.register(pid, version_id, str(cwd), command)
             asyncio.create_task(self._watch(pid, process))
         return pid
@@ -202,6 +242,7 @@ class LauncherService:
         finally:
             game_registry.unregister(pid)
             self._processes.pop(pid, None)
+            self.forget_agent_port(pid)
 
     # ------------------------------------------------------------------
     def _jar_chain(self, version_id: str) -> List[Path]:

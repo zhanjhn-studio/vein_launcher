@@ -605,3 +605,12 @@ window.__veinResult(12, true, {ok: 1})
   实测（quickPlay 直接进世界）：`state` 返回 `{inGame:true,player:{name:"Player",x:-1044.7,y:64,z:-1066,health:20,dimension:"minecraft:overworld"}}`；
   `chat` 发送 `/time set day` 与 `/say hello from vein` 均返回 `{ok:true}` 且游戏内生效 ·
   `tools/build_vanilla_agent.py` · 未提交
+
+- **2026-11-07 · feat/mlc-agent-1-2-3** — 原版 agent 三项改进（已逐项实测）：
+  ① 多实例端口：`LauncherService._free_agent_port()` 从 25566 起找空闲并**预留**，`build_command` 写入 `-Dvein.agent.port`，
+  `launch` 记 pid→port，退出清理；`agent_port()` 解析「最近存活实例」，RPC 传 0 自动定位（实测两次 build 分别拿到 25567/25568）。
+  ② 状态扩展：agent `state` 增加 `food`（20）、`xpLevel`、`yaw`/`pitch`、`dimension`（实测 `{food:20, xpLevel:0, yaw:-40.68, pitch:19.5, dimension:minecraft:overworld}`）；
+  `readField` 兼容反射异常，`getFoodData` 从 Player 继承链解析。
+  ③ 事件：`MlcService.start_agent_watch()` 每秒轮询状态，变化时发布 `mlc.agent.game.enter / game.leave / player.dimension / player.death`，
+  bridge 订阅后推给前端 `__veinMlcEvent`（`vein:mlcEvent`）；MLC 页挂载自动开启、卸载停止（实测 quickPlay 进世界触发 `game.enter`）。
+  51 项单测通过 · 未提交

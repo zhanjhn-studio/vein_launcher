@@ -211,6 +211,8 @@ class ApiBridge(QObject):
             "mlc.setEnabled": self._mlc_set_enabled,
             "mlc.agentState": self._mlc_agent_state,
             "mlc.agentChat": self._mlc_agent_chat,
+            "mlc.watchStart": self._mlc_watch_start,
+            "mlc.watchStop": self._mlc_watch_stop,
             "mlc.player": self._mlc_player,
             "mlc.worldDetail": self._mlc_world_detail,
             "mlc.modLoad": self._mlc_mod_load,
@@ -228,6 +230,8 @@ class ApiBridge(QObject):
         event_bus.subscribe(EventNames.GAME_RUNNING, self._on_game_running)
         event_bus.subscribe(EventNames.GAME_EXITED, self._on_game_exited)
         event_bus.subscribe("plugin.ui", self._on_plugin_ui)
+        for agent_event in ("game.enter", "game.leave", "player.dimension", "player.death"):
+            event_bus.subscribe(f"mlc.agent.{agent_event}", self._make_mlc_agent_handler(agent_event))
 
     # ------------------------------------------------------------------
     def start(self) -> None:
@@ -1246,14 +1250,29 @@ class ApiBridge(QObject):
     async def _mlc_set_enabled(self, enabled: bool = False) -> dict:
         return self._ctx.mlc.set_enabled(bool(enabled))
 
-    async def _mlc_agent_state(self, port: int = 25566) -> dict:
-        return await self._ctx.mlc.agent_state(int(port or 25566))
+    async def _mlc_agent_state(self, port: int = 0) -> dict:
+        return await self._ctx.mlc.agent_state(int(port or 0))
 
-    async def _mlc_agent_chat(self, text: str = "", port: int = 25566) -> dict:
-        return await self._ctx.mlc.agent_chat(str(text), int(port or 25566))
+    async def _mlc_agent_chat(self, text: str = "", port: int = 0) -> dict:
+        return await self._ctx.mlc.agent_chat(str(text), int(port or 0))
+
+    async def _mlc_watch_start(self, interval: float = 1.0) -> dict:
+        self._ctx.mlc.start_agent_watch(float(interval or 1.0))
+        return {"watching": True}
+
+    async def _mlc_watch_stop(self) -> dict:
+        self._ctx.mlc.stop_agent_watch()
+        return {"watching": False}
 
     async def _mlc_mod_load(self, version_id: str = "", path: str = "") -> dict:
         return self._ctx.mlc.mod_load(str(version_id), str(path))
+
+    def _make_mlc_agent_handler(self, name: str):
+        def handle(state: Any = None, **_ignored) -> None:
+            payload = json.dumps({"event": name, "state": state}, ensure_ascii=False)
+            self._run_js(f"window.__veinMlcEvent && window.__veinMlcEvent({payload})")
+
+        return handle
 
     def _on_plugin_ui(self, plugin_id: str = "", tree: Any = None) -> None:
         payload = json.dumps({"pluginId": plugin_id, "tree": tree}, ensure_ascii=False)
