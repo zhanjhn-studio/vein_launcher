@@ -1769,3 +1769,11 @@ html.theme-fade .cat-card {
   .toast { animation: none !important; }
   .main-body { scroll-behavior: auto; }
 }
+
+/* ---- 等距渲染类图标：平滑缩放（像素贴图仍用 pixelated） ----
+   chest / anvil 是 64×64 的 3D 渲染图，nearest 缩放会出现锯齿边，
+   这里按文件名精确放行，不影响其余 16×16 像素图标。 */
+img[src$="anvil.png"],
+img[src$="chest.png"] {
+  image-rendering: auto;
+}

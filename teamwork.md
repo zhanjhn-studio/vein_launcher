@@ -475,3 +475,11 @@ window.__veinResult(12, true, {ok: 1})
   （MLC / Tools）、下载页（Modpacks / Forge）、加载器卡与 `RemoteIcon` 兜底共用，替换
   文件即全局生效，无需改代码 · `assets/icons/{chest,anvil}.png`、`tools/make_mc_icons.py` ·
   下载页与加载器页截图核对（16×16 全部一致，像素块大小统一）· 未提交
+
+- **2026-11-07 · ui/icons-fix** — 纠正上一版图标的做法：`anvil.png` 原来是原版**方块贴图**
+  `textures/block/anvil.png`（从 1.20.1 client.jar 里取的还是同一张灰色噪面），Minecraft
+  的铁砧形状由 3D 模型提供，所以贴图放多大都看不出铁砧；手绘 16×16 在 24px 下又像“叠起来
+  的三根条”。最终改为**游戏内等距渲染**（chest / anvil 均 64×64，裁边 + LANCZOS），并给
+  这两个文件单独放开 `image-rendering: auto`，其余 16×16 像素图标保持 pixelated ·
+  `assets/icons/{chest,anvil}.png`、`tools/fetch_render_icons.py`、`styles.css` ·
+  侧栏 / 下载页 / 加载器卡截图核对（铁砧提亮 1.55 倍以适配深色背景） · 未提交
