@@ -501,3 +501,9 @@ window.__veinResult(12, true, {ok: 1})
   不再让 Java 报一个看不懂的 ClassNotFound · `application/services/{version,launcher}_service.py` ·
   本地已续传补全 jar（23,028,853 B，SHA-1 校验通过），`is_installed=True`、classpath 含
   `1.20.1.jar`、命令行可构建；51 项测试通过 · 未提交
+
+- **2026-11-07 · fix/game-window** — 修「游戏开起来像全屏、不能缩放/最小化」：默认窗口
+  `1920×1080` 与 1080p 屏幕等宽等高，标题栏被挤出屏幕，看起来像全屏。默认改为
+  `1280×720`，并在配置加载时把旧默认 `1920×1080` 一次性迁移为 `1280×720`（写回 config.json）
+  · `common/config/settings.py` · 实测窗口 1296×759（客户区 1280×720）、未最大化、
+  可移动可缩放；51 项测试通过 · 未提交

@@ -19,8 +19,10 @@ class LaunchConfig(BaseModel):
     """游戏启动配置"""
     memory_min: int = 2048      # 最小内存 (MB)
     memory_max: int = 4096      # 最大内存 (MB)
-    resolution_width: int = 1920  # 游戏分辨率宽
-    resolution_height: int = 1080 # 游戏分辨率高
+    # 默认 1280×720：和 1920×1080 屏幕等宽等高时，MC 窗口会占满整屏、标题栏被挤出屏幕，
+    # 看起来像全屏且无法缩放/最小化。想要大画面请在设置里调大或按 F11。
+    resolution_width: int = 1280  # 游戏分辨率宽
+    resolution_height: int = 720  # 游戏分辨率高
     full_screen: bool = False   # 是否全屏
     jvm_args: list[str] = Field(default_factory=list)  # 自定义 JVM 参数
 
@@ -100,6 +102,7 @@ class SettingsManager:
                 data = json.loads(self._config_path.read_text(encoding="utf-8"))
                 self._settings = Settings(**data)
                 logger.info("配置加载成功")
+                self._migrate_launch_window()
             except Exception as e:
                 logger.warning(f"配置加载失败，使用默认配置：{e}")
                 self._settings = Settings()
@@ -108,6 +111,18 @@ class SettingsManager:
             self.save()
         
         return self._settings
+
+    def _migrate_launch_window(self) -> None:
+        """旧默认 1920×1080 会把窗口顶到屏幕之外（标题栏不可见、无法缩放），一次性改小"""
+        settings = self._settings
+        if settings is None:
+            return
+        launch = settings.launch
+        if launch.resolution_width == 1920 and launch.resolution_height == 1080:
+            launch.resolution_width = 1280
+            launch.resolution_height = 720
+            logger.info("启动窗口尺寸由 1920×1080 迁移为 1280×720")
+            self.save()
     
     def save(self) -> bool:
         """保存配置"""
