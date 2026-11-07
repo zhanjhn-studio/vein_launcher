@@ -557,3 +557,13 @@ window.__veinResult(12, true, {ok: 1})
   已从 `VeinLauncher/plugin/` 移除安装副本，重启后不再自动弹面板；
   `JavaDetector._bundled_runtimes()` 扫描 `VeinLauncher/java/**/bin/java.exe`，实测识别到 Java 24（系统）、
   Java 21 / Java 17（temurin-17 与 jre-17）共 5 个运行时 · `java_detector.py`、`plugins_examples/mlc-panel/*` · 未提交
+
+- **2026-11-07 · feat/exe-installers-skins** — EXE 安装器 + 皮肤支持：
+  `packaging/launcher_entry.py` + PyInstaller 打包出独立 `VeinLauncher.exe`（onedir，618 MB，实测可启动，数据目录落在 exe 旁）；
+  `packaging/build_release_zip.py` 裁剪 translations/qml/debug 资源后压成 `VeinLauncher-win64.zip`（450 MB → 194 MB）；
+  `installer/app_installer.py`（tkinter）编译成两个 EXE：`VeinLauncher-Setup-Offline.exe`（204 MB，内嵌 payload）与
+  `VeinLauncher-Setup-Online.exe`（10 MB，下载 release zip）。安装到 `%LOCALAPPDATA%\VeinLauncherApp`（实测 1002 文件 / 450 MB，
+  安装后启动器窗口正常）。修了两个真实问题：多实例并发解压抢同一个 staging 目录 → 改为按 PID 隔离；安装目录被占用时给出明确提示。
+  皮肤 A：新增 `infrastructure/network/authlib.py`，启动时自动下载 authlib-injector（349 KB，已就位），LittleSkin 账号启动即注入；
+  皮肤 B：`tools/install_skin_support.py` 创建 `fabric-1.20.1` 实例并装入 CustomSkinLoader 15.1（实测 218 KB 落盘）。
+  README 安装段改为四条下载路径 · 未提交

@@ -93,3 +93,11 @@ docs/tools_*.png
 # 安装器 payload 与打好的发布包（体积大，走 Release 不放仓库）
 installer/payload/
 dist_release/
+
+# 打包产物（EXE 很大，走 Release 附件，不进仓库）
+dist_exe/
+dist_installer/
+packaging/release/
+build_exe/
+build_installer*/
+packaging/*.spec

@@ -25,21 +25,27 @@ Team docs: [v0.1.0 internal](docs/v0.1.0/README.md) ·
 
 ## Install
 
-Two installers, same result — pick whichever works on your network:
+Four download paths, two results (a ready-to-run launcher). No Python is needed for the EXE builds:
 
-| Option | Entry point | Network |
-|---|---|---|
-| **Online** (recommended) | `installer\install-online.cmd` | Pulls the `main` branch from GitHub, then installs dependencies |
-| **Offline** | `installer\install-offline.cmd` | No network; uses the payload zip you carry over |
+| Build | File | Network | Notes |
+|---|---|---|---|
+| **Offline installer** (simplest) | `VeinLauncher-Setup-Offline.exe` | none | ~204 MB, everything embedded (payload + app) |
+| **Online installer** | `VeinLauncher-Setup-Online.exe` | yes | ~10 MB, downloads the release zip |
+| Source: online | `installer\install-online.cmd` | yes | needs Python 3.10+, creates `.venv` |
+| Source: offline | `installer\install-offline.cmd` | none | needs Python 3.10+, uses `payload/` |
 
-**Online**: run `installer\install-online.cmd`. It checks Python 3.10+, downloads the repo zip from
-GitHub, creates `.venv`, installs `requirements.txt`, adds a desktop shortcut and starts the launcher.
+The EXE installers unpack into `%LOCALAPPDATA%\VeinLauncherApp`, add a desktop shortcut and start the
+launcher. The Python-based installers exist for development machines that already have Python.
 
-**Offline**: on a machine with network run `installer\build-payload.ps1` (add `-WithWheels` to cache
-Python wheels too), copy the whole `installer\` folder to the target machine, then run
-`installer\install-offline.cmd`. It never touches the network.
+**Building the EXEs** (maintainers):
 
-If the online installer cannot reach GitHub it prints the exact offline steps and stops.
+```powershell
+python packaging\build_release_zip.py                  # trims + zips the PyInstaller output
+powershell -File installer\build-payload.ps1 -WithoutWheels
+python -m PyInstaller --onefile --windowed --name VeinLauncher-Setup-Offline `
+  --add-data "packaging\release\VeinLauncher-win64.zip;payload" installer\app_installer.py
+python -m PyInstaller --onefile --windowed --name VeinLauncher-Setup-Online installer\app_installer.py
+```
 
 ## Requirements
 

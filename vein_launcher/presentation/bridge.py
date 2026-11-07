@@ -761,55 +761,11 @@ class ApiBridge(QObject):
             return cached
 
     async def _ensure_authlib_injector(self) -> Optional[str]:
-        """确保 authlib-injector.jar 存在：Yggdrasil 皮肤站登录必需"""
-        import aiohttp
+        """确保 authlib-injector.jar 存在：皮肤站账号进游戏必需"""
+        from vein_launcher.infrastructure.network.authlib import ensure_authlib_injector
 
-        from vein_launcher.common.utils.path_utils import get_root_dir
-
-        target = get_root_dir() / "downloads" / "authlib-injector.jar"
-        if target.is_file() and target.stat().st_size > 100_000:
-            return str(target)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        urls = [
-            "https://github.com/yushijinhun/authlib-injector/releases/latest/download/authlib-injector.jar"
-        ]
-        try:
-            async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=180)
-            ) as session:
-                try:
-                    async with session.get(
-                        "https://authlib-injector.yushi.moe/artifact/latest.json"
-                    ) as resp:
-                        if resp.status == 200:
-                            meta = await resp.json(content_type=None)
-                            if isinstance(meta, dict) and meta.get("download_url"):
-                                urls.insert(0, str(meta["download_url"]))
-                except Exception as exc:
-                    logger.info("authlib-injector 版本信息获取失败：%s", exc)
-
-                for url in urls:
-                    try:
-                        async with session.get(url) as resp:
-                            if resp.status != 200:
-                                logger.warning(
-                                    "下载 authlib-injector 失败 HTTP %s：%s", resp.status, url
-                                )
-                                continue
-                            data = await resp.read()
-                    except Exception as exc:
-                        logger.warning("下载 authlib-injector 异常：%s", exc)
-                        continue
-                    if len(data) < 100_000:
-                        continue
-                    part = target.with_name(target.name + ".part")
-                    part.write_bytes(data)
-                    part.replace(target)
-                    logger.info("authlib-injector 已下载：%s（%s 字节）", target, len(data))
-                    return str(target)
-        except Exception as exc:
-            logger.warning("authlib-injector 准备失败：%s", exc)
-        return None
+        jar = await ensure_authlib_injector()
+        return str(jar) if jar else None
 
     async def _skins_library(self, page: int = 1, keyword: str = "") -> dict:
         """LittleSkin 公开皮肤库列表"""
