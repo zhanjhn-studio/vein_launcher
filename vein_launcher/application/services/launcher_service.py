@@ -72,6 +72,18 @@ class LauncherService:
         self._extract_natives(merged, natives_dir)
 
         classpath = self._classpath(merged, version_id)
+        if not self._jar_chain(version_id):
+            # 没有客户端 jar 时 Java 只会报 ClassNotFoundException，提前给出可行动的提示
+            jar = resolve_version_dir(version_id) / f"{version_id}.jar"
+            partial = jar.with_suffix(jar.suffix + ".part")
+            if partial.exists():
+                raise GameLaunchError(
+                    f"Client jar is incomplete: {partial.name} "
+                    f"({partial.stat().st_size} bytes). Re-download the version to finish it."
+                )
+            raise GameLaunchError(
+                f"Client jar missing: {jar}. Re-download {version_id} before launching."
+            )
         replacements = {
             "auth_player_name": username,
             "version_name": version_id,

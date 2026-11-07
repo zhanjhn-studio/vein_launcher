@@ -96,7 +96,43 @@ class VersionService:
         return candidates[0]
 
     def is_installed(self, version_id: str) -> bool:
-        return self._storage.version_json_path(version_id).is_file()
+        if not self._storage.version_json_path(version_id).is_file():
+            return False
+        return self._client_jar_ready(version_id)
+
+    def _client_jar_ready(self, version_id: str, _seen: Optional[set] = None) -> bool:
+        """客户端 jar 下完（没有 .part、大小对得上）才算安装完成；加载器沿 inheritsFrom 找父版本"""
+        seen = _seen if _seen is not None else set()
+        if version_id in seen:
+            return False
+        seen.add(version_id)
+
+        jar = self._storage.client_jar_path(version_id)
+        if jar.with_suffix(jar.suffix + ".part").exists():
+            return False
+        if jar.is_file():
+            expected = self._expected_client_size(version_id)
+            return expected is None or jar.stat().st_size == expected
+
+        meta = self._storage.version_json_path(version_id)
+        if not meta.is_file():
+            return False
+        try:
+            parent = json.loads(meta.read_text(encoding="utf-8")).get("inheritsFrom")
+        except (OSError, json.JSONDecodeError):
+            return False
+        return bool(parent) and self._client_jar_ready(str(parent), seen)
+
+    def _expected_client_size(self, version_id: str) -> Optional[int]:
+        meta = self._storage.version_json_path(version_id)
+        if not meta.is_file():
+            return None
+        try:
+            data = json.loads(meta.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        size = (data.get("downloads") or {}).get("client", {}).get("size")
+        return int(size) if size else None
 
     def delete(self, version_id: str) -> bool:
         target = get_version_dir(version_id)

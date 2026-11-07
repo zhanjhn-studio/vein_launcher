@@ -492,3 +492,12 @@ window.__veinResult(12, true, {ok: 1})
   `Chinese (Simplified)` · `commandTree.ts`、`toolsPage.tsx`、`App.tsx`、`downloadPage.tsx`、
   `pages.tsx`、`settingsPage.tsx` · `python -m unittest discover -s tests` → 51 OK，
   frontend build OK（bundle 329.5 → 307 KB），src 下 i18n.ts 之外中文代码行为 0 · 未提交
+
+- **2026-11-07 · fix/launch-jar** — 修「游戏启动报 ClassNotFoundException: net.minecraft.client.main.Main」：
+  根因是 `1.20.1.jar` 下载停在 7.8/23.0 MB、只留下 `.part`，而 `is_installed()` 只检查版本 JSON，
+  于是 classpath 里没有客户端 jar。`version_service.is_installed()` 现在要求 jar 真正下完
+  （无 `.part` 且大小对得上 `downloads.client.size`，加载器沿 `inheritsFrom` 找父版本）；
+  `launcher_service.build_command()` 在没有 jar 时抛 `GameLaunchError` 并指出 `.part` 文件，
+  不再让 Java 报一个看不懂的 ClassNotFound · `application/services/{version,launcher}_service.py` ·
+  本地已续传补全 jar（23,028,853 B，SHA-1 校验通过），`is_installed=True`、classpath 含
+  `1.20.1.jar`、命令行可构建；51 项测试通过 · 未提交
