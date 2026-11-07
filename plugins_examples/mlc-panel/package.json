@@ -6,7 +6,13 @@
   "main": "index.js",
   "vein": {
     "displayName": "MLC status panel",
-    "activateOnStartup": true,
-    "permissions": ["mlc.state", "mlc.world", "mlc.player", "ui.lua", "ui.notify"]
+    "activateOnStartup": false,
+    "permissions": [
+      "mlc.state",
+      "mlc.world",
+      "mlc.player",
+      "ui.lua",
+      "ui.notify"
+    ]
   }
 }

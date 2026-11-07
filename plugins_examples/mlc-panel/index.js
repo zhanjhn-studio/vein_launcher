@@ -10,8 +10,6 @@
  * panel cannot touch launcher DOM or styles.
  */
 
-const REFRESH_MS = 15000;
-
 function badge(text, tone = "ok") {
   return { type: "badge", props: { value: String(text), tone } };
 }
@@ -95,8 +93,6 @@ function buildPanel(state, worlds, player) {
 }
 
 export async function activate(vein) {
-  let timer = null;
-
   const refresh = async () => {
     try {
       const state = await vein.mlc.state();
@@ -122,9 +118,7 @@ export async function activate(vein) {
   });
 
   await refresh();
-  timer = setInterval(refresh, REFRESH_MS);
-  vein.log("MLC status panel activated");
-  return () => clearInterval(timer);
+  vein.log("MLC status panel activated (manual refresh only)");
 }
 
 export async function deactivate() {

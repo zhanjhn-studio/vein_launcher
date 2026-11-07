@@ -47,6 +47,7 @@ class JavaDetector:
             candidates.append(Path(on_path))
 
         candidates.extend(self._common_dirs())
+        candidates.extend(self._bundled_runtimes())
         candidates.extend(self._extra)
 
         result: List[JavaRuntime] = []
@@ -68,6 +69,28 @@ class JavaDetector:
         pool = runtimes if runtimes is not None else await self.detect()
         usable = [r for r in pool if r.major >= required_major]
         return min(usable, key=lambda r: (r.major, r.version)) if usable else None
+
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _bundled_runtimes() -> List[Path]:
+        """启动器自己下载/生成在 VeinLauncher/java 下的运行时（JDK 与 jlink 最小 JRE）"""
+        try:
+            from vein_launcher.common.utils.path_utils import get_root_dir
+
+            java_root = get_root_dir() / "java"
+        except Exception:
+            return []
+        if not java_root.is_dir():
+            return []
+
+        found: List[Path] = []
+        for exe in java_root.glob("*/bin/java.exe"):
+            found.append(exe)
+        for exe in java_root.glob("*/*/bin/java.exe"):
+            found.append(exe)
+        for exe in java_root.glob("*/*/*/bin/java.exe"):
+            found.append(exe)
+        return found
 
     # ------------------------------------------------------------------
     @staticmethod

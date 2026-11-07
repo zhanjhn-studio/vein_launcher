@@ -551,3 +551,9 @@ window.__veinResult(12, true, {ok: 1})
   `install-offline.ps1` 去掉「偷偷联网装依赖」的退路，没有 wheels 直接给明确提示；
   实测离线安装：解压 → 建 venv → 无 wheels 时按预期报错退出，安装目录结构正确；
   `codeload.github.com/.../zip/refs/heads/main` 返回 200，在线安装器下载步骤可用 · `installer/*.ps1` · 未提交
+
+- **2026-11-07 · fix/panel-java-detect** — 停止 MLC 面板打扰 + Java 识别内置运行时：
+  `plugins_examples/mlc-panel` 改为 `activateOnStartup: false` 并去掉 15 秒自动刷新（只在手动点 Refresh 时重绘），
+  已从 `VeinLauncher/plugin/` 移除安装副本，重启后不再自动弹面板；
+  `JavaDetector._bundled_runtimes()` 扫描 `VeinLauncher/java/**/bin/java.exe`，实测识别到 Java 24（系统）、
+  Java 21 / Java 17（temurin-17 与 jre-17）共 5 个运行时 · `java_detector.py`、`plugins_examples/mlc-panel/*` · 未提交
