@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { on, rpc } from './bridge';
 import { t } from './i18n';
-import { lookupCandidates, normalizeCommand, searchCandidates } from './commandTree';
+import {
+  displayHint,
+  lookupCandidates,
+  normalizeCommand,
+  searchCandidates,
+} from './commandTree';
 import type { Candidate, IndexedCandidate } from './commandTree';
 
 /** 把候选按 group 字段切成连续分组（没有 group 的归到空标题下） */
@@ -29,86 +34,86 @@ interface Command {
 const COMMANDS: Command[] = [
   {
     slot: 1,
-    tag: '玩家',
-    title: '切换为创造模式',
-    desc: '也可换成 survival（生存）/ adventure（冒险）/ spectator（旁观）',
+    tag: 'Player',
+    title: 'Switch to Creative',
+    desc: 'Also accepts survival / adventure / spectator',
     cmd: '/gamemode creative',
   },
   {
     slot: 2,
-    tag: '世界',
-    title: '时间设为白天',
-    desc: 'day / noon(正午) / night(夜晚) / midnight(午夜)，也可以直接填 tick 数字',
+    tag: 'World',
+    title: 'Set time to day',
+    desc: 'day / noon / night / midnight, or a raw tick number',
     cmd: '/time set day',
   },
   {
     slot: 3,
-    tag: '世界',
-    title: '天气设为晴天',
-    desc: 'clear（晴）/ rain（下雨）/ thunder（雷雨），后面可跟持续秒数',
+    tag: 'World',
+    title: 'Set weather to clear',
+    desc: 'clear / rain / thunder, optionally followed by seconds',
     cmd: '/weather clear',
   },
   {
     slot: 4,
-    tag: '移动',
-    title: '传送到坐标 (0, 100, 0)',
-    desc: '把 @s 换成玩家名可以传送别人；坐标支持 ~ 相对坐标',
+    tag: 'Movement',
+    title: 'Teleport to (0, 100, 0)',
+    desc: 'Replace @s with a player name to move someone else; coordinates accept ~',
     cmd: '/tp @s 0 100 0',
   },
   {
     slot: 5,
-    tag: '移动',
-    title: '把当前位置设为重生点',
-    desc: '不写坐标就用你当前站的位置；换床睡觉也能改重生点',
+    tag: 'Movement',
+    title: 'Set spawn to your position',
+    desc: 'Without coordinates it uses where you stand; sleeping in a bed also moves spawn',
     cmd: '/spawnpoint @s',
   },
   {
     slot: 6,
-    tag: '物品',
-    title: '给自己 64 个钻石',
-    desc: '物品 ID 必须带 minecraft: 命名空间，数量上限 64',
+    tag: 'Items',
+    title: 'Give yourself 64 diamonds',
+    desc: 'Item IDs need the minecraft: namespace; max stack is 64',
     cmd: '/give @s minecraft:diamond 64',
   },
   {
     slot: 7,
-    tag: '状态',
-    title: '10 秒 3 级生命恢复',
-    desc: '语法：/effect give <目标> <效果> [秒数] [等级-1] [隐藏粒子]',
+    tag: 'Status',
+    title: 'Regeneration III for 10s',
+    desc: 'Syntax: /effect give <target> <effect> [seconds] [amplifier] [hideParticles]',
     cmd: '/effect give @s minecraft:regeneration 10 2',
   },
   {
     slot: 8,
-    tag: '规则',
-    title: '死亡不掉落物品',
-    desc: '存到世界规则里，重启游戏依然生效；false 为关闭',
+    tag: 'Rules',
+    title: 'Keep inventory on death',
+    desc: 'Stored in world rules and persists across restarts; false turns it off',
     cmd: '/gamerule keepInventory true',
   },
   {
     slot: 9,
-    tag: '规则',
-    title: '关闭昼夜循环',
-    desc: '时间会停在当前时刻；true 恢复流动',
+    tag: 'Rules',
+    title: 'Freeze the day cycle',
+    desc: 'Time stops where it is; true resumes the cycle',
     cmd: '/gamerule doDaylightCycle false',
   },
   {
     slot: 0,
-    tag: '物品',
-    title: '清空自己的背包',
-    desc: '只清 @s（自己）；写玩家名可清别人',
+    tag: 'Items',
+    title: 'Clear your inventory',
+    desc: 'Clears @s only; pass a player name to clear someone else',
     cmd: '/clear @s',
   },
   {
     slot: null,
-    tag: '实体',
-    title: '清除 10 格内的非玩家实体',
-    desc: 'type=!player 排除玩家，distance=..10 表示 10 格以内',
+    tag: 'Entities',
+    title: 'Kill non-player entities within 10 blocks',
+    desc: 'type=!player excludes players; distance=..10 means within 10 blocks',
     cmd: '/kill @e[type=!player,distance=..10]',
   },
   {
     slot: null,
-    tag: '物品',
-    title: '主手物品附魔锋利 V',
-    desc: '等级受物品限制（锋利上限 V）；必须手持对应物品',
+    tag: 'Items',
+    title: 'Enchant held item with Sharpness V',
+    desc: 'Level is capped by the item (Sharpness V max); you must hold it',
     cmd: '/enchant @s minecraft:sharpness 5',
   },
 ];
@@ -176,7 +181,7 @@ function CardHead({
     >
       <span className={`card-caret ${open ? 'open' : ''}`}>▸</span>
       <span>{title}</span>
-      <span className="card-toggle-hint">{hint ?? (open ? '收起' : '展开')}</span>
+      <span className="card-toggle-hint">{hint ?? (open ? 'Collapse' : 'Expand')}</span>
     </div>
   );
 }
@@ -255,7 +260,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
   useEffect(
     () =>
       on<HotkeyEvent>('vein:hotkey', (d) => {
-        notify(`已复制 Ctrl+Alt+${d.slot}：${d.title || d.text}`);
+        notify(`Copied Ctrl+Alt+${d.slot}: ${d.title || d.text}`);
       }),
     [notify],
   );
@@ -263,7 +268,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
   const copy = async (item: Command) => {
     try {
       await rpc('tools.copy', [item.cmd]);
-      notify(`已复制：${item.cmd}`);
+      notify(`Copied: ${item.cmd}`);
     } catch (e) {
       notify((e as Error).message);
     }
@@ -311,7 +316,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
         ],
         saved.paletteKey ?? paletteKey,
       );
-      notify('常用指令已保存');
+      notify('Favorites saved');
     } catch (e) {
       notify((e as Error).message);
     } finally {
@@ -319,7 +324,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
     }
   };
 
-  // ---------------------------------------------------------------- 指令构建器
+  // ---------------------------------------------------------------- 指令Builder
   const [draft, setDraft] = useState('');
   const [query, setQuery] = useState('');
   const [history, setHistory] = useState<string[]>([]);
@@ -352,7 +357,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
   const copyDraft = async () => {
     try {
       await rpc('tools.copy', [fullCommand]);
-      notify(`已复制：${fullCommand}`);
+      notify(`Copied: ${fullCommand}`);
     } catch (e) {
       notify((e as Error).message);
     }
@@ -381,17 +386,17 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
 
       <div className="card">
         <CardHead
-          title="指令"
+          title="Commands"
           open={open}
           onToggle={() => setOpen((v) => !v)}
-          hint={open ? '收起' : '展开'}
+          hint={open ? 'Collapse' : 'Expand'}
         />
         {open && (
           <>
         <div className="tool-section">
-        <div className="tool-section-title">构建器</div>
+        <div className="tool-section-title">Builder</div>
         <p className="muted">
-          先输入一段指令（比如 <code className="mono">kill</code>），下面会列出它能接什么；点候选项直接追加到后面。
+          Type a command prefix (for example <code className="mono">kill</code>) and the list below shows what can follow it. Click a candidate to append it.
         </p>
 
         <div className="cmd-input-row">
@@ -410,7 +415,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
             {t('Copy')}
           </button>
           <button className="btn sm ghost" onClick={undo} disabled={!history.length}>
-            回退
+            Back
           </button>
           <button
             className="btn sm ghost"
@@ -420,14 +425,14 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
             }}
             disabled={!draft && !history.length}
           >
-            清空
+            Clear
           </button>
         </div>
 
         <div className="cmd-current">
           <code className="mono">{normalizeCommand(draft) ? fullCommand : '/…'}</code>
           {normalizeCommand(draft) && candidates === null && (
-            <span className="cmd-badge">指令已完整，可直接复制</span>
+            <span className="cmd-badge">Command complete — copy it</span>
           )}
         </div>
 
@@ -436,26 +441,26 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
             className="input"
             value={query}
             spellCheck={false}
-            placeholder="搜索指令或物品：中文（钻石 / 苹果 / 杀）或英文（sword / kill）"
+            placeholder="Search commands or items: sword / kill / diamond"
             onChange={(e) => setQuery(e.target.value)}
           />
           {query && (
             <button className="btn sm ghost" onClick={() => setQuery('')}>
-              清除
+              Clear
             </button>
           )}
         </div>
 
         {query.trim() ? (
           searchResults.length === 0 ? (
-            <p className="muted">没有匹配「{query}」的指令或物品。</p>
+            <p className="muted">No commands or items match “{query}”.</p>
           ) : (
             <>
-              <div className="cmd-hint">搜索结果（{searchResults.length}）</div>
+              <div className="cmd-hint">Results ({searchResults.length})</div>
               <div className="cmd-options">
                 {searchResults.map((r) => (
                   <button
-                    key={`${r.parent}|${r.token}|${r.hint}`}
+                    key={`${r.parent}|${r.token}|${displayHint(r)}`}
                     className="cmd-option search"
                     onClick={() => applyResult(r)}
                   >
@@ -463,20 +468,20 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
                       {r.parent ? <em>{r.parent} </em> : null}
                       {r.token}
                     </code>
-                    <span>{r.hint}</span>
+                    <span>{displayHint(r)}</span>
                   </button>
                 ))}
               </div>
             </>
           )
         ) : candidates === null ? (
-          <p className="muted">没有更多候选：这条指令已经完整，或者需要手动填参数（名字、坐标等）。</p>
+          <p className="muted">No more candidates: the command is complete, or it needs manual arguments (names, coordinates).</p>
         ) : candidates.length === 0 ? (
-          <p className="muted">这条指令已经完整，复制后回游戏粘贴即可。</p>
+          <p className="muted">This command is complete — copy it and paste it in game.</p>
         ) : (
           <>
             <div className="cmd-hint">
-              {normalizeCommand(draft) ? '后面可以接' : '常用指令'}（{candidates.length}）
+              {normalizeCommand(draft) ? 'Can follow' : 'Common commands'}（{candidates.length}）
             </div>
             <div className="cmd-options">
               {groupCandidates(candidates).map(([group, items], gi) => (
@@ -484,12 +489,12 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
                   {group && <div className="cmd-group">{group}</div>}
                   {items.map((c) => (
                     <button
-                      key={`${c.token}-${c.hint}`}
+                      key={`${c.token}-${displayHint(c)}`}
                       className="cmd-option"
                       onClick={() => append(c.token)}
                     >
                       <code className="mono">{c.token}</code>
-                      <span>{c.hint}</span>
+                      <span>{displayHint(c)}</span>
                     </button>
                   ))}
                 </React.Fragment>
@@ -500,13 +505,13 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
         </div>
 
         <div className="tool-section">
-        <div className="tool-section-title">快捷键</div>
+        <div className="tool-section-title">Hotkeys</div>
         <p className="muted">
-          启动器缩到后台、游戏窗口在前台时，按 <b>Ctrl + Alt + 数字</b>{' '}
-          会把对应指令复制到剪贴板，切回游戏按 T 打开聊天框、Ctrl+V 粘贴即可。
+          With the launcher in the background and the game focused, press <b>Ctrl + Alt + number</b>{' '}
+          to copy that command; switch to the game, press T and paste with Ctrl+V.
         </p>
         <p className="muted" style={{ marginTop: 8 }}>
-          已绑定 <b>{bound.size} / {hotkeyItems.length}</b>
+          Bound <b>{bound.size} / {hotkeyItems.length}</b>
           {bound.size > 0
             ? ` · Ctrl+Alt+${[...bound].sort((a, b) => a - b).join(' / ')}`
             : ''}
@@ -518,11 +523,11 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
         )}
         {error && <p className="tool-warn">{error}</p>}
         <p className="muted">
-          这些指令需要世界开启「允许作弊」或拥有 OP 权限；在服务器里请按服务器的规则使用。
+          These commands need cheats enabled or OP. On a server, follow the server's rules.
         </p>
 
         <div className="cmd-input-row" style={{ marginTop: 12 }}>
-          <span className="muted">小窗唤出键 Ctrl + Alt +</span>
+          <span className="muted">Palette hotkey Ctrl + Alt +</span>
           <select
             className="input"
             value={paletteKey}
@@ -536,23 +541,23 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
             ))}
           </select>
           <span className="muted">
-            当前：Ctrl+Alt+{binding?.paletteKey || paletteKey}
-            {binding?.paletteKey ? ' ✓ 已注册' : ''}
+            Current: Ctrl+Alt+{binding?.paletteKey || paletteKey}
+            {binding?.paletteKey ? ' ✓ registered' : ''}
           </span>
         </div>
 
         <div style={{ marginTop: 18 }}>
           <CardHead
-            title="常用指令（自定义）"
+            title="Favorites (custom)"
             open={openFav}
             onToggle={() => setOpenFav((v) => !v)}
-            hint={openFav ? '收起' : `${favorites.length} 条`}
+            hint={openFav ? 'Collapse' : `${favorites.length} items`}
           />
         </div>
         {openFav && (
           <>
         {favorites.length === 0 && (
-          <p className="muted">还没有自定义指令。点下面「添加」写一条自己的指令。</p>
+          <p className="muted">No custom commands yet. Use “Add” below to create one.</p>
         )}
         {favorites.map((f) => (
           <div className="fav-row" key={f.id}>
@@ -565,7 +570,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
                 })
               }
             >
-              <option value="">无热键</option>
+              <option value="">No hotkey</option>
               {SLOT_OPTIONS.map((s) => (
                 <option key={s} value={s}>
                   Ctrl+Alt+{s}
@@ -575,7 +580,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
             <input
               className="input fav-title"
               value={f.title}
-              placeholder="名称（例如：回城）"
+              placeholder="Name (e.g. Home)"
               onChange={(e) => updateFavorite(f.id, { title: e.target.value })}
             />
             <input
@@ -586,25 +591,25 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
               onChange={(e) => updateFavorite(f.id, { cmd: e.target.value })}
             />
             <button className="btn sm ghost" onClick={() => removeFavorite(f.id)}>
-              删除
+              Delete
             </button>
           </div>
         ))}
         <div className="row-actions" style={{ marginTop: 10 }}>
           <button className="btn sm" onClick={addFavorite}>
-            + 添加
+            + Add
           </button>
           <button className="btn sm primary" onClick={saveConfig} disabled={saving}>
-            {saving ? '保存中…' : '保存并应用'}
+            {saving ? 'Saving…' : 'Save & apply'}
           </button>
-          {!loaded && <span className="muted">读取配置中…</span>}
+          {!loaded && <span className="muted">Loading config…</span>}
         </div>
           </>
         )}
         </div>
 
         <div className="tool-section">
-        <div className="tool-section-title">指令列表</div>
+        <div className="tool-section-title">Command list</div>
         <div className="dl-search" style={{ marginTop: 8 }}>
           <input
             className="input"
@@ -618,7 +623,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
         </div>
 
         <div style={{ marginTop: 10 }}>
-          {visible.length === 0 && <div className="empty">没有匹配的指令</div>}
+          {visible.length === 0 && <div className="empty">No matching commands</div>}
           {visible.map((item, index) => (
             <div
               key={`${item.cmd}-${index}`}

@@ -483,3 +483,12 @@ window.__veinResult(12, true, {ok: 1})
   这两个文件单独放开 `image-rendering: auto`，其余 16×16 像素图标保持 pixelated ·
   `assets/icons/{chest,anvil}.png`、`tools/fetch_render_icons.py`、`styles.css` ·
   侧栏 / 下载页 / 加载器卡截图核对（铁砧提亮 1.55 倍以适配深色背景） · 未提交
+
+- **2026-11-07 · i18n/en** — 界面全面英文化（中文留到下一轮）：`commandTree.ts` 删除 518 条
+  中文 hint（含 27 个中文 token 模板与 7 个分组名），改由 `label(token)` 运行时生成英文说明
+  （选择器/游戏模式/常用指令走人话字典，其余 `minecraft:diamond_sword → Diamond Sword`）；
+  `toolsPage.tsx` 74 处文案与 10 条内置指令描述译成英文；修 `App.tsx` 一处历史乱码
+  `锛?`（通知拼接应为 `": "`）；下载页「设置」→「Settings」；语言选项改
+  `Chinese (Simplified)` · `commandTree.ts`、`toolsPage.tsx`、`App.tsx`、`downloadPage.tsx`、
+  `pages.tsx`、`settingsPage.tsx` · `python -m unittest discover -s tests` → 51 OK，
+  frontend build OK（bundle 329.5 → 307 KB），src 下 i18n.ts 之外中文代码行为 0 · 未提交

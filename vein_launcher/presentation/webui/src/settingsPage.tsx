@@ -277,7 +277,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                   }}
                 >
                   <option value="en">English</option>
-                  <option value="zh">简体中文</option>
+                  <option value="zh">Chinese (Simplified)</option>
                 </select>
               </b>
             </div>

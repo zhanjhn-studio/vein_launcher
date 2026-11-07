@@ -262,7 +262,7 @@ export function DownloadPage({
           </p>
           <div className="kv">
             <span>Game folder</span>
-            <b>use 设置 → Game folder</b>
+            <b>use Settings → Game folder</b>
           </div>
           <div className="row-actions">
             <button className="btn primary" onClick={runOptifine} disabled={busy === 'install'}>

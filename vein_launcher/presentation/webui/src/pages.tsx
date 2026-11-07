@@ -878,7 +878,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                   className={currentLang() === 'zh' ? 'btn primary' : 'btn'}
                   onClick={() => setLang('zh')}
                 >
-                  简体中文
+                  Chinese (Simplified)
                 </button>
               </div>
             </>

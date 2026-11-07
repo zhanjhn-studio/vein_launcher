@@ -188,7 +188,7 @@ export function App() {
     rpc('tools.syncPalette', [{ entries: buildPaletteEntries(), nodes: COMMAND_NODES }]).catch(() => {});
     const offNav = on<string>('vein:navigate', (p) => setPage(p));
     const offNotify = on<{ title: string; message: string }>('vein:notify', (d) =>
-      notify(`${d.title}锛?{d.message}`)
+      notify(`${d.title}: ${d.message}`)
     );
     return () => {
       offNav();
@@ -205,7 +205,7 @@ export function App() {
 
   return (
     <div className={`app ${prefs.compactMode ? 'compact' : ''}`}>
-      {/* 图片壁纸走 body 背景（无独立图层）；只有视频才需要真实元素 */}
+      {/* Image wallpapers use the body background; only video needs a real element */}
       {page === 'launch' && prefs.wallpaper?.kind === 'video' && (
         <WallpaperLayer wallpaper={prefs.wallpaper} />
       )}
