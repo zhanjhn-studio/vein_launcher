@@ -6,17 +6,17 @@ import type { ModItem, VersionInfo } from './types';
 type Category = 'version' | 'mod' | 'modpack' | 'datapack' | 'shader' | 'resourcepack' | 'optifine';
 
 const CATEGORIES: { key: Category; label: string; desc: string; icon: string; project?: string }[] = [
-  { key: 'version', label: 'Vanilla & Loaders', desc: 'Install game versions with Fabric, Forge, Quilt, NeoForge', icon: 'grass_block.png' },
-  { key: 'mod', label: 'Mods', desc: 'Mods from Modrinth, filtered by game version and loader', icon: 'crafting_table.png', project: 'mod' },
-  { key: 'modpack', label: 'Modpacks', desc: 'Full modpacks (.mrpack) with automatic setup', icon: 'chest.png', project: 'modpack' },
-  { key: 'resourcepack', label: 'Resource packs', desc: 'Textures and resource packs', icon: 'writable_book.png', project: 'resourcepack' },
-  { key: 'shader', label: 'Shaders', desc: 'Shader packs for Iris / OptiFine', icon: 'spyglass.png', project: 'shader' },
-  { key: 'datapack', label: 'Datapacks', desc: 'Datapacks for worlds and servers', icon: 'command_block.png', project: 'datapack' },
-  { key: 'optifine', label: 'OptiFine', desc: 'Run the OptiFine installer against your game folder', icon: 'emerald.png' },
+  { key: 'version', label: '原版与加载器', desc: '安装游戏本体，可搭配 Fabric / Forge / Quilt / NeoForge', icon: 'grass_block.png' },
+  { key: 'mod', label: '模组', desc: '来自 Modrinth，按游戏版本与加载器筛选', icon: 'crafting_table.png', project: 'mod' },
+  { key: 'modpack', label: '整合包', desc: '完整整合包（.mrpack），自动装配', icon: 'chest.png', project: 'modpack' },
+  { key: 'resourcepack', label: '资源包', desc: '材质与资源包', icon: 'writable_book.png', project: 'resourcepack' },
+  { key: 'shader', label: '光影', desc: '适用于 Iris / OptiFine 的光影包', icon: 'spyglass.png', project: 'shader' },
+  { key: 'datapack', label: '数据包', desc: '用于存档与服务器的数据包', icon: 'command_block.png', project: 'datapack' },
+  { key: 'optifine', label: 'OptiFine', desc: '对当前游戏目录运行 OptiFine 安装器', icon: 'emerald.png' },
 ];
 
 const LOADERS = [
-  { key: '', label: 'Vanilla', icon: 'grass_block.png' },
+  { key: '', label: '原版', icon: 'grass_block.png' },
   { key: 'fabric', label: 'Fabric', icon: 'loom.png' },
   { key: 'quilt', label: 'Quilt', icon: 'string.png' },
   { key: 'forge', label: 'Forge', icon: 'anvil.png' },
@@ -116,7 +116,7 @@ export function DownloadPage({
         setItems(list);
       }
     } catch (err) {
-      notify(`Search failed: ${(err as Error).message}`);
+      notify(`搜索失败：${(err as Error).message}`);
     } finally {
       setBusy('');
     }
@@ -124,7 +124,7 @@ export function DownloadPage({
 
   const installVersion = async () => {
     if (!chosenVersion) {
-      notify('Select a game version');
+      notify('请先选择一个游戏版本');
       return;
     }
     setBusy('install');
@@ -134,7 +134,7 @@ export function DownloadPage({
       await rpc('versions.install', [chosenVersion, loader, '', custom.trim()]);
       await onInstalled();
     } catch (err) {
-      notify(`Install failed: ${(err as Error).message}`);
+      notify(`安装失败：${(err as Error).message}`);
     } finally {
       setBusy('');
       setInstalling('');
@@ -145,7 +145,7 @@ export function DownloadPage({
   const installProject = async (item: ModItem) => {
     const instance = targetInstance || installed[0]?.id;
     if (!instance) {
-      notify('Install a game version first');
+      notify('请先安装一个游戏版本');
       return;
     }
     setBusy('install');
@@ -153,11 +153,11 @@ export function DownloadPage({
     setProgress({ done: 0, total: 1 });
     try {
       await rpc('mods.install', [item.slug, instance, projectType || 'mod', loader]);
-      notify(`${item.title} installed to ${instance}`);
+      notify(`${item.title} 已安装到 ${instance}`);
       await onInstalled();
       setDetail(null);
     } catch (err) {
-      notify(`Install failed: ${(err as Error).message}`);
+      notify(`安装失败：${(err as Error).message}`);
     } finally {
       setBusy('');
       setInstalling('');
@@ -180,8 +180,8 @@ export function DownloadPage({
     return (
       <div className="page">
         <div className="page-head">
-          <h1>Download</h1>
-          <span className="muted">Pick a category, then choose exactly what to install</span>
+          <h1>下载</h1>
+          <span className="muted">先选分类，再挑要安装的内容</span>
         </div>
         <div className="cat-grid">
           {CATEGORIES.map((c) => (
@@ -199,7 +199,7 @@ export function DownloadPage({
           <div className="install-status">
             <i className="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop" />
             <span>Installing {installing}</span>
-            <span className="muted">progress is in the sidebar monitor</span>
+            <span className="muted">进度见侧栏监控</span>
           </div>
         )}
       </div>
@@ -223,7 +223,7 @@ export function DownloadPage({
 
       <div className="filter-row">
         <select value={mcVersion} onChange={(e) => setMcVersion(e.target.value)}>
-          <option value="">Any MC version</option>
+          <option value="">任意 MC 版本</option>
           {versions.slice(0, 80).map((v) => (
             <option key={v.id} value={v.id}>
               {v.id}
@@ -255,14 +255,14 @@ export function DownloadPage({
 
       {category === 'optifine' ? (
         <div className="card">
-          <div className="card-title">OptiFine installer</div>
+          <div className="card-title">OptiFine 安装器</div>
           <p className="muted">
             OptiFine is not redistributable, so bring your own installer. The launcher runs it against
             your game folder with Java and then rescans installed versions.
           </p>
           <div className="kv">
-            <span>Game folder</span>
-            <b>use Settings → Game folder</b>
+            <span>游戏目录</span>
+            <b>在「设置 → 游戏目录」里修改</b>
           </div>
           <div className="row-actions">
             <button className="btn primary" onClick={runOptifine} disabled={busy === 'install'}>
@@ -274,9 +274,9 @@ export function DownloadPage({
       ) : category === 'version' ? (
         <div className="dl-grid">
           <div className="card">
-            <div className="card-title">Game versions</div>
+            <div className="card-title">游戏版本</div>
             <div className="ver-list">
-              {filteredVersions.length === 0 && <div className="empty">No versions</div>}
+              {filteredVersions.length === 0 && <div className="empty">没有可选版本</div>}
               {filteredVersions.map((v) => (
                 <button
                   key={v.id}
@@ -286,20 +286,20 @@ export function DownloadPage({
                   <img src="icons/grass_block.png" alt="" />
                   <span className="name">{v.id}</span>
                   <span className="tag">{v.type || 'release'}</span>
-                  {installed.some((i) => i.id === v.id) && <span className="badge">installed</span>}
+                  {installed.some((i) => i.id === v.id) && <span className="badge">已安装</span>}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="card">
-            <div className="card-title">Install</div>
+            <div className="card-title">安装</div>
             <div className="kv">
-              <span>Game version</span>
+              <span>游戏版本</span>
               <b>{chosenVersion || '—'}</b>
             </div>
             <div className="kv">
-              <span>Loader</span>
+              <span>加载器</span>
               <b>{LOADERS.find((l) => l.key === loader)?.label || 'Vanilla'}</b>
             </div>
             <div className="loader-grid">
@@ -314,7 +314,7 @@ export function DownloadPage({
                 </button>
               ))}
             </div>
-            <label className="muted">Custom instance name (optional)</label>
+            <label className="muted">自定义实例名（可选）</label>
             <input
               className="input"
               placeholder={chosenVersion || 'instance name'}
@@ -346,11 +346,11 @@ export function DownloadPage({
           </div>
           <p className="desc">{detail.description}</p>
           <div className="kv">
-            <span>Category</span>
+            <span>分类</span>
             <b>{CATEGORIES.find((c) => c.key === category)?.label}</b>
           </div>
           <div className="kv">
-            <span>MC version / loader</span>
+            <span>MC 版本 / 加载器</span>
             <b>
               {mcVersion || 'any'} · {loader || 'any'}
             </b>
@@ -384,7 +384,7 @@ export function DownloadPage({
               </button>
             ))}
           </div>
-          {items.length === 0 && <div className="empty">Nothing found. Try another keyword.</div>}
+          {items.length === 0 && <div className="empty">没找到，换个关键词试试。</div>}
         </>
       )}
 
@@ -392,7 +392,7 @@ export function DownloadPage({
         <div className="install-status">
           <i className="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop" />
           <span>Installing {installing}</span>
-          <span className="muted">progress is in the sidebar monitor</span>
+          <span className="muted">进度见侧栏监控</span>
         </div>
       )}
     </div>

@@ -51,6 +51,7 @@ class UIConfig(BaseModel):
     compact_mode: bool = False  # 简洁模式：侧栏收起，用悬浮按钮展开
     idle_seconds: int = 60      # 启动页空闲后淡出秒数（0 = 关闭）
     wallpaper: str = ""         # 自定义壁纸路径（图片或视频）
+    accent: str = ""            # 自定义主色（#rrggbb，空 = 用内置配色）
 
 
 class MlcConfig(BaseModel):

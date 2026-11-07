@@ -192,13 +192,13 @@ export function SkinsPage({ notify }: { notify: (text: string) => void }) {
   return (
     <div className="page">
       <div className="page-head">
-        <h1>Skins</h1>
-        <span className="muted">Import a PNG or read the skin from LittleSkin</span>
+        <h1>皮肤</h1>
+        <span className="muted">导入 PNG，或从 LittleSkin 读取皮肤</span>
       </div>
 
       {rows.length === 0 ? (
         <Empty>
-          No accounts yet. Add one in Settings → Accounts, then come back to pick a skin.
+          还没有账号。先去「设置 → 账号」添加一个，再回来选皮肤。
         </Empty>
       ) : (
         <div className="skin-layout">
@@ -243,14 +243,14 @@ export function SkinsPage({ notify }: { notify: (text: string) => void }) {
               ) : (
                 <div className="skin-empty">
                   <i className="layui-icon layui-icon-picture" />
-                  <span>No skin preview yet</span>
+                  <span>还没有皮肤预览</span>
                 </div>
               )}
             </div>
 
             <div className="skin-controls">
               <div className="skin-row">
-                <span>Slim arms</span>
+                <span>细手臂</span>
                 <LayuiCheckbox
                   checked={model === 'slim'}
                   onChange={(next) => setModel(next ? 'slim' : 'classic')}
@@ -304,13 +304,13 @@ export function SkinsPage({ notify }: { notify: (text: string) => void }) {
       <section className="skin-library">
         <div className="skin-library-head">
           <div>
-            <b>LittleSkin library</b>
-            <span className="muted">Download a public skin straight into the selected account</span>
+            <b>LittleSkin 皮肤库</b>
+            <span className="muted">把公开皮肤直接下载到当前选中的账号</span>
           </div>
           <div className="row-actions">
             <input
               className="input"
-              placeholder="Search skins…"
+              placeholder="搜索皮肤…"
               value={libQuery}
               onChange={(e) => setLibQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -318,14 +318,14 @@ export function SkinsPage({ notify }: { notify: (text: string) => void }) {
               }}
             />
             <button className="btn sm" onClick={() => loadLibrary(1)} disabled={libBusy === 'load'}>
-              {libBusy === 'load' ? 'Searching…' : 'Search'}
+              {libBusy === 'load' ? '搜索中…' : '搜索'}
             </button>
           </div>
         </div>
 
         {libError && <p className="muted">{libError}</p>}
         {libItems.length === 0 && !libError && (
-          <Empty>No skins loaded yet — press Search.</Empty>
+          <Empty>还没加载皮肤，点「搜索」。</Empty>
         )}
 
         {libItems.length > 0 && (
@@ -344,7 +344,7 @@ export function SkinsPage({ notify }: { notify: (text: string) => void }) {
                   disabled={!active || busy !== ''}
                   onClick={() => downloadFromLibrary(item)}
                 >
-                  {busy === `dl-${item.tid}` ? 'Downloading…' : 'Download'}
+                  {busy === `dl-${item.tid}` ? '下载中…' : '下载'}
                 </button>
               </div>
             ))}

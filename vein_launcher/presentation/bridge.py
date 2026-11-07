@@ -68,6 +68,24 @@ def _wallpaper_payload(raw: str) -> Optional[dict]:
     return {"url": path.as_uri(), "kind": kind, "name": path.name, "path": str(path)}
 
 
+def _normalize_hex(raw: str) -> str:
+    """把用户输入的主色收敛成 #rrggbb；空串 / 非法值返回 ""（回退内置配色）"""
+    value = (raw or "").strip().lower()
+    if not value:
+        return ""
+    if not value.startswith("#"):
+        value = "#" + value
+    if len(value) == 4:  # #abc → #aabbcc
+        value = "#" + "".join(ch * 2 for ch in value[1:])
+    if len(value) != 7:
+        return ""
+    try:
+        int(value[1:], 16)
+    except ValueError:
+        return ""
+    return value
+
+
 class AsyncRunner:
     """后台 asyncio 事件循环"""
 
@@ -855,6 +873,7 @@ class ApiBridge(QObject):
             "compactMode": bool(getattr(ui, "compact_mode", False)),
             "idleSeconds": int(getattr(ui, "idle_seconds", 60) or 0),
             "wallpaper": _wallpaper_payload(getattr(ui, "wallpaper", "")),
+            "accent": str(getattr(ui, "accent", "") or ""),
         }
 
     async def _ui_set_prefs(
@@ -863,6 +882,7 @@ class ApiBridge(QObject):
         idle_seconds: Any = None,
         clear_wallpaper: bool = False,
         wallpaper: str = "",
+        accent: Any = None,
     ) -> dict:
         from vein_launcher.common.config.settings import settings_manager
 
@@ -876,6 +896,8 @@ class ApiBridge(QObject):
             except (TypeError, ValueError):
                 seconds = 60
             ui.idle_seconds = 0 if seconds <= 0 else max(5, min(3600, seconds))
+        if accent is not None:
+            ui.accent = _normalize_hex(str(accent))
         if clear_wallpaper:
             ui.wallpaper = ""
         elif wallpaper:

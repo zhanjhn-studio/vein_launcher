@@ -163,13 +163,13 @@ export function PermissionDialog({
   return (
     <div className="modal-mask" onClick={onCancel}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Permission request</h3>
+        <h3>权限申请</h3>
         <p className="muted">
           {plugin.displayName} This plugin requests the following capabilities. Undeclared calls are rejected.。
         </p>
         <ul className="perm-list">
           {plugin.permissions.length === 0 ? (
-            <li className="muted">This plugin declares no permissions</li>
+            <li className="muted">这个插件没有声明任何权限</li>
           ) : (
             plugin.permissions.map((perm) => (
               <li key={perm}>
@@ -242,7 +242,7 @@ export function Toast({ text }: { text: string }) {
 
 export function LogPanel({
   lines,
-  title = 'Game log',
+  title = '游戏日志',
   height = 320,
 }: {
   lines: string[];
@@ -263,13 +263,13 @@ export function LogPanel({
         <span className="spacer" />
         <span className="muted">{lines.length}</span>
         <button className="btn sm ghost" onClick={() => setOpen((v) => !v)}>
-          {open ? 'Collapse' : 'Expand'}
+          {open ? '收起' : '展开'}
         </button>
       </div>
       {open && (
         <div className="log-body" style={{ height }}>
           {lines.length === 0 ? (
-            <div className="log-empty">Game log will stream here after launch.</div>
+            <div className="log-empty">启动游戏后，日志会实时显示在这里。</div>
           ) : (
             lines.map((line, index) => (
               <div className={`log-line ${levelOf(line)}`} key={index}>
@@ -367,13 +367,13 @@ export function DownloadMonitor() {
 
       <div className="monitor-full">
         <div className="monitor-head">
-          <span className="monitor-title">Downloads</span>
+          <span className="monitor-title">下载任务</span>
           <span className="muted">
             {running.length ? `${running.length} active` : 'idle'}
           </span>
         </div>
         {running.length === 0 ? (
-          <div className="monitor-empty">No active downloads</div>
+          <div className="monitor-empty">当前没有下载任务</div>
         ) : (
           running.map(([id, task]) => {
             const pct = task.total > 0 ? Math.round((task.done / task.total) * 100) : 0;

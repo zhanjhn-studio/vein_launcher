@@ -23,14 +23,14 @@ import { loadPrefs, usePrefs } from './prefs';
 import { buildPaletteEntries, COMMAND_NODES } from './commandTree';
 
 const NAV = [
-  { key: 'launch', label: 'Launch', icon: 'layui-icon-play', iconImg: 'arrow.png' },
-  { key: 'skins', label: 'Skins', icon: 'layui-icon-picture', iconImg: 'writable_book.png' },
-  { key: 'download', label: 'Download', icon: 'layui-icon-download-circle', iconImg: 'hopper.png' },
-  { key: 'plugins', label: 'Plugins', icon: 'layui-icon-app', iconImg: 'command_block.png', star: true },
+  { key: 'launch', label: '启动', icon: 'layui-icon-play', iconImg: 'arrow.png' },
+  { key: 'skins', label: '皮肤', icon: 'layui-icon-picture', iconImg: 'writable_book.png' },
+  { key: 'download', label: '下载', icon: 'layui-icon-download-circle', iconImg: 'hopper.png' },
+  { key: 'plugins', label: '插件', icon: 'layui-icon-app', iconImg: 'command_block.png', star: true },
   { key: 'mlc', label: 'MLC', icon: 'layui-icon-console', iconImg: 'chest.png' },
-  { key: 'multiplayer', label: 'Multiplayer', icon: 'layui-icon-link', iconImg: 'oak_sign.png' },
-  { key: 'settings', label: 'Settings', icon: 'layui-icon-set', iconImg: 'crafting_table.png' },
-  { key: 'tools', label: 'Tools', icon: 'layui-icon-util', iconImg: 'anvil.png' },
+  { key: 'multiplayer', label: '联机', icon: 'layui-icon-link', iconImg: 'oak_sign.png' },
+  { key: 'settings', label: '设置', icon: 'layui-icon-set', iconImg: 'crafting_table.png' },
+  { key: 'tools', label: '工具', icon: 'layui-icon-util', iconImg: 'anvil.png' },
 ];
 
 interface Announcement {
@@ -241,8 +241,8 @@ export function App() {
         <button
           type="button"
           className={`side-handle ${sideOpen ? 'open' : ''}`}
-          aria-label={sideOpen ? 'Hide sidebar' : 'Show sidebar'}
-          title={sideOpen ? 'Hide sidebar' : 'Show sidebar'}
+          aria-label={sideOpen ? '收起侧边栏' : '展开侧边栏'}
+          title={sideOpen ? '收起侧边栏' : '展开侧边栏'}
           onClick={() => setSideOpen((v) => !v)}
         >
           <i className={`chev ${sideOpen ? 'left' : 'right'}`} />

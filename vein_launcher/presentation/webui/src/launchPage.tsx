@@ -108,7 +108,7 @@ export function LaunchPage({
           typeof payload === 'number'
             ? payload
             : Number(payload?.exitCode ?? payload?.exit_code ?? 0);
-        if (Number.isFinite(code) && code !== 0) notify(`Game exited with code ${code}`);
+        if (Number.isFinite(code) && code !== 0) notify(`游戏已退出，退出码 ${code}`);
       }
     );
     return () => off();
@@ -146,14 +146,14 @@ export function LaunchPage({
   const launch = async () => {
     if (inFlight.current) return;
     if (!selected) {
-      notify('Install a version first');
+      notify('请先安装一个版本');
       return;
     }
     inFlight.current = true;
     setBusy(true);
     try {
       const result = await rpc<{ pid: number }>('launch', [selected, account?.username ?? 'Player']);
-      notify(`Launched, PID ${result.pid}`);
+      notify(`已启动，PID ${result.pid}`);
     } catch (err) {
       notify(`Launch failed：${(err as Error).message}`);
     } finally {
@@ -168,15 +168,15 @@ export function LaunchPage({
         <div className="launch-grid">
         <div>
           <div className="page-head">
-            <h1>Launch</h1>
-            <span className="muted">{installed.length} versions</span>
+            <h1>启动</h1>
+            <span className="muted">{installed.length} 个版本</span>
             <span className="muted">·</span>
-            <span className="muted">{account ? `Offline ${account.username}` : 'Not signed in'}</span>
+            <span className="muted">{account ? `离线 · ${account.username}` : '未登录'}</span>
           </div>
 
           {installed.length === 0 ? (
             <div className="card">
-              <div className="empty">Nothing installed yet. Install one from Download.</div>
+              <div className="empty">还没有安装任何版本，去「下载」装一个吧。</div>
             </div>
           ) : (
             <div className="version-cards">
@@ -220,16 +220,16 @@ export function LaunchPage({
           <div className="card" style={{ marginTop: 14 }}>
             <div className="launch-panel">
               <div className="kv">
-                <span>Instance</span>
+                <span>实例</span>
                 <b>{selected || '—'}</b>
               </div>
               <div className="kv">
-                <span>Accounts</span>
-                <b>{account ? account.username : 'Not signed in (offline)'}</b>
+                <span>账号</span>
+                <b>{account ? account.username : '未登录（离线）'}</b>
               </div>
               <div className="launch-actions">
                 <button className="launch-btn" onClick={launch} disabled={busy || !selected}>
-                  {busy ? 'Launching…' : 'Launch game'}
+                  {busy ? '启动中…' : '启动游戏'}
                 </button>
               </div>
             </div>
@@ -264,18 +264,18 @@ export function LaunchPage({
             <div className="quick-grid">
               <button className="quick-card" onClick={() => onNavigate('download')}>
                 <i className="layui-icon layui-icon-download-circle" />
-                <b>Install a version</b>
-                <span>Vanilla, Fabric, Forge, Quilt, NeoForge</span>
+                <b>安装游戏版本</b>
+                <span>原版 / Fabric / Forge / Quilt / NeoForge</span>
               </button>
               <button className="quick-card" onClick={() => onNavigate('mlc')}>
                 <i className="layui-icon layui-icon-set" />
-                <b>Manage instance</b>
-                <span>Mods, resource packs, worlds and seeds</span>
+                <b>管理实例</b>
+                <span>模组、资源包、世界与种子</span>
               </button>
               <button className="quick-card" onClick={() => onNavigate('skins')}>
                 <i className="layui-icon layui-icon-picture" />
-                <b>Skin library</b>
-                <span>Import a PNG or download from LittleSkin</span>
+                <b>皮肤库</b>
+                <span>导入 PNG 或从 LittleSkin 下载</span>
               </button>
             </div>
           )}
@@ -283,9 +283,9 @@ export function LaunchPage({
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="card announce-board">
-            <div className="card-title">Announcements</div>
+            <div className="card-title">公告</div>
             {announcements.length === 0 ? (
-              <div className="empty">No announcements</div>
+              <div className="empty">暂无公告</div>
             ) : (
               announcements.map((item, index) => (
                 <div className="announce-item" key={item.id ?? index}>

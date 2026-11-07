@@ -1777,3 +1777,20 @@ img[src$="anvil.png"],
 img[src$="chest.png"] {
   image-rendering: auto;
 }
+/* ---------- 设置页：自定义主色 ---------- */
+.setting-block { margin: 12px 0 14px; }
+.setting-label { font-size: 12.5px; color: var(--text-2); margin-bottom: 8px; }
+.accent-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.accent-dot {
+  width: 18px; height: 18px; padding: 0; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .22); cursor: pointer;
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.accent-dot:hover { transform: scale(1.14); }
+.accent-dot.active { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px currentColor; }
+.accent-picker {
+  width: 26px; height: 20px; padding: 0; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--surface-2); cursor: pointer;
+}
+.accent-picker::-webkit-color-swatch-wrapper { padding: 1px; }
+.accent-picker::-webkit-color-swatch { border: 0; border-radius: 4px; }

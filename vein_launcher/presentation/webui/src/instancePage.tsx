@@ -126,7 +126,7 @@ export function InstancePage({
       } else {
         await rpc('versions.delete', [version]);
         await onDeleted();
-        notify(`Deleted instance ${version}`);
+        notify(`已删除实例 ${version}`);
       }
       setConfirm(null);
     } catch (err) {
@@ -153,13 +153,13 @@ export function InstancePage({
     return (
       <div className="page">
         <div className="page-head">
-          <h1>Instances</h1>
-          <span className="muted">Manage mods, worlds and files per version</span>
+          <h1>实例</h1>
+          <span className="muted">按版本管理模组、世界与文件</span>
         </div>
         <Empty>
-          No installed versions yet.{' '}
+          还没有安装任何版本。{' '}
           <button className="link-btn" onClick={onDownload}>
-            Go install one →
+            去装一个 →
           </button>
         </Empty>
       </div>
@@ -169,7 +169,7 @@ export function InstancePage({
   return (
     <div className="page">
       <div className="page-head">
-        <h1>Instances</h1>
+        <h1>实例</h1>
         <span className="muted">{installed.length} installed</span>
       </div>
 
@@ -234,7 +234,7 @@ export function InstancePage({
           ) : tab === 'worlds' ? (
             <div className="instance-worlds">
               {worlds.length === 0 ? (
-                <Empty>No worlds in this instance yet.</Empty>
+                <Empty>这个实例还没有世界。</Empty>
               ) : (
                 <div className="world-rows">
                   {worlds.map((world) => (
