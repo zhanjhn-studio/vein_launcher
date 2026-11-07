@@ -24,7 +24,7 @@
 | 定位 | Minecraft Java 版启动器，Windows 10/11 x64，便携免安装 |
 | 仓库 | github.com/zhanjhn-studio/vein_launcher（public，MIT） |
 | 版本 | **0.5.0**（`vein_launcher/presentation/context.py` 的 `VERSION`；包内 `__version__ = 0.5.0`） |
-| 当前 HEAD | `1f3fc8e`（feat(ui): 自定义主题色 + 界面全面中文化） |
+| 当前 HEAD | `ccaa82c`（refactor(i18n): 汉化改用上游 i18nDom 词典，保留自定义主题色） |
 | 发布 | tag `v0.1.0`（`5e66188`，**落后 main**）；资产 `VeinLauncher-0.1.0-win64.zip`（249,873,131 B）+ `latest.json` |
 | 技术栈 | Python 3.13 · PySide6 6.12 + QWebEngine · React 19 + TypeScript（esbuild）· Layui 仅控件结构 · Node 18+（插件宿主）· aiohttp · pydantic v2 · PyInstaller onedir |
 | 规模 | Python 70 个文件 ≈9,469 行 · 前端 17 个文件 5,017 行 · RPC 66 个方法（20 组）· 测试 51 项 |
@@ -575,3 +575,16 @@ window.__veinResult(12, true, {ok: 1})
   自检 `tools/input_selftest.py`：Tk 靶子窗口实测收到 `hello vein 123`（PASS）。修正 INPUT 结构体（缺 MOUSEINPUT 导致 SendInput 返回 0）。
   任务栏图标：`SetCurrentProcessExplicitAppUserModelID` + 窗口继承 `assets/logo.ico`，不再显示 pythonw 默认图标。
   本地安装器测试数据、快捷方式、EXE 产物已全部删除 · 未提交
+- **2026-11-07 · i18n/zh-merge** — 与 upstream 的 i18n 架构对齐后重新落中文：
+  upstream 在 `3223f23` 之后的 `i18nDom.ts` 采用「英文源码 + DOM 层运行时翻译」，
+  上一版的 12 文件中文硬编码会让切英文时仍显中文，故撤回；缺失文案改为补词典
+  （`i18nDom.ts` +22 条：未登录 / 还没有安装任何版本 / 宿主未运行 /
+  选一个插件查看权限与日志 / 主题色 / 更换… / 导入… / 空闲淡出长说明 等）；
+  修 `pages.tsx` 的 `<Empty>t('No plugins yet')</Empty>`（t() 写进了文本节点，
+  页面直接显示字面量）· `App.tsx`…`ui.tsx`（恢复英文源码）、`i18nDom.ts`、`pages.tsx` ·
+  逐页读 DOM innerText 核对：启动 / 皮肤 / 插件 / 设置 / MLC / 工具 全中文
+- **2026-11-07 · ui/accent-merge** — 主题色区块在 rebase 到 upstream 后重新接入设置页
+  （`settingsPage.tsx` 的「主题色」块 + `changeAccent()`），与 `accent.ts`、`prefs.ts`、
+  `bridge.py`、`settings.py` 配套；`styles.css` 冲突按「两侧都保留」解决
+  （upstream 的 anvil/chest `image-rendering:auto` 规则 + 本地的 accent 样式） ·
+  实测中文界面下色板可点、切色即时生效
