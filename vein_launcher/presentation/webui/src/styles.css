@@ -1794,3 +1794,69 @@ img[src$="chest.png"] {
 }
 .accent-picker::-webkit-color-swatch-wrapper { padding: 1px; }
 .accent-picker::-webkit-color-swatch { border: 0; border-radius: 4px; }
+
+
+/* ------------------------------------------------------------- switch row */
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.switch-copy { min-width: 0; flex: 1 1 320px; }
+.switch-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.switch-control { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+.switch-state {
+  font-size: 12px;
+  line-height: 1;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--text-3);
+  letter-spacing: .02em;
+}
+.switch-state.on {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+}
+
+
+/* MLC 总开关：胶囊样式（swtich-control 内专用） */
+.switch-control .vl-checkbox {
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  position: relative;
+  padding: 0;
+  transition: background .18s ease, border-color .18s ease;
+}
+.switch-control .vl-checkbox > span,
+.switch-control .vl-checkbox > i { display: none; }
+.switch-control .vl-checkbox::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text-3);
+  transition: transform .18s ease, background .18s ease;
+}
+.switch-control .vl-checkbox.layui-form-checked {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.switch-control .vl-checkbox.layui-form-checked::after {
+  transform: translateX(20px);
+  background: var(--accent);
+}
+.switch-control .vl-checkbox:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

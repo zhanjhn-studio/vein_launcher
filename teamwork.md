@@ -614,3 +614,9 @@ window.__veinResult(12, true, {ok: 1})
   ③ 事件：`MlcService.start_agent_watch()` 每秒轮询状态，变化时发布 `mlc.agent.game.enter / game.leave / player.dimension / player.death`，
   bridge 订阅后推给前端 `__veinMlcEvent`（`vein:mlcEvent`）；MLC 页挂载自动开启、卸载停止（实测 quickPlay 进世界触发 `game.enter`）。
   51 项单测通过 · 未提交
+
+- **2026-11-07 · feat/tools-mlc + fix/switch** — 指令菜单接 MLC + 开关对齐：
+  工具箱「指令」区新增 **发送到游戏**（草稿整条发送）与每行 **运行** 按钮，均走 `mlc.agentChat`（自动端口）；
+  顶部显示 `MLC 离线 / 已连接 / 游戏内` 状态（徽章改用 `t()`，中文稳定显示）；
+  MLC 总开关重做为独立行（标题+说明在左、状态胶囊+胶囊开关在右），CSS 新增 `.switch-row/.switch-control/.switch-state`
+  与 46×26 胶囊开关样式，修掉原来小方块错位问题 · `pages.tsx`、`toolsPage.tsx`、`styles.css`、`i18n.ts`、`i18nDom.ts` · 未提交

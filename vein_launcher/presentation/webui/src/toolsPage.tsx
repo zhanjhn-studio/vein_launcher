@@ -199,6 +199,8 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [paletteKey, setPaletteKey] = useState('Q');
   const [saving, setSaving] = useState(false);
+  const [agent, setAgent] = useState<{ ok?: boolean; inGame?: boolean } | null>(null);
+  const [running, setRunning] = useState(false);
   const [openFav, setOpenFav] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -273,6 +275,40 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
       notify(`Copied: ${item.cmd}`);
     } catch (e) {
       notify((e as Error).message);
+    }
+  };
+
+  // MLC：把指令直接发进游戏
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => {
+      try {
+        const state = await rpc<{ ok?: boolean; inGame?: boolean }>('mlc.agentState', [0]);
+        if (alive) setAgent(state);
+      } catch {
+        if (alive) setAgent({ ok: false });
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 5000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const runCommand = async (raw: string) => {
+    const cmd = raw.trim();
+    if (!cmd) return;
+    setRunning(true);
+    try {
+      const payload = cmd.startsWith('/') ? cmd : `/${cmd}`;
+      await rpc('mlc.agentChat', [payload, 0]);
+      notify(`Sent to game: ${payload}`);
+    } catch (err) {
+      notify(`MLC not available: ${(err as Error).message}`);
+    } finally {
+      setRunning(false);
     }
   };
 
@@ -416,6 +452,14 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
           <button className="btn sm" onClick={copyDraft} disabled={!normalizeCommand(draft)}>
             {t('Copy')}
           </button>
+          <button
+            className="btn sm primary"
+            onClick={() => runCommand(fullCommand)}
+            disabled={!normalizeCommand(draft) || running || agent?.ok === false}
+            title={agent?.ok === false ? 'MLC agent offline — launch a vanilla instance first' : 'Send this command to the running game'}
+          >
+            Send to game
+          </button>
           <button className="btn sm ghost" onClick={undo} disabled={!history.length}>
             Back
           </button>
@@ -436,6 +480,9 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
           {normalizeCommand(draft) && candidates === null && (
             <span className="cmd-badge">Command complete — copy it</span>
           )}
+          <span className="cmd-badge">
+            {t(`MLC ${agent?.ok === false ? 'offline' : agent?.inGame ? 'in game' : 'connected'}`)}
+          </span>
         </div>
 
         <div className="cmd-search">
@@ -651,6 +698,16 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
                 <div className="tool-desc">{item.desc}</div>
                 <code className="tool-cmd">{item.cmd}</code>
               </div>
+              <button
+                className="btn sm primary"
+                disabled={agent?.ok === false || running}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  runCommand(item.cmd);
+                }}
+              >
+                Run
+              </button>
               <button
                 className="btn sm"
                 onClick={(e) => {

@@ -727,21 +727,23 @@ export function MlcPage({
         </div>
       </div>
       <div className="card" style={{ marginBottom: 16 }}>
-        <div className="pane-head" style={{ padding: '0 0 10px', border: 0 }}>
-          <span>
-            MLC master switch
-            <span className="muted" style={{ marginLeft: 8 }}>{mlcOn ? 'On' : 'Off'}</span>
-          </span>
-          <LayuiCheckbox
-            checked={mlcOn}
-            disabled={toggling}
-            onChange={toggleMlc}
-            label={mlcOn ? 'On' : 'Off'}
-          />
+        <div className="switch-row">
+          <div className="switch-copy">
+            <div className="switch-title">MLC master switch</div>
+            <p className="muted" style={{ margin: '6px 0 0' }}>
+              When off, MLC data calls (saves, player data, mod install) are rejected.
+            </p>
+          </div>
+          <div className="switch-control">
+            <span className={`switch-state ${mlcOn ? 'on' : ''}`}>{mlcOn ? 'On' : 'Off'}</span>
+            <LayuiCheckbox
+              checked={mlcOn}
+              disabled={toggling}
+              onChange={toggleMlc}
+              label=""
+            />
+          </div>
         </div>
-        <p className="muted" style={{ margin: 0 }}>
-          When off, MLC data calls (saves, player data, mod install) are rejected.
-        </p>
       </div>
       <div className="pane-head">
         <span>VL-MLC 控制层</span>

@@ -122,6 +122,9 @@ export function setLang(next: Lang): void {
 
 /** 英文界面 → 简体中文（界面源码是英文，切到中文时走这张表） */
 const ZH: Record<string, string> = {
+  'MLC offline': 'MLC 离线',
+  'MLC connected': 'MLC 已连接',
+  'MLC in game': 'MLC 游戏内',
   '(Results appear here)': '（结果会显示在这里）',
   'MLC events appear here after launch': '启动后 MLC 事件会显示在这里',
   Launch: '启动',

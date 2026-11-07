@@ -317,6 +317,12 @@ const ZH: Record<string, string> = {
     '可复制对应指令；切回游戏按 T 打开聊天框、Ctrl+V 粘贴。',
   'Vanilla control': '原版控制',
   'Send to game': '发送到游戏',
+  'Run': '运行',
+  'MLC offline': 'MLC 离线',
+  'MLC connected': 'MLC 已连接',
+  'MLC in game': 'MLC 游戏内',
+  'MLC agent offline — launch a vanilla instance first': 'MLC agent 离线——请先启动一个原版实例',
+  'Send this command to the running game': '把这条指令发送到正在运行的游戏',
   'Types the command into the running Minecraft window and presses Enter — works in vanilla, no mods.':
     '把指令直接输进正在运行的 Minecraft 窗口并回车——原版可用，不需要装 mod。',
   'Running games': '运行中的游戏',
