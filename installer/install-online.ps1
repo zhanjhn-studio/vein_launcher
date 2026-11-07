@@ -1,4 +1,4 @@
-# Vein Launcher 在线安装器
+﻿# Vein Launcher 在线安装器
 # 从 GitHub 拉取源码并安装；失败时提示改用离线安装器。
 param(
     [string]$InstallDir = "$env:LOCALAPPDATA\VeinLauncherApp",

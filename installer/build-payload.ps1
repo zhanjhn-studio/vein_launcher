@@ -1,6 +1,6 @@
-# 生成离线安装器所需的 payload（zip + 可选 wheels）
+﻿# 生成离线安装器所需的 payload（zip + wheels）
 param(
-    [switch]$WithWheels
+    [switch]$WithoutWheels
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,12 +23,13 @@ if (-not $zip) { throw "没有生成 zip，检查 tools/package_release.py 输�
 Copy-Item $zip.FullName $payload -Force
 Write-Host "    payload: $($zip.Name) ($([math]::Round($zip.Length/1MB,1)) MB)" -ForegroundColor Green
 
-if ($WithWheels) {
-    Write-Host "==> 下载依赖 wheels（离线安装用）" -ForegroundColor Cyan
+if (-not $WithoutWheels) {
+    Write-Host "==> 下载依赖 wheels（离线安装必需）" -ForegroundColor Cyan
     $wheels = Join-Path $payload "wheels"
     New-Item -ItemType Directory -Path $wheels -Force | Out-Null
     python -m pip download -r (Join-Path $root "requirements.txt") -d $wheels
-    Write-Host "    wheels 已写入 $wheels" -ForegroundColor Green
+    $size = (Get-ChildItem $wheels -Recurse -File | Measure-Object Length -Sum).Sum
+    Write-Host ("    wheels: " + [math]::Round($size / 1MB, 1) + " MB -> " + $wheels) -ForegroundColor Green
 }
 
 Write-Host ""

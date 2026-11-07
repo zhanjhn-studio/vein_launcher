@@ -544,3 +544,10 @@ window.__veinResult(12, true, {ok: 1})
   `install-offline.ps1|cmd`（本地 payload，不联网）、`build-payload.ps1`（生成 payload）；README 与 README-zh 都加了两种安装方式说明。
   `requirements.txt` 清理并补 psutil；`tools/build_minimal_jre.py`（jlink 最小 JRE，已验证 1.20.1 可启动，45.5 MB）；
   `tools/package_release.py`（打 zip 发布包）。51 项单测 + 插件自检通过 · 未提交
+
+- **2026-11-07 · fix/installers-offline** — 安装器离线化：
+  `.ps1` 统一补 UTF-8 BOM（PowerShell 5.1 无 BOM 会按 ANSI 读，中文注释会破坏语法，三个脚本已用 Parser 校验通过）；
+  `build-payload.ps1` 默认一并 `pip download` 依赖到 `payload/wheels`（`-WithoutWheels` 可跳过）；
+  `install-offline.ps1` 去掉「偷偷联网装依赖」的退路，没有 wheels 直接给明确提示；
+  实测离线安装：解压 → 建 venv → 无 wheels 时按预期报错退出，安装目录结构正确；
+  `codeload.github.com/.../zip/refs/heads/main` 返回 200，在线安装器下载步骤可用 · `installer/*.ps1` · 未提交

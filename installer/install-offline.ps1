@@ -1,5 +1,5 @@
-# Vein Launcher 离线安装器
-# 不联网：使用 installer\payload 下的 zip（和可选的 wheels）完成安装。
+﻿# Vein Launcher 离线安装器
+# 不联网：使用 installer\payload 下的 zip 与 wheels 完成安装。
 param(
     [string]$InstallDir = "$env:LOCALAPPDATA\VeinLauncherApp",
     [string]$Payload = "",
@@ -49,7 +49,7 @@ Write-Ok ("使用安装包 " + (Split-Path -Leaf $Payload))
 Write-Step "检查 Python 3.10+"
 $python = Find-Python
 if (-not $python) {
-    Write-Fail "没有找到 Python 3.10+。离线环境请提前安装 Python，或使用带嵌入式运行时的安装包。"
+    Write-Fail "没有找到 Python 3.10+。离线环境请先安装 Python 再运行本安装器。"
     Read-Host "按回车退出"
     exit 1
 }
@@ -64,6 +64,11 @@ New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 Expand-Archive -LiteralPath $Payload -DestinationPath $InstallDir -Force
 Write-Ok "解压完成"
 
+$appRoot = Get-ChildItem $InstallDir -Directory |
+    Where-Object { Test-Path (Join-Path $_.FullName "vein_launcher") } |
+    Select-Object -First 1
+if (-not $appRoot) { $appRoot = Get-Item $InstallDir }
+
 Write-Step "创建虚拟环境"
 $venv = Join-Path $InstallDir ".venv"
 if (-not (Test-Path $venv)) {
@@ -71,25 +76,25 @@ if (-not (Test-Path $venv)) {
 }
 $pip = Join-Path $venv "Scripts\pip.exe"
 
-Write-Step "安装依赖（离线优先使用本地 wheels）"
+Write-Step "安装依赖（纯离线）"
+$innerWheels = Join-Path $appRoot.FullName "wheels"
 if (Test-Path $wheels) {
-    & $pip install --no-index --find-links $wheels -r (Join-Path $InstallDir "requirements.txt") --quiet
+    $wheelDir = $wheels
+} elseif (Test-Path $innerWheels) {
+    $wheelDir = $innerWheels
 } else {
-    $payloadInner = Join-Path $InstallDir "VeinLauncher"
-    if (Test-Path (Join-Path $payloadInner "wheels")) {
-        & $pip install --no-index --find-links (Join-Path $payloadInner "wheels") -r (Join-Path $InstallDir "requirements.txt") --quiet
-    } else {
-        Write-Ok "没有本地 wheels，尝试从已安装环境复制依赖"
-        & $python -c "import PySide6, aiohttp, pydantic" 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            & $pip install PySide6 aiohttp pydantic requests psutil --quiet
-        } else {
-            Write-Fail "本机没有可用依赖，也没有 wheels 缓存。"
-            Write-Fail "请在有网机器上执行：pip download -r requirements.txt -d payload\wheels"
-            Read-Host "按回车退出"
-            exit 1
-        }
-    }
+    Write-Fail "payload 里没有 wheels，离线安装无法装依赖。"
+    Write-Host "    在有网的机器上重新生成：" -ForegroundColor Yellow
+    Write-Host "      powershell -File installer\build-payload.ps1" -ForegroundColor Yellow
+    Read-Host "按回车退出"
+    exit 1
+}
+
+& $pip install --no-index --find-links $wheelDir -r (Join-Path $appRoot.FullName "requirements.txt") --quiet
+if ($LASTEXITCODE -ne 0) {
+    Write-Fail "依赖安装失败，检查 wheels 是否完整"
+    Read-Host "按回车退出"
+    exit 1
 }
 Write-Ok "依赖就绪"
 
@@ -100,7 +105,7 @@ if (-not $NoShortcut) {
     $link = $shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "Vein Launcher.lnk"))
     $link.TargetPath = $pythonw
     $link.Arguments = "-m vein_launcher.presentation.main"
-    $link.WorkingDirectory = $InstallDir
+    $link.WorkingDirectory = $appRoot.FullName
     $link.Description = "Vein Launcher"
     $link.Save()
     Write-Ok "桌面快捷方式已创建"
@@ -108,11 +113,7 @@ if (-not $NoShortcut) {
 
 if (-not $NoLaunch) {
     Write-Step "启动 Vein Launcher"
-    $moduleDir = Get-ChildItem $InstallDir -Directory |
-        Where-Object { Test-Path (Join-Path $_.FullName "vein_launcher") } |
-        Select-Object -First 1
-    $work = if ($moduleDir) { $moduleDir.FullName } else { $InstallDir }
-    Start-Process -FilePath (Join-Path $venv "Scripts\pythonw.exe") -ArgumentList "-m", "vein_launcher.presentation.main" -WorkingDirectory $work
+    Start-Process -FilePath (Join-Path $venv "Scripts\pythonw.exe") -ArgumentList "-m", "vein_launcher.presentation.main" -WorkingDirectory $appRoot.FullName
     Write-Ok "已启动"
 }
 
