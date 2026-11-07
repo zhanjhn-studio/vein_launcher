@@ -598,3 +598,10 @@ window.__veinResult(12, true, {ok: 1})
   最小 JRE 补 `java.instrument`（否则 JVM 拒绝加载 agent，实测报 "Module java.instrument may be missing"）。
   实测：带 agent 启动 1.20.1 → `ping` 返回 `{ok:true,agent:"vein"}`，`state` 返回 `{inGame:false}`（菜单态）；
   同时删除安装器（`installer/`、`packaging/`、EXE 产物）· 未提交
+
+- **2026-11-07 · feat/agent-v3** — agent 读数修正与实测：
+  反射改为支持接口默认方法（`getString` 在 `Component` 接口上，之前只找父类导致玩家名显示 `literal{Player}`）；
+  维度从 `ResourceKey[minecraft:dimension / minecraft:overworld]` 清洗为 `minecraft:overworld`。
+  实测（quickPlay 直接进世界）：`state` 返回 `{inGame:true,player:{name:"Player",x:-1044.7,y:64,z:-1066,health:20,dimension:"minecraft:overworld"}}`；
+  `chat` 发送 `/time set day` 与 `/say hello from vein` 均返回 `{ok:true}` 且游戏内生效 ·
+  `tools/build_vanilla_agent.py` · 未提交

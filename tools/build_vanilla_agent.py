@@ -59,6 +59,8 @@ public final class VeinAgent {
     private static final String M_NAME = "__M_NAME__";
     private static final String M_CHAT = "__M_CHAT__";
     private static final String M_CONNECTION = "__M_CONNECTION__";
+    private static final String M_GETSTRING = "__M_GETSTRING__";
+    private static final String M_DIMENSION = "__M_DIMENSION__";
 
     public static void premain(String args, java.lang.instrument.Instrumentation inst) {
         int port = Integer.getInteger("vein.agent.port", 25566);
@@ -140,11 +142,28 @@ public final class VeinAgent {
             Object y = invoke(player, M_GETY, 0);
             Object z = invoke(player, M_GETZ, 0);
             Object hp = invoke(player, M_HP, 0);
-            Object name = invoke(player, M_NAME, 0);
+            Object nameComponent = invoke(player, M_NAME, 0);
+            String name = String.valueOf(nameComponent);
+            try {
+                name = String.valueOf(invoke(nameComponent, M_GETSTRING, 0));
+            } catch (Throwable ignored) {
+            }
             Object level = level();
-            String dim = level == null ? "" : String.valueOf(level);
+            String dim = "";
+            if (level != null) {
+                try {
+                    dim = String.valueOf(invoke(level, M_DIMENSION, 0));
+                    int slash = dim.indexOf(" / ");
+                    if (slash >= 0) {
+                        dim = dim.substring(slash + 3);
+                        if (dim.endsWith("]")) dim = dim.substring(0, dim.length() - 1);
+                    }
+                } catch (Throwable ignored) {
+                    dim = String.valueOf(level);
+                }
+            }
             return "{\"inGame\":true,\"player\":{"
-                + "\"name\":\"" + escape(String.valueOf(name)) + "\","
+                + "\"name\":\"" + escape(name) + "\","
                 + "\"x\":" + num(x) + ",\"y\":" + num(y) + ",\"z\":" + num(z) + ","
                 + "\"health\":" + num(hp) + ",\"dimension\":\"" + escape(dim) + "\"}}";
         } catch (Throwable t) {
@@ -172,17 +191,25 @@ public final class VeinAgent {
         invoke(connection, M_CHAT, 1, new Class<?>[]{String.class}, new Object[]{command});
     }
 
-    private static Object invoke(Object target, String name, int argc, Class<?>[] types, Object[] args) throws Exception {
-        Class<?> cls = target.getClass();
+    private static Method findMethod(Class<?> cls, String name, int argc) {
         while (cls != null) {
             for (Method method : cls.getDeclaredMethods()) {
-                if (!method.getName().equals(name) || method.getParameterCount() != argc) continue;
-                method.setAccessible(true);
-                return method.invoke(target, args);
+                if (method.getName().equals(name) && method.getParameterCount() == argc) return method;
+            }
+            for (Class<?> iface : cls.getInterfaces()) {
+                Method found = findMethod(iface, name, argc);
+                if (found != null) return found;
             }
             cls = cls.getSuperclass();
         }
-        throw new NoSuchMethodException(name);
+        return null;
+    }
+
+    private static Object invoke(Object target, String name, int argc, Class<?>[] types, Object[] args) throws Exception {
+        Method method = findMethod(target.getClass(), name, argc);
+        if (method == null) throw new NoSuchMethodException(name);
+        method.setAccessible(true);
+        return method.invoke(target, args);
     }
 
     private static Object invoke(Object target, String name, int argc) throws Exception {
@@ -298,6 +325,8 @@ def main() -> int:
         "M_CONNECTION": need(classes, fields, methods, "net.minecraft.client.Minecraft", method="getConnection"),
         "M_NAME": need(classes, fields, methods, "net.minecraft.world.entity.Entity", method="getName"),
         "M_CHAT": need(classes, fields, methods, "net.minecraft.client.multiplayer.ClientPacketListener", method="sendCommand"),
+        "M_GETSTRING": need(classes, fields, methods, "net.minecraft.network.chat.Component", method="getString"),
+        "M_DIMENSION": need(classes, fields, methods, "net.minecraft.world.level.Level", method="dimension"),
     }
     print("tokens:", json.dumps(tokens, ensure_ascii=False))
 
