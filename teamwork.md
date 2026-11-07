@@ -588,3 +588,13 @@ window.__veinResult(12, true, {ok: 1})
   `bridge.py`、`settings.py` 配套；`styles.css` 冲突按「两侧都保留」解决
   （upstream 的 anvil/chest `image-rendering:auto` 规则 + 本地的 accent 样式） ·
   实测中文界面下色板可点、切色即时生效
+
+- **2026-11-07 · feat/vanilla-agent** — 原版 MLC Java agent（无 mod 加载器）：
+  `tools/build_vanilla_agent.py`：拉官方 1.20.1 client mappings → 解析 `Minecraft`(`enn`)/`LocalPlayer`/`Entity` 等混淆名
+  → 渲染 Java 源码（纯反射，不依赖 Mixin/加载器）→ javac 直接编译成 `VeinLauncher/agent/vein-agent-1.20.1.jar`（5 KB）；
+  agent 在 premain 起本地 TCP（127.0.0.1:25566，JSON 行协议）：`ping` / `state` / `chat`；
+  启动器 `build_command` 对原版实例自动加 `-javaagent` + 端口；MlcService 增加 `agent_state/agent_chat`；RPC `mlc.agentState/agentChat`；
+  MLC 页「原版控制」卡片显示 Agent 状态（离线/菜单/游戏内坐标），发指令优先走 agent、失败回退键盘输入；
+  最小 JRE 补 `java.instrument`（否则 JVM 拒绝加载 agent，实测报 "Module java.instrument may be missing"）。
+  实测：带 agent 启动 1.20.1 → `ping` 返回 `{ok:true,agent:"vein"}`，`state` 返回 `{inGame:false}`（菜单态）；
+  同时删除安装器（`installer/`、`packaging/`、EXE 产物）· 未提交

@@ -129,6 +129,17 @@ class LauncherService:
                 jvm_args = [f"-Djava.library.path={natives_dir}"]
 
         java_bin = java_path or (str(java.path) if java else "")
+        # 原版（无加载器）实例：挂 MLC agent，启动器可直连读取游戏状态
+        agent_flags: List[str] = []
+        lower_id = str(version_id).lower()
+        if not any(key in lower_id for key in ("fabric", "forge", "quilt", "neoforge")):
+            from vein_launcher.common.utils.path_utils import get_root_dir
+
+            agent_jar = get_root_dir() / "agent" / f"vein-agent-{version_id}.jar"
+            if agent_jar.is_file():
+                agent_flags = [f"-javaagent:{agent_jar}", "-Dvein.agent.port=25566"]
+                logger.info("挂载原版 MLC agent：%s", agent_jar.name)
+
         command = [
             java_bin,
             f"-Xms{cfg.launch.memory_min}M",
@@ -136,6 +147,7 @@ class LauncherService:
             *cfg.launch.jvm_args,
             *jvm_args,
             *(extra_jvm or []),
+            *agent_flags,
         ]
         has_cp = any(arg in ("-cp", "-classpath") for arg in jvm_args)
         if not has_cp:

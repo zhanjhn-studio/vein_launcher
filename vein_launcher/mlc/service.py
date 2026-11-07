@@ -218,6 +218,37 @@ class MlcService:
         data["player"] = self.player_info(version_id, world)
         return data
 
+    # ------------------------------------------------------------------ 原版 agent
+    async def _agent_call(self, payload: dict, port: int = 25566, timeout: float = 2.0) -> dict:
+        import asyncio
+        import json
+
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection("127.0.0.1", int(port)), timeout=timeout
+            )
+        except (OSError, asyncio.TimeoutError) as exc:
+            raise MlcError(f"MLC agent not reachable on port {port}") from exc
+        try:
+            writer.write((json.dumps(payload, ensure_ascii=False) + "\n").encode("utf-8"))
+            await writer.drain()
+            line = await asyncio.wait_for(reader.readline(), timeout=timeout)
+        finally:
+            writer.close()
+            try:
+                await writer.wait_closed()
+            except Exception:
+                pass
+        if not line:
+            raise MlcError("MLC agent closed the connection")
+        return json.loads(line.decode("utf-8", errors="replace"))
+
+    async def agent_state(self, port: int = 25566) -> dict:
+        return await self._agent_call({"cmd": "state"}, port)
+
+    async def agent_chat(self, text: str, port: int = 25566) -> dict:
+        return await self._agent_call({"cmd": "chat", "text": text}, port)
+
     # ------------------------------------------------------------------ 玩家
     def player_info(self, version_id: str, world: str = "") -> Dict[str, Any]:
         """从 playerdata/<uuid>.dat 读真实玩家数据（无需游戏侧 mod）"""

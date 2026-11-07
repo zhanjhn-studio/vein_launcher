@@ -209,6 +209,8 @@ class ApiBridge(QObject):
             "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
             "mlc.setEnabled": self._mlc_set_enabled,
+            "mlc.agentState": self._mlc_agent_state,
+            "mlc.agentChat": self._mlc_agent_chat,
             "mlc.player": self._mlc_player,
             "mlc.worldDetail": self._mlc_world_detail,
             "mlc.modLoad": self._mlc_mod_load,
@@ -1243,6 +1245,12 @@ class ApiBridge(QObject):
 
     async def _mlc_set_enabled(self, enabled: bool = False) -> dict:
         return self._ctx.mlc.set_enabled(bool(enabled))
+
+    async def _mlc_agent_state(self, port: int = 25566) -> dict:
+        return await self._ctx.mlc.agent_state(int(port or 25566))
+
+    async def _mlc_agent_chat(self, text: str = "", port: int = 25566) -> dict:
+        return await self._ctx.mlc.agent_chat(str(text), int(port or 25566))
 
     async def _mlc_mod_load(self, version_id: str = "", path: str = "") -> dict:
         return self._ctx.mlc.mod_load(str(version_id), str(path))

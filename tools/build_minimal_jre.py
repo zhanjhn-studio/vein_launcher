@@ -34,6 +34,8 @@ DEFAULT_MODULES = ",".join(
         "jdk.crypto.ec",
         "jdk.zipfs",
         "jdk.charsets",
+        # MLC 原版 agent 需要（-javaagent 依赖该模块，缺了 JVM 直接拒绝启动）
+        "java.instrument",
     ]
 )
 

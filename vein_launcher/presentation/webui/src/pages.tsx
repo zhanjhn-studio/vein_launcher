@@ -553,6 +553,7 @@ export function MlcPage({
   const [toggling, setToggling] = useState(false);
   const [command, setCommand] = useState('/time set day');
   const [sending, setSending] = useState(false);
+  const [agent, setAgent] = useState<{ ok?: boolean; inGame?: boolean; player?: any; error?: string } | null>(null);
   const [result, setResult] = useState<string>('');
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState('');
@@ -652,13 +653,37 @@ export function MlcPage({
     }
   };
 
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => {
+      try {
+        const state = await rpc<{ ok?: boolean; inGame?: boolean; player?: any }>('mlc.agentState', [25566]);
+        if (alive) setAgent(state);
+      } catch (err) {
+        if (alive) setAgent({ ok: false, error: (err as Error).message });
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 3000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
   const sendCommand = async () => {
     if (!command.trim()) return;
     setSending(true);
     try {
-      const result = await rpc<{ sent: boolean; hwnd: number }>('game.command', [command.trim(), 0]);
-      notify(result.sent ? `Sent: ${command.trim()}` : 'Command not sent');
-      setResult(`game.command → ${command.trim()}`);
+      try {
+        await rpc('mlc.agentChat', [command.trim(), 25566]);
+        notify(`Agent sent: ${command.trim()}`);
+        setResult(`mlc.agentChat → ${command.trim()}`);
+      } catch {
+        const result = await rpc<{ sent: boolean }>('game.command', [command.trim(), 0]);
+        notify(result.sent ? `Sent: ${command.trim()}` : 'Command not sent');
+        setResult(`game.command → ${command.trim()}`);
+      }
     } catch (err) {
       notify(`Send failed: ${(err as Error).message}`);
     } finally {
@@ -673,6 +698,16 @@ export function MlcPage({
         <p className="muted" style={{ marginTop: 0 }}>
           Types the command into the running Minecraft window and presses Enter — works in vanilla, no mods.
         </p>
+        <div className="kv">
+          <span>Agent</span>
+          <b>
+            {agent?.ok === false
+              ? 'offline'
+              : agent?.inGame
+              ? `in game · ${agent.player?.x?.toFixed?.(1) ?? '?'}, ${agent.player?.y?.toFixed?.(1) ?? '?'}, ${agent.player?.z?.toFixed?.(1) ?? '?'}`
+              : 'connected · menu'}
+          </b>
+        </div>
         <div className="row-actions">
           <input
             className="input"
