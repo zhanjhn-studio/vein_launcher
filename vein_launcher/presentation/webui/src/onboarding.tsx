@@ -9,7 +9,7 @@ export function Splash({ firstRun }: { firstRun: boolean }) {
         <img src="logo.png" alt="" />
         <span>VEIN</span>
       </div>
-      <h1>欢迎使用 Vein Launcher</h1>
+      <h1>Welcome to Vein Launcher</h1>
       <p className="muted">
         {firstRun
           ? "First time here? We're getting everything ready for you."
@@ -159,16 +159,16 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
       case 'welcome':
         return (
           <div className="setup-page">
-            <span className="setup-kicker">首次启动</span>
-            <h1>欢迎使用 Vein Launcher</h1>
+            <span className="setup-kicker">First run</span>
+            <h1>Welcome to Vein Launcher</h1>
             <p className="setup-lead">
               A Minecraft launcher that keeps out of your way: one click to play, everything
               else one page away. Let&apos;s set it up for you in four short steps.
             </p>
             <ul className="setup-points">
-              <li>选择登录方式 —— 离线、微软 或 LittleSkin</li>
-              <li>选择游戏文件存放位置</li>
-              <li>看看启动器在你电脑上存了什么</li>
+              <li>Pick how you sign in — offline, Microsoft or LittleSkin</li>
+              <li>Choose where your game files live</li>
+              <li>Review what the launcher stores on your PC</li>
             </ul>
           </div>
         );
@@ -176,8 +176,8 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
       case 'features':
         return (
           <div className="setup-page">
-            <span className="setup-kicker">功能一览</span>
-            <h1>所有功能都在一个窗口里</h1>
+            <span className="setup-kicker">What&apos;s inside</span>
+            <h1>Everything in one window</h1>
             <div className="feature-grid">
               {FEATURES.map((f) => (
                 <div className="feature-card" key={f.title}>
@@ -193,8 +193,8 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
       case 'account':
         return (
           <div className="setup-page">
-            <span className="setup-kicker">第 3 步</span>
-            <h1>选择账号</h1>
+            <span className="setup-kicker">Step 3</span>
+            <h1>Choose your account</h1>
             <p className="setup-lead">
               You can add more accounts later in Settings → Accounts.
             </p>
@@ -204,22 +204,22 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
                   className={`account-option ${method === 'offline' ? 'active' : ''}`}
                   onClick={() => setMethod('offline')}
                 >
-                  <b>离线</b>
-                  <span>只需一个名字</span>
+                  <b>Offline</b>
+                  <span>Just a name</span>
                 </button>
                 <button
                   className={`account-option ${method === 'microsoft' ? 'active' : ''}`}
                   onClick={() => setMethod('microsoft')}
                 >
-                  <b>微软</b>
-                  <span>官方正版账号</span>
+                  <b>Microsoft</b>
+                  <span>Official account</span>
                 </button>
                 <button
                   className={`account-option ${method === 'littleskin' ? 'active' : ''}`}
                   onClick={() => setMethod('littleskin')}
                 >
                   <b>LittleSkin</b>
-                  <span>皮肤站账号</span>
+                  <span>Skin site account</span>
                 </button>
               </aside>
 
@@ -233,7 +233,7 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
                     <div className="row-actions">
                       <input
                         className="input"
-                        placeholder="离线用户名（3–16 个字符）"
+                        placeholder="Offline name (3–16 characters)"
                         value={name}
                         maxLength={16}
                         onChange={(e) => setName(e.target.value)}
@@ -285,7 +285,7 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
                       <input
                         className="input"
                         type="password"
-                        placeholder="密码"
+                        placeholder="Password"
                         value={lsPassword}
                         onChange={(e) => setLsPassword(e.target.value)}
                       />
@@ -312,26 +312,26 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
       case 'privacy':
         return (
           <div className="setup-page">
-            <span className="setup-kicker">开始之前</span>
-            <h1>数据只保存在你自己的电脑上</h1>
+            <span className="setup-kicker">Before we start</span>
+            <h1>Your data stays on your PC</h1>
             <div className="privacy-list">
               <div>
-                <b>本地保存</b>
+                <b>Stored locally</b>
                 <span>
                   Accounts and access tokens, launcher settings, logs, downloaded game files —
                   all inside your VeinLauncher folder.
                 </span>
               </div>
               <div>
-                <b>会联网发送</b>
+                <b>Sent over the network</b>
                 <span>
                   Version and asset lists from Mojang / BMCLAPI, mod metadata from Modrinth,
                   sign-in traffic to Microsoft or littleskin.cn. Nothing else.
                 </span>
               </div>
               <div>
-                <b>不收集</b>
-                <span>没有遥测、没有统计、没有广告标识。</span>
+                <b>Not collected</b>
+                <span>No telemetry, no analytics, no advertising identifiers.</span>
               </div>
             </div>
             <div className="consent">
@@ -347,8 +347,8 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
       default:
         return (
           <div className="setup-page">
-            <span className="setup-kicker">全部完成</span>
-            <h1>可以开始玩了</h1>
+            <span className="setup-kicker">All done</span>
+            <h1>You&apos;re ready to play</h1>
             <p className="setup-lead">
               {accountLabel
                 ? `Signed in as ${accountLabel}. `
@@ -356,9 +356,9 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
               Install a game version from the Download page and press Launch.
             </p>
             <ul className="setup-points">
-              <li>「下载 → 原版与加载器」安装 1.20.1</li>
-              <li>启动页 → 选版本卡 → 启动</li>
-              <li>设置 → Java、游戏目录、主题与账号</li>
+              <li>Download → Vanilla &amp; Loaders to install 1.20.1</li>
+              <li>Launch page → pick the card → Launch</li>
+              <li>Settings → Java, game folder, theme and accounts</li>
             </ul>
           </div>
         );
@@ -387,7 +387,7 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
           ))}
         </ol>
         <div className="setup-rail-foot">
-          <span>Vein Launcher 0.5.0</span>
+          <span>Vein Launcher 0.0.3</span>
           <button className="link-btn" onClick={() => complete(false)}>
             Skip setup
           </button>

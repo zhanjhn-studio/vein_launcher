@@ -55,20 +55,20 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
     setIdleDraft(String(prefs.idleSeconds));
   }, [prefs.idleSeconds]);
 
-  const toggleCompact = async () => {
-    try {
-      const next = await savePrefs({ compactMode: !prefs.compactMode });
-      notify(next.compactMode ? '已开启简洁模式' : '已关闭简洁模式');
-    } catch (err) {
-      notify(`Failed: ${(err as Error).message}`);
-    }
-  };
-
   /** 切主色：立即写配置并重绘 CSS 变量 */
   const changeAccent = async (hex: string) => {
     try {
       const next = await savePrefs({ accent: hex });
       notify(hex ? `主色已切换：${next.accent || hex}` : '已恢复默认主色');
+    } catch (err) {
+      notify(`Failed: ${(err as Error).message}`);
+    }
+  };
+
+  const toggleCompact = async () => {
+    try {
+      const next = await savePrefs({ compactMode: !prefs.compactMode });
+      notify(next.compactMode ? 'Compact mode on' : 'Compact mode off');
     } catch (err) {
       notify(`Failed: ${(err as Error).message}`);
     }
@@ -250,16 +250,16 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   return (
     <div className="page">
       <div className="page-head">
-        <h1>设置</h1>
-        <span className="muted">分组设置</span>
+        <h1>Settings</h1>
+        <span className="muted">Grouped sections</span>
       </div>
 
       <div className="accordion">
         <details className="acc-item" open>
-          <summary>外观</summary>
+          <summary>Appearance</summary>
           <div className="acc-body">
             <div className="kv">
-              <span>主题</span>
+              <span>Theme</span>
               <b>
                 <select
                   value={theme}
@@ -269,15 +269,15 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                     applyTheme(next);
                   }}
                 >
-                  <option value="dark">深色</option>
-                  <option value="light">浅色</option>
-                  <option value="clear">透明</option>
-                  <option value="system">跟随系统</option>
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                  <option value="clear">Clear</option>
+                  <option value="system">System</option>
                 </select>
               </b>
             </div>
             <div className="setting-block">
-              <div className="setting-label">主题色</div>
+              <div className="setting-label">Accent color</div>
               <div className="accent-row">
                 {ACCENT_PRESETS.map((color) => (
                   <button
@@ -303,7 +303,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
               </p>
             </div>
             <div className="kv">
-              <span>语言</span>
+              <span>Language</span>
               <b>
                 <select
                   value={lang}
@@ -319,21 +319,22 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
               </b>
             </div>
             <div className="kv">
-              <span>简洁模式</span>
+              <span>Compact mode</span>
               <b>
                 <button
                   className={`btn sm ${prefs.compactMode ? 'primary' : ''}`}
                   onClick={toggleCompact}
                 >
-                  {prefs.compactMode ? '开' : '关'}
+                  {prefs.compactMode ? 'On' : 'Off'}
                 </button>
               </b>
             </div>
             <p className="muted" style={{ margin: '-4px 0 8px' }}>
-              隐藏侧边栏：屏幕左边缘会留一个半透明手柄，点它把侧栏滑出来；选完页面会自动收起。
+              Hides the sidebar; a translucent handle on the left edge slides it back in. Clicking a
+              page closes it again.
             </p>
             <div className="kv">
-              <span>空闲后淡出</span>
+              <span>Fade out after idle</span>
               <b>
                 <input
                   className="input"
@@ -348,29 +349,30 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                     if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
                   }}
                 />
-                <span className="muted" style={{ marginLeft: 8 }}>秒</span>
+                <span className="muted" style={{ marginLeft: 8 }}>seconds</span>
               </b>
             </div>
             <p className="muted" style={{ margin: '-4px 0 8px' }}>
-              在启动页，超过这么多秒没有鼠标、键盘、滚轮或触摸操作后，界面会淡成透明；任何操作都会让它
-              重新出现。填 0 关闭（默认 60 秒）。
+              On the Launch page, the whole UI fades to transparent after this many seconds without
+              mouse, keyboard, wheel or touch input; any input brings it back. 0 turns it off
+              (default 60).
             </p>
             <div className="kv">
-              <span>壁纸</span>
+              <span>Wallpaper</span>
               <b>
                 <button className="btn sm" onClick={pickWallpaper} disabled={wallBusy}>
-                  {wallBusy ? '导入中…' : prefs.wallpaper ? '更换…' : '导入…'}
+                  {wallBusy ? 'Importing…' : prefs.wallpaper ? 'Change…' : 'Import…'}
                 </button>
                 {prefs.wallpaper && (
                   <button className="btn sm ghost" style={{ marginLeft: 6 }} onClick={dropWallpaper}>
-                    移除
+                    Remove
                   </button>
                 )}
               </b>
             </div>
             <p className="muted" style={{ margin: '-4px 0 8px' }}>
-              支持 PNG / JPG / WEBP / GIF / BMP / MP4 / WEBM。文件会被复制进启动器数据目录，
-              之后移动原文件也没关系。
+              PNG / JPG / WEBP / GIF / BMP / MP4 / WEBM. The file is copied into the launcher data
+              folder, so moving the original afterwards is safe.
             </p>
             {prefs.wallpaper && (
               <div className="wall-preview-wrap">
@@ -393,9 +395,9 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
         </details>
 
         <details className="acc-item">
-          <summary>账号</summary>
+          <summary>Accounts</summary>
           <div className="acc-body">
-            {accounts.length === 0 && <p className="muted">还没有账号</p>}
+            {accounts.length === 0 && <p className="muted">No accounts yet</p>}
             {accounts.map((acc) => (
               <div className="kv" key={acc.id}>
                 <span>
@@ -438,7 +440,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
             <div className="row-actions">
               <input
                 className="input"
-                placeholder="离线用户名（3-16 位）"
+                placeholder="Offline username (3-16)"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
               />
@@ -458,19 +460,19 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
               </button>
             </div>
 
-            <div className="card-title" style={{ marginTop: 14 }}>微软账号</div>
+            <div className="card-title" style={{ marginTop: 14 }}>Microsoft</div>
             <div className="row-actions">
               <input
                 className="input"
                 style={{ width: 300 }}
-                placeholder="Azure 客户端 ID"
+                placeholder="Azure client id"
                 value={msId}
                 onChange={(e) => setMsId(e.target.value)}
               />
               <input
                 className="input"
                 style={{ width: 260 }}
-                placeholder="授权域（common / 租户 ID）"
+                placeholder="authority (common / tenant id)"
                 value={msAuthority}
                 onChange={(e) => setMsAuthority(e.target.value)}
               />
@@ -492,12 +494,12 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
             </div>
             {msCode && <p className="muted">{msCode}</p>}
 
-            <div className="card-title" style={{ marginTop: 14 }}>LittleSkin 账号</div>
+            <div className="card-title" style={{ marginTop: 14 }}>LittleSkin</div>
             <div className="row-actions">
               <input
                 className="input"
                 style={{ width: 260 }}
-                placeholder="LittleSkin 邮箱"
+                placeholder="LittleSkin email"
                 value={lsEmail}
                 onChange={(e) => setLsEmail(e.target.value)}
               />
@@ -505,7 +507,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                 className="input"
                 style={{ width: 220 }}
                 type="password"
-                placeholder="密码"
+                placeholder="Password"
                 value={lsPassword}
                 onChange={(e) => setLsPassword(e.target.value)}
               />
@@ -526,7 +528,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
         </details>
 
         <details className="acc-item">
-          <summary>Java 环境</summary>
+          <summary>Java runtime</summary>
           <div className="acc-body">
             <div className="row-actions" style={{ marginTop: 0 }}>
               <button className="btn sm" onClick={detect}>
@@ -545,7 +547,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
             </div>
             {javaMsg && <p className="muted">{javaMsg}</p>}
             {runtimes.length === 0 ? (
-              <p className="muted">还没扫描过，点「自动检测」。</p>
+              <p className="muted">No scan yet. Click Auto detect.</p>
             ) : (
               runtimes.map((rt) => (
                 <div className="kv" key={rt.path}>
@@ -558,10 +560,10 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
         </details>
 
         <details className="acc-item">
-          <summary>游戏目录</summary>
+          <summary>Game folder</summary>
           <div className="acc-body">
             <div className="kv">
-              <span>当前</span>
+              <span>Current</span>
               <b className="mono">{mcDir || '—'}</b>
             </div>
             <div className="row-actions" style={{ marginTop: 0 }}>
@@ -592,7 +594,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
         </details>
 
         <details className="acc-item">
-          <summary>日志</summary>
+          <summary>Logs</summary>
           <div className="acc-body">
             <p className="muted">
               Written daily to VeinLauncher/log, split into launcher / plugin / mlc / download.
@@ -606,11 +608,11 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
         </details>
 
         <details className="acc-item">
-          <summary>关于</summary>
+          <summary>About</summary>
           <div className="acc-body">
-            <div className="kv"><span>版本</span><b>{info?.version ?? '—'}</b></div>
-            <div className="kv"><span>数据目录</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
-            <div className="kv"><span>技术栈</span><b>Python + PySide6 WebView + React + TS</b></div>
+            <div className="kv"><span>Version</span><b>{info?.version ?? '—'}</b></div>
+            <div className="kv"><span>Data folder</span><b className="mono">{info?.dataDir ?? '—'}</b></div>
+            <div className="kv"><span>Stack</span><b>Python + PySide6 WebView + React + TS</b></div>
 
             <div className="row-actions" style={{ marginTop: 10 }}>
               <button className="btn sm" onClick={checkUpdates} disabled={updateBusy === 'check'}>
@@ -650,7 +652,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
             )}
 
             {update && !update.available && !update.error && (
-              <p className="muted">已是最新版本。</p>
+              <p className="muted">You are on the latest version.</p>
             )}
             {update?.error && <p className="muted">{update.error}</p>}
             {updateMsg && <p className="muted">{updateMsg}</p>}

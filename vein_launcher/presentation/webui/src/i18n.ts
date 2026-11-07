@@ -100,8 +100,7 @@ export async function initI18n(): Promise<void> {
     const result = await rpc<{ lang: string }>('i18n.get');
     lang = result.lang === 'zh_CN' ? 'zh' : 'en';
   } catch {
-    // 后端还没就绪时先按中文渲染（默认配置就是 zh_CN）
-    lang = 'zh';
+    lang = 'en';
   }
   notify();
   window.dispatchEvent(new Event('vein:lang'));
