@@ -132,6 +132,9 @@ class ApiBridge(QObject):
             "launch": self._launch,
             "game.running": self._game_running,
             "game.kill": self._game_kill,
+            "game.windows": self._game_windows,
+            "game.focus": self._game_focus,
+            "game.command": self._game_command,
             "accounts.list": self._accounts_list,
             "accounts.add": self._accounts_add,
             "accounts.select": self._accounts_select,
@@ -523,6 +526,36 @@ class ApiBridge(QObject):
 
         games = await asyncio.to_thread(game_registry.list)
         return {"games": games, "count": len(games)}
+
+    async def _game_windows(self) -> dict:
+        from vein_launcher.infrastructure.process.game_input import list_windows
+
+        return {"windows": await asyncio.to_thread(list_windows, "Minecraft")}
+
+    async def _game_focus(self, pid: int = 0) -> dict:
+        from vein_launcher.infrastructure.process import game_input
+
+        def run() -> dict:
+            windows = game_input.list_windows("Minecraft")
+            target = next((w for w in windows if int(pid) == w["pid"]), None) if pid else (windows[0] if windows else None)
+            if not target:
+                return {"focused": False, "reason": "no minecraft window"}
+            return {"focused": game_input.focus_window(int(target["hwnd"])), "hwnd": int(target["hwnd"])}
+
+        return await asyncio.to_thread(run)
+
+    async def _game_command(self, command: str = "", pid: int = 0) -> dict:
+        """原版通道：切到游戏窗口，用键盘输入一条聊天指令"""
+        from vein_launcher.infrastructure.process import game_input
+
+        def run() -> dict:
+            windows = game_input.list_windows("Minecraft")
+            if not windows:
+                raise RuntimeError("没有找到 Minecraft 窗口，请先在游戏里进入世界")
+            target = next((w for w in windows if int(pid) == w["pid"]), None) if pid else windows[0]
+            return game_input.send_chat_command(str(command), int(target["hwnd"]))
+
+        return await asyncio.to_thread(run)
 
     async def _game_kill(self, pid: int = 0) -> dict:
         from vein_launcher.application.services.game_registry import game_registry

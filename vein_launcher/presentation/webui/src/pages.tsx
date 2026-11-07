@@ -551,6 +551,8 @@ export function MlcPage({
   const [state, setState] = useState<MlcState>({ connected: false, pid: null, enabled: false });
   const [mlcOn, setMlcOn] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [command, setCommand] = useState('/time set day');
+  const [sending, setSending] = useState(false);
   const [result, setResult] = useState<string>('');
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState('');
@@ -650,8 +652,42 @@ export function MlcPage({
     }
   };
 
+  const sendCommand = async () => {
+    if (!command.trim()) return;
+    setSending(true);
+    try {
+      const result = await rpc<{ sent: boolean; hwnd: number }>('game.command', [command.trim(), 0]);
+      notify(result.sent ? `Sent: ${command.trim()}` : 'Command not sent');
+      setResult(`game.command → ${command.trim()}`);
+    } catch (err) {
+      notify(`Send failed: ${(err as Error).message}`);
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="page">
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-title">Vanilla control</div>
+        <p className="muted" style={{ marginTop: 0 }}>
+          Types the command into the running Minecraft window and presses Enter — works in vanilla, no mods.
+        </p>
+        <div className="row-actions">
+          <input
+            className="input"
+            value={command}
+            placeholder="/time set day"
+            onChange={(event) => setCommand(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') sendCommand();
+            }}
+          />
+          <button className="btn primary" onClick={sendCommand} disabled={sending || !command.trim()}>
+            {sending ? 'Sending…' : 'Send to game'}
+          </button>
+        </div>
+      </div>
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="pane-head" style={{ padding: '0 0 10px', border: 0 }}>
           <span>

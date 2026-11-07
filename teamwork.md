@@ -567,3 +567,10 @@ window.__veinResult(12, true, {ok: 1})
   皮肤 A：新增 `infrastructure/network/authlib.py`，启动时自动下载 authlib-injector（349 KB，已就位），LittleSkin 账号启动即注入；
   皮肤 B：`tools/install_skin_support.py` 创建 `fabric-1.20.1` 实例并装入 CustomSkinLoader 15.1（实测 218 KB 落盘）。
   README 安装段改为四条下载路径 · 未提交
+
+- **2026-11-07 · feat/vanilla-mlc-input** — 原版可用的 MLC 输入桥：
+  新增 `infrastructure/process/game_input.py`（EnumWindows 找窗口、AttachThreadInput + ALT 抢前台、SendInput Unicode 打字），
+  提供 `game.windows` / `game.focus` / `game.command` 三个 RPC；MLC 页新增「原版控制」卡片（输入指令 → 输进游戏窗口并回车）。
+  自检 `tools/input_selftest.py`：Tk 靶子窗口实测收到 `hello vein 123`（PASS）。修正 INPUT 结构体（缺 MOUSEINPUT 导致 SendInput 返回 0）。
+  任务栏图标：`SetCurrentProcessExplicitAppUserModelID` + 窗口继承 `assets/logo.ico`，不再显示 pythonw 默认图标。
+  本地安装器测试数据、快捷方式、EXE 产物已全部删除 · 未提交

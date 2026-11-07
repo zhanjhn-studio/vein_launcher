@@ -291,6 +291,10 @@ const ZH: Record<string, string> = {
     '启动器在后台、游戏在前台时，按',
   'to copy that command; switch to the game, press T and paste with Ctrl+V.':
     '可复制对应指令；切回游戏按 T 打开聊天框、Ctrl+V 粘贴。',
+  'Vanilla control': '原版控制',
+  'Send to game': '发送到游戏',
+  'Types the command into the running Minecraft window and presses Enter — works in vanilla, no mods.':
+    '把指令直接输进正在运行的 Minecraft 窗口并回车——原版可用，不需要装 mod。',
   'Running games': '运行中的游戏',
   'End': '结束',
   'external': '外部启动',

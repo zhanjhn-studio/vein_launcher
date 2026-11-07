@@ -413,6 +413,13 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Vein Launcher")
     app.setOrganizationName("Vein Studio")
+    # 让任务栏使用我们自己的图标，而不是 pythonw.exe 的默认图标
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("VeinStudio.VeinLauncher")
+    except Exception:
+        pass
     icon = _resources_dir() / "assets" / "logo.ico"
     if not icon.is_file():
         icon = Path(__file__).resolve().parents[2] / "assets" / "logo.png"
@@ -424,6 +431,8 @@ def main() -> int:
     logger.info("服务装配完成，耗时 %.0f ms", (time.perf_counter() - started) * 1000)
 
     window = MainWindow(context)
+    if icon.is_file():
+        window.setWindowIcon(QIcon(str(icon)))
     window.show()
     # 窗口真正显示后句柄才稳定，这里再注册一次 Ctrl+Alt+Q
     try:

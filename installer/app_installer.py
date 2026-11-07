@@ -58,6 +58,33 @@ def payload_path() -> Path:
     return base / "payload" / RELEASE_ZIP
 
 
+_MUTEX_HANDLE = None
+
+
+def acquire_single_instance() -> bool:
+    """Windows 全局命名互斥：保证同时只有一个安装器在跑"""
+    global _MUTEX_HANDLE
+    if os.name != "nt":
+        return True
+    import ctypes
+
+    kernel32 = ctypes.windll.kernel32
+    handle = kernel32.CreateMutexW(None, True, "Global\\VeinLauncherSetupMutex")
+    if not handle:
+        return True
+    if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        kernel32.CloseHandle(handle)
+        return False
+    _MUTEX_HANDLE = handle
+    return True
+
+
+def cleanup_stale_staging() -> None:
+    """删掉以前异常退出留下的 staging 目录"""
+    for candidate in INSTALL_DIR.parent.glob(INSTALL_DIR.name + ".staging*"):
+        shutil.rmtree(candidate, ignore_errors=True)
+
+
 def create_shortcut(target: Path, workdir: Path) -> None:
     import subprocess
 
@@ -140,8 +167,6 @@ class Installer(tk.Tk):
 
             self.log("正在解压…", 45)
             # 每次安装用独立 staging（并发安装时不会互抢文件）
-            for old in INSTALL_DIR.parent.glob(INSTALL_DIR.name + ".staging*"):
-                shutil.rmtree(old, ignore_errors=True)
             staging = INSTALL_DIR.with_name(f"{INSTALL_DIR.name}.staging-{os.getpid()}")
             shutil.rmtree(staging, ignore_errors=True)
             staging.mkdir(parents=True, exist_ok=True)
@@ -258,4 +283,13 @@ if __name__ == "__main__":
     if "--inspect" in sys.argv:
         inspect_payload()
         sys.exit(0)
+    if not acquire_single_instance():
+        try:
+            Path(os.environ.get("TEMP", ".")).joinpath("vl_setup_busy.txt").write_text(
+                "another installer instance is running", encoding="utf-8"
+            )
+        except Exception:
+            pass
+        sys.exit(0)
+    cleanup_stale_staging()
     Installer().mainloop()
