@@ -468,3 +468,10 @@ window.__veinResult(12, true, {ok: 1})
   弹窗按钮组依次浮现 · `styles.css`、`App.tsx`、`theme.ts` ·
   `python -m unittest discover -s tests` → 51 OK · frontend build OK ·
   预览页实测 `hasVT=true`、滚动后 `.main.scrolled=true` 且标题栏 50px
+
+- **2026-11-07 · ui/icons** — 重绘坏掉的两个 16×16 图标：`chest.png` 原本是 64×64 的
+  GUI 图集碎片（带透明边与残缺格线），`anvil.png` 是一团纯灰噪点、没有轮廓；改用
+  字符网格 + 调色板逐像素重画（箱体/盖缝/金锁扣、铁砧顶板/腰身/底座）。两个文件被侧栏
+  （MLC / Tools）、下载页（Modpacks / Forge）、加载器卡与 `RemoteIcon` 兜底共用，替换
+  文件即全局生效，无需改代码 · `assets/icons/{chest,anvil}.png`、`tools/make_mc_icons.py` ·
+  下载页与加载器页截图核对（16×16 全部一致，像素块大小统一）· 未提交
