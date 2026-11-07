@@ -117,8 +117,13 @@ export function setLang(next: Lang): void {
   window.dispatchEvent(new Event('vein:lang'));
 }
 
+// 供自动化脚本/预览页切换语言（与界面上的语言下拉等价）
+(window as unknown as { __veinSetLang?: (next: Lang) => void }).__veinSetLang = setLang;
+
 /** 英文界面 → 简体中文（界面源码是英文，切到中文时走这张表） */
 const ZH: Record<string, string> = {
+  '(Results appear here)': '（结果会显示在这里）',
+  'MLC events appear here after launch': '启动后 MLC 事件会显示在这里',
   Launch: '启动',
   Skins: '皮肤',
   Download: '下载',

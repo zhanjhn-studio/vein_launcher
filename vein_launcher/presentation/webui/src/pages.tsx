@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { on, rpc } from './bridge';
-import { LayuiProgress, RemoteIcon } from './ui';
+import { LayuiCheckbox, LayuiProgress, RemoteIcon } from './ui';
 import type {
   AccountInfo,
   AppInfo,
@@ -548,7 +548,9 @@ export function MlcPage({
   selected: string;
   notify: (text: string) => void;
 }) {
-  const [state, setState] = useState<MlcState>({ connected: false, pid: null });
+  const [state, setState] = useState<MlcState>({ connected: false, pid: null, enabled: false });
+  const [mlcOn, setMlcOn] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const [result, setResult] = useState<string>('');
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState('');
@@ -559,7 +561,9 @@ export function MlcPage({
   useEffect(() => {
     const tick = async () => {
       try {
-        setState(await rpc<MlcState>('mlc.state'));
+        const next = await rpc<MlcState>('mlc.state');
+        setState(next);
+        setMlcOn(Boolean(next.enabled));
       } catch {
         /* ignore */
       }
@@ -633,8 +637,38 @@ export function MlcPage({
     }
   };
 
+  const toggleMlc = async (next: boolean) => {
+    setToggling(true);
+    try {
+      const res = await rpc<{ enabled: boolean }>('mlc.setEnabled', [next]);
+      setMlcOn(Boolean(res.enabled));
+      notify(next ? 'MLC enabled' : 'MLC disabled');
+    } catch (err) {
+      notify(`MLC switch failed: ${(err as Error).message}`);
+    } finally {
+      setToggling(false);
+    }
+  };
+
   return (
     <div className="page">
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="pane-head" style={{ padding: '0 0 10px', border: 0 }}>
+          <span>
+            MLC master switch
+            <span className="muted" style={{ marginLeft: 8 }}>{mlcOn ? 'On' : 'Off'}</span>
+          </span>
+          <LayuiCheckbox
+            checked={mlcOn}
+            disabled={toggling}
+            onChange={toggleMlc}
+            label={mlcOn ? 'On' : 'Off'}
+          />
+        </div>
+        <p className="muted" style={{ margin: 0 }}>
+          When off, MLC data calls (saves, player data, mod install) are rejected.
+        </p>
+      </div>
       <div className="pane-head">
         <span>VL-MLC Control layer</span>
         <StatusDot
@@ -659,7 +693,7 @@ export function MlcPage({
         </div>
         <div className="card">
           <div className="card-title">{t('Call result')}</div>
-          <pre className="activity">{result || '（Results appear here)'}</pre>
+          <pre className="activity">{result || t('(Results appear here)')}</pre>
         </div>
       </div>
       <div className="card" style={{ marginTop: 16 }}>
@@ -715,7 +749,7 @@ export function MlcPage({
 
       <div className="card" style={{ marginTop: 16 }}>
         <div className="card-title">{t('Event stream')}</div>
-        <div className="activity">{logs.join('\n') || 'MLC events appear here after launch'}</div>
+        <div className="activity">{logs.join('\n') || t('MLC events appear here after launch')}</div>
       </div>
     </div>
   );

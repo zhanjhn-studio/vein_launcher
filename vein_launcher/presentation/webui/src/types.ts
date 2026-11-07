@@ -59,6 +59,11 @@ export interface DownloadTask {
 export interface MlcState {
   connected: boolean;
   pid: number | null;
+  enabled?: boolean;
+  running?: boolean;
+  uptime?: number | null;
+  exit_code?: number | null;
+  version_id?: string | null;
 }
 
 export interface JavaRuntime {

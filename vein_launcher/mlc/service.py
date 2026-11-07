@@ -62,6 +62,30 @@ class MlcService:
         self._exit_code: Optional[int] = None
         self._last_version: Optional[str] = None
 
+    # ------------------------------------------------------------------ 开关
+    @property
+    def enabled(self) -> bool:
+        """MLC 总开关：关闭时所有数据类接口拒绝服务"""
+        try:
+            from vein_launcher.common.config.settings import settings_manager
+
+            return bool(settings_manager.get().mlc.enabled)
+        except Exception:  # 配置未就绪时按关闭处理
+            return False
+
+    def set_enabled(self, value: bool) -> Dict[str, Any]:
+        from vein_launcher.common.config.settings import settings_manager
+
+        settings = settings_manager.get()
+        settings.mlc.enabled = bool(value)
+        settings_manager.save()
+        logger.info("MLC 总开关：%s", "on" if value else "off")
+        return {"enabled": bool(value)}
+
+    def _require_enabled(self) -> None:
+        if not self.enabled:
+            raise MlcError("MLC is turned off. Enable the master switch on the MLC page first.")
+
     # ------------------------------------------------------------------ 事件桥
     def install_bridge(self) -> None:
         """把启动器事件桥接到 MLC 订阅者"""
@@ -108,6 +132,7 @@ class MlcService:
         if running and self._started_at:
             uptime = int(time.time() - self._started_at)
         return {
+            "enabled": self.enabled,
             "running": running,
             "pid": pid,
             "exit_code": self._exit_code,
@@ -142,11 +167,13 @@ class MlcService:
 
     def world_create(self, version_id: str, name: str) -> Dict[str, Any]:
         """创建存档目录（真正的世界生成仍需游戏内完成）"""
+        self._require_enabled()
         safe = "".join(c for c in name if c not in '\\/:*?"<>|').strip() or "New World"
         target = ensure_dir(self._saves_dir(version_id) / safe)
         return {"path": str(target), "name": safe, "generated": False}
 
     def world_info(self, version_id: str) -> Dict[str, Any]:
+        self._require_enabled()
         saves = self._saves_dir(version_id)
         if not saves.is_dir():
             return {"worlds": []}
@@ -180,6 +207,7 @@ class MlcService:
         return {"worlds": worlds}
 
     def world_detail(self, version_id: str, world: str) -> Dict[str, Any]:
+        self._require_enabled()
         target = self._saves_dir(version_id) / _safe_name(world)
         if not target.is_dir():
             raise MlcError(f"world not found: {world}")
@@ -193,6 +221,7 @@ class MlcService:
     # ------------------------------------------------------------------ 玩家
     def player_info(self, version_id: str, world: str = "") -> Dict[str, Any]:
         """从 playerdata/<uuid>.dat 读真实玩家数据（无需游戏侧 mod）"""
+        self._require_enabled()
         saves = self._saves_dir(version_id)
         if not saves.is_dir():
             return {"supported": False, "reason": "no saves directory"}
@@ -240,6 +269,7 @@ class MlcService:
     # ------------------------------------------------------------------ 模组
     def mod_load(self, version_id: str, source: str) -> Dict[str, Any]:
         """把本地 jar 复制进实例 mods 目录（真正的加载仍由游戏完成）"""
+        self._require_enabled()
         src = Path(source)
         if not src.is_file():
             raise MlcError(f"mod file not found: {source}")

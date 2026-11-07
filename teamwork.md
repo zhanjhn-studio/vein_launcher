@@ -521,3 +521,15 @@ window.__veinResult(12, true, {ok: 1})
   `tools/mlc_selftest.py` 14 项 PASS（临时数据 + 真实宿主）、`tools/plugin_selftest.py` PASS、
   51 项单测 OK；真实存档实测：世界「新的世界」种子 -1297348265404023800、玩家血量 20/食物 20 ·
   未提交
+
+- **2026-11-07 · feat/i18n-mlc-switch** — 界面中英全覆盖 + MLC 总开关：
+  新增 `src/i18nDom.ts`（DOM 层翻译：文本节点 + placeholder/title/aria-label，切回英文逐字还原，
+  MutationObserver + 切换后 4 秒补扫），词典覆盖 8 个页面、指令预设、日志占位与「N 项/N 个版本」动态计数；
+  指令候选标签改为语言感知（`label/displayHint/groupLabel` 带 lang），物品名取自官方 `zh_cn` 语言资源
+  （`tools/gen_cmd_labels.py` → `src/cmdLabelsZh.ts`，191 个 token）。
+  MLC 加总开关：`settings.mlc.enabled`（默认关）+ `MlcService.enabled/set_enabled/_require_enabled`，
+  关闭时存档/玩家/模组调用一律拒绝；新增 RPC `mlc.setEnabled`；导航栏 MLC 改为独立页面（实例管理移到隐藏路由
+  `/instance`），页面顶部就是总开关卡（显示 开/关）。
+  验收：英文模式 8 页 0 处中文；中文模式仅剩版本号/文件名/玩家名与 Java、PNG 等技术名词；51 项单测 + 插件自检通过 ·
+  `settings.py`、`mlc/service.py`、`bridge.py`、`App.tsx`、`pages.tsx`、`i18n.ts`、`i18nDom.ts`、`commandTree.ts`、
+  `cmdLabelsZh.ts`、`toolsPage.tsx`、`types.ts`、`tools/gen_cmd_labels.py` · 未提交

@@ -53,6 +53,11 @@ class UIConfig(BaseModel):
     wallpaper: str = ""         # 自定义壁纸路径（图片或视频）
 
 
+class MlcConfig(BaseModel):
+    """MLC 游戏控制层（总开关默认关闭，需在 MLC 页面手动开启）"""
+    enabled: bool = False
+
+
 class Settings(BaseModel):
     """全局配置主模型"""
     java: JavaConfig = Field(default_factory=JavaConfig)
@@ -60,6 +65,7 @@ class Settings(BaseModel):
     download: DownloadConfig = Field(default_factory=DownloadConfig)
     network: NetworkConfig = Field(default_factory=NetworkConfig)
     ui: UIConfig = Field(default_factory=UIConfig)
+    mlc: MlcConfig = Field(default_factory=MlcConfig)
     
     # 版本管理根路径（默认在 APPDATA）
     instance_root: Optional[str] = None

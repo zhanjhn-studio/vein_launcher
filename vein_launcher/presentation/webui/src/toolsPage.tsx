@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { on, rpc } from './bridge';
-import { t } from './i18n';
+import { currentLang, t } from './i18n';
 import {
   displayHint,
+  groupLabel,
   lookupCandidates,
   normalizeCommand,
   searchCandidates,
@@ -188,6 +189,7 @@ function CardHead({
 
 export function ToolsPage({ notify }: { notify: (text: string) => void }) {
   // 整个「指令」区块默认收起，点标题展开
+  const lang = currentLang();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const [binding, setBinding] = useState<BindResult | null>(null);
@@ -460,7 +462,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
               <div className="cmd-options">
                 {searchResults.map((r) => (
                   <button
-                    key={`${r.parent}|${r.token}|${displayHint(r)}`}
+                    key={`${r.parent}|${r.token}|${displayHint(r, lang)}`}
                     className="cmd-option search"
                     onClick={() => applyResult(r)}
                   >
@@ -468,7 +470,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
                       {r.parent ? <em>{r.parent} </em> : null}
                       {r.token}
                     </code>
-                    <span>{displayHint(r)}</span>
+                    <span>{displayHint(r, lang)}</span>
                   </button>
                 ))}
               </div>
@@ -486,15 +488,15 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
             <div className="cmd-options">
               {groupCandidates(candidates).map(([group, items], gi) => (
                 <React.Fragment key={`${group}-${gi}`}>
-                  {group && <div className="cmd-group">{group}</div>}
+                  {group && <div className="cmd-group">{groupLabel(group, lang)}</div>}
                   {items.map((c) => (
                     <button
-                      key={`${c.token}-${displayHint(c)}`}
+                      key={`${c.token}-${displayHint(c, lang)}`}
                       className="cmd-option"
                       onClick={() => append(c.token)}
                     >
                       <code className="mono">{c.token}</code>
-                      <span>{displayHint(c)}</span>
+                      <span>{displayHint(c, lang)}</span>
                     </button>
                   ))}
                 </React.Fragment>

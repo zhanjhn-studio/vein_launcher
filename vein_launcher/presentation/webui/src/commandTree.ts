@@ -24,7 +24,126 @@ export interface IndexedCandidate extends Candidate {
   parent: string;
 }
 
-/** 少量需要人话的 token（选择器、布尔、游戏模式等），其余走通用规则 */
+import { ZH_TOKENS } from './cmdLabelsZh';
+
+/** 指令与特殊 token 的中文名（物品/方块走 ZH_TOKENS，由官方语言文件生成） */
+const ZH_SPECIAL: Record<string, string> = {
+  '@s': '自己',
+  '@a': '所有玩家',
+  '@p': '最近的玩家',
+  '@r': '随机玩家',
+  '@e': '所有实体',
+  true: '开',
+  false: '关',
+  survival: '生存模式',
+  creative: '创造模式',
+  adventure: '冒险模式',
+  spectator: '旁观模式',
+  clear: '晴朗',
+  rain: '下雨',
+  thunder: '雷雨',
+  day: '白天',
+  noon: '正午',
+  night: '夜晚',
+  midnight: '午夜',
+  keep: '死亡不掉落',
+  dummy: '记分板目标',
+  gamemode: '游戏模式',
+  defaultgamemode: '默认游戏模式',
+  difficulty: '难度',
+  tp: '传送',
+  teleport: '传送',
+  kill: '清除实体',
+  effect: '状态效果',
+  enchant: '附魔',
+  xp: '经验',
+  experience: '经验',
+  give: '给予物品',
+  summon: '生成实体',
+  setblock: '放置方块',
+  fill: '填充区域',
+  clone: '复制区域',
+  execute: '执行链',
+  gamerule: '游戏规则',
+  time: '时间',
+  weather: '天气',
+  say: '发送消息',
+  tell: '私聊',
+  msg: '私聊',
+  tellraw: 'JSON 消息',
+  playsound: '播放音效',
+  particle: '粒子效果',
+  tag: '实体标签',
+  team: '队伍',
+  scoreboard: '记分板',
+  objectives: '记分板目标',
+  function: '数据包函数',
+  datapack: '数据包',
+  reload: '重新加载',
+  seed: '世界种子',
+  spawnpoint: '重生点',
+  setworldspawn: '世界出生点',
+  locate: '定位结构',
+  list: '玩家列表',
+  op: '授予 OP',
+  deop: '撤销 OP',
+  kick: '踢出玩家',
+  whitelist: '白名单',
+  stop: '关闭服务器',
+  save: '保存世界',
+  advance: '进度',
+  recipe: '配方',
+  attribute: '属性',
+  data: 'NBT 数据',
+  item: '物品',
+  loot: '战利品表',
+  place: '放置结构',
+  ride: '骑乘',
+  spectate: '旁听',
+  spreadplayers: '分散玩家',
+  worldborder: '世界边界',
+  bossbar: 'Boss 条',
+  camera: '相机',
+  me: '动作消息',
+  ban: '封禁',
+  'ban-ip': '封禁 IP',
+  banlist: '封禁列表',
+  pardon: '解除封禁',
+  'pardon-ip': '解除 IP 封禁',
+  debug: '调试',
+  forceload: '强制加载',
+  jfr: 'JFR 分析',
+  'publish': '开放局域网',
+  'random': '随机数',
+  'return': '返回',
+  'schedule': '定时任务',
+  'stopsound': '停止音效',
+  'tick': '刻',
+  'transfer': '转移玩家',
+  'waypoint': '路径点',
+  'dialog': '对话框',
+  advancement: '进度',
+  compute: '计算',
+  damage: '伤害',
+  fetchprofile: '获取皮肤数据',
+  fillbiome: '填充生物群系',
+  help: '帮助',
+  jfr: 'JFR 采样',
+  perf: '性能分析',
+  posteffect: '后处理效果',
+  rotate: '旋转',
+  'save-all': '全部保存',
+  'save-off': '关闭自动保存',
+  'save-on': '开启自动保存',
+  setidletimeout: '设置空闲踢出',
+  stopwatch: '秒表',
+  teammsg: '队伍消息',
+  test: '测试',
+  title: '标题',
+  'banlist': '封禁列表',
+};
+
+/** 英文名（默认语言，label() 在英文下用它） */
 const SPECIAL_LABELS: Record<string, string> = {
   '@s': 'Self',
   '@a': 'All players',
@@ -114,10 +233,15 @@ function titleCase(value: string): string {
     .join(' ');
 }
 
-/** token → 英文说明（数据里不再存中文 hint，统一在这里生成） */
-export function label(token: string): string {
+/** token → 说明（英文或中文；中文优先用官方译名，其次手写指令名） */
+export function label(token: string, lang: 'en' | 'zh' = 'en'): string {
   const key = token.trim();
   if (!key) return '';
+
+  if (lang === 'zh') {
+    const zh = ZH_SPECIAL[key] ?? ZH_TOKENS[key];
+    if (zh) return zh;
+  }
 
   const special = SPECIAL_LABELS[key];
   if (special) return special;
@@ -125,18 +249,35 @@ export function label(token: string): string {
   const placeholder = /^<([^>]+)>$/.exec(key);
   if (placeholder) return titleCase(placeholder[1]);
 
-  if (key.startsWith('@')) return 'Entity selector';
-  if (/^[~^]/.test(key)) return 'Coordinates';
-  if (/^-?\d/.test(key)) return 'Number';
-  if (key.startsWith('{') || key.includes('{')) return 'NBT data';
-  if (key.startsWith('#') || key.includes('[')) return 'Item predicate';
+  if (key.startsWith('@')) return lang === 'zh' ? '实体选择器' : 'Entity selector';
+  if (/^[~^]/.test(key)) return lang === 'zh' ? '坐标' : 'Coordinates';
+  if (/^-?\d/.test(key)) return lang === 'zh' ? '数字' : 'Number';
+  if (key.startsWith('{') || key.includes('{')) return lang === 'zh' ? 'NBT 数据' : 'NBT data';
+  if (key.startsWith('#') || key.includes('[')) return lang === 'zh' ? '物品匹配器' : 'Item predicate';
 
   return titleCase(key.replace(/^minecraft:/, ''));
 }
 
 /** 优先用显式 hint，否则由 token 生成 */
-export function displayHint(candidate: Candidate): string {
-  return candidate.hint ?? label(candidate.token);
+export function displayHint(candidate: Candidate, lang: 'en' | 'zh' = 'en'): string {
+  return candidate.hint ?? label(candidate.token, lang);
+}
+
+/** 分组标题：中文模式下的译名 */
+const ZH_GROUPS: Record<string, string> = {
+  'Basics': '基础',
+  'World & Blocks': '世界与方块',
+  'Entities & Status': '实体与状态',
+  'Server Admin': '服务器管理',
+  'Messages & Display': '消息与显示',
+  'Debug': '调试',
+  'Logic & Data': '逻辑与数据',
+};
+
+export function groupLabel(group: string | undefined, lang: 'en' | 'zh' = 'en'): string {
+  if (!group) return '';
+  if (lang === 'zh') return ZH_GROUPS[group] ?? group;
+  return group;
 }
 
 const TARGETS: Candidate[] = [

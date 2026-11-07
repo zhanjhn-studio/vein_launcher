@@ -15,7 +15,8 @@ import { InstancePage } from './instancePage';
 import { ToolsPage } from './toolsPage';
 import { DownloadMonitor, Toast } from './ui';
 import { PluginUiHost } from './pluginUi';
-import { initI18n, t, useI18n } from './i18n';
+import { initI18n, t, useI18n, currentLang } from './i18n';
+import { applyLangOverlay, installLangBridge } from './i18nDom';
 import { initTheme, Theme } from './theme';
 import { Onboarding, Splash } from './onboarding';
 import { loadPrefs, usePrefs } from './prefs';
@@ -47,7 +48,7 @@ interface AnnouncementPayload {
   update: { version?: string; url?: string; notes?: string };
 }
 
-const KNOWN_PAGES = new Set(NAV.map((n) => n.key));
+const KNOWN_PAGES = new Set([...NAV.map((n) => n.key), 'instance']);
 
 function pageFromHash(): string {
   const raw = window.location.hash.replace(/^#\/?/, '').trim();
@@ -104,6 +105,33 @@ export function App() {
     };
     document.addEventListener('scroll', onScroll, true);
     return () => document.removeEventListener('scroll', onScroll, true);
+  }, []);
+
+  // 中文界面：DOM 层逐节点翻译（组件不逐个包 t()），切回英文时还原
+  useEffect(() => {
+    let cleanup: (() => void) | null = null;
+    let timer = 0;
+    let disposed = false;
+
+    const attach = () => {
+      if (disposed) return;
+      const root = document.querySelector('.app') as HTMLElement | null;
+      if (!root) {
+        timer = window.setTimeout(attach, 200);
+        return;
+      }
+      installLangBridge(root);
+      const onLang = () => applyLangOverlay(root, currentLang() === 'zh' ? 'zh' : 'en');
+      window.addEventListener('vein:lang', onLang);
+      cleanup = () => window.removeEventListener('vein:lang', onLang);
+    };
+
+    attach();
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+      cleanup?.();
+    };
   }, []);
   const [sideOpen, setSideOpen] = useState(false);
   const [toast, setToast] = useState('');
@@ -288,19 +316,14 @@ export function App() {
               onSelect={setSelected}
               onManage={(id) => {
                 setSelected(id);
-                setPage('mlc');
+                setPage('instance');
               }}
               onNavigate={(target) => setPage(target)}
               notify={notify}
               announcements={lightNews}
             />
           )}
-          {page === 'skins' && <SkinsPage notify={notify} />}
-          {page === 'download' && (
-            <DownloadPage installed={installed} onInstalled={refreshInstalled} notify={notify} />
-          )}
-          {page === 'plugins' && <PluginsPage notify={notify} />}
-          {page === 'mlc' && (
+          {page === 'instance' && (
             <InstancePage
               installed={installed}
               selected={selected}
@@ -311,6 +334,12 @@ export function App() {
               Console={<MlcPage installed={installed} selected={selected} notify={notify} />}
             />
           )}
+          {page === 'skins' && <SkinsPage notify={notify} />}
+          {page === 'download' && (
+            <DownloadPage installed={installed} onInstalled={refreshInstalled} notify={notify} />
+          )}
+          {page === 'plugins' && <PluginsPage notify={notify} />}
+          {page === 'mlc' && <MlcPage installed={installed} selected={selected} notify={notify} />}
           {page === 'multiplayer' && <MultiplayerPage />}
           {page === 'settings' && <SettingsPage notify={notify} />}
           {page === 'tools' && <ToolsPage notify={notify} />}

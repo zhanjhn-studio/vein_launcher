@@ -185,6 +185,7 @@ class ApiBridge(QObject):
             "minecraft.getDir": self._minecraft_get_dir,
             "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
+            "mlc.setEnabled": self._mlc_set_enabled,
             "mlc.player": self._mlc_player,
             "mlc.worldDetail": self._mlc_world_detail,
             "mlc.modLoad": self._mlc_mod_load,
@@ -1206,6 +1207,9 @@ class ApiBridge(QObject):
 
     async def _mlc_world_detail(self, version_id: str = "", world: str = "") -> dict:
         return self._ctx.mlc.world_detail(str(version_id), str(world))
+
+    async def _mlc_set_enabled(self, enabled: bool = False) -> dict:
+        return self._ctx.mlc.set_enabled(bool(enabled))
 
     async def _mlc_mod_load(self, version_id: str = "", path: str = "") -> dict:
         return self._ctx.mlc.mod_load(str(version_id), str(path))
