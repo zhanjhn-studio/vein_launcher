@@ -1,4 +1,4 @@
-﻿# Teamwork Log — Vein Launcher 协作总账（可迁移）
+# Teamwork Log — Vein Launcher 协作总账（可迁移）
 
 > 目的：**这份文件 + 仓库 = 可在任意新环境/新会话接手本项目**。
 > 上半部分是项目事实、团队分工、硬规则、当前状态与风险；底部是完整变更日志（最新在最后）。
@@ -24,7 +24,7 @@
 | 定位 | Minecraft Java 版启动器，Windows 10/11 x64，便携免安装 |
 | 仓库 | github.com/zhanjhn-studio/vein_launcher（public，MIT） |
 | 版本 | **0.5.0**（`vein_launcher/presentation/context.py` 的 `VERSION`；包内 `__version__ = 0.5.0`） |
-| 当前 HEAD | `ac86ef1`（feat(tools): 指令构建器 + 全局热键 + Ctrl+Alt+Q 速查小窗） |
+| 当前 HEAD | `1f3fc8e`（feat(ui): 自定义主题色 + 界面全面中文化） |
 | 发布 | tag `v0.1.0`（`5e66188`，**落后 main**）；资产 `VeinLauncher-0.1.0-win64.zip`（249,873,131 B）+ `latest.json` |
 | 技术栈 | Python 3.13 · PySide6 6.12 + QWebEngine · React 19 + TypeScript（esbuild）· Layui 仅控件结构 · Node 18+（插件宿主）· aiohttp · pydantic v2 · PyInstaller onedir |
 | 规模 | Python 70 个文件 ≈9,469 行 · 前端 17 个文件 5,017 行 · RPC 66 个方法（20 组）· 测试 51 项 |
@@ -63,6 +63,7 @@
 | `styles.css` | 设计系统：token、组件、动效、无障碍（含末尾 v3 / v3.1 覆盖段） |
 | `toolsPage.tsx` | 工具页：单卡「指令」，内含 构建器 / 快捷键 / 指令列表 三小节（默认收起） |
 | `commandTree.ts` | 指令树：88 条 Java 指令 + 161 件物品 + 物品组件/实体 NBT/方块 NBT，684 前缀 / 6660 候选 |
+| `accent.ts` | 自定义主色：hex→HSL→派生 5 个 CSS 变量（--accent / -2 / -soft / -glow / -faint） |
 | `package.json` / `package-lock.json` | 前端构建清单（react 19 / react-dom / esbuild 0.28） |
 
 一级导航 8 项：`launch / skins / download / plugins / mlc / multiplayer / settings / tools`（路由 `#/key`；`Toolbox` 已并入 `tools` 并删除）。
