@@ -130,6 +130,8 @@ class ApiBridge(QObject):
             "versions.fileDelete": self._versions_file_delete,
             "versions.openFolder": self._versions_open_folder,
             "launch": self._launch,
+            "game.running": self._game_running,
+            "game.kill": self._game_kill,
             "accounts.list": self._accounts_list,
             "accounts.add": self._accounts_add,
             "accounts.select": self._accounts_select,
@@ -500,12 +502,32 @@ class ApiBridge(QObject):
         )
         return {"installed": 1, "path": str(target_dir / file["name"])}
 
-    async def _java_detect(self) -> list:
-        runtimes = await self._ctx.detector.detect()
+    async def _java_detect(self, refresh: bool = False) -> list:
+        # 启动时已预热过检测结果；一分钟内直接复用，避免每次开设置页都扫一遍磁盘
+        cached = self._ctx.java_runtimes
+        fresh = time.time() - getattr(self._ctx, "java_checked_at", 0) < 60
+        if refresh or not cached or not fresh:
+            runtimes = await self._ctx.detector.detect()
+            self._ctx.java_runtimes = runtimes
+            self._ctx.java_checked_at = time.time()
+        else:
+            runtimes = cached
         return [
             {"path": str(rt.path), "major": rt.major, "version": rt.version, "vendor": rt.vendor}
             for rt in runtimes
         ]
+
+    # ------------------------------------------------------------------ 运行中的游戏
+    async def _game_running(self) -> dict:
+        from vein_launcher.application.services.game_registry import game_registry
+
+        games = await asyncio.to_thread(game_registry.list)
+        return {"games": games, "count": len(games)}
+
+    async def _game_kill(self, pid: int = 0) -> dict:
+        from vein_launcher.application.services.game_registry import game_registry
+
+        return await asyncio.to_thread(game_registry.kill, int(pid))
 
     # ------------------------------------------------------------------
     async def _plugins_state(self) -> dict:

@@ -56,6 +56,17 @@ export interface DownloadTask {
   error: string | null;
 }
 
+export interface RunningGameInfo {
+  pid: number;
+  version_id: string;
+  source: string;
+  started_at: number | null;
+  uptime: number | null;
+  memory_mb: number | null;
+  title: string | null;
+  game_dir: string | null;
+}
+
 export interface MlcState {
   connected: boolean;
   pid: number | null;

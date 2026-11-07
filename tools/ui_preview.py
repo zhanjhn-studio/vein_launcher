@@ -69,6 +69,10 @@ MOCK = r"""
       case 'i18n.get': return { lang: 'en_US' };
       case 'downloads.list': return [];
       case 'mlc.state': return { connected: false, pid: null };
+      case 'game.running': return { games: [
+        { pid: 8420, version_id: '1.20.1', source: 'launcher', started_at: 0, uptime: 1290, memory_mb: 1487, title: 'Minecraft', game_dir: '' },
+        { pid: 9312, version_id: '1.20.1-forge', source: 'external', started_at: 0, uptime: 95, memory_mb: 892, title: 'Minecraft', game_dir: '' },
+      ], count: 2 };
       case 'java.detect': return [{ path: 'C:/Java/bin/java.exe', major: 17, version: '17.0.8', vendor: 'Temurin' }];
       case 'minecraft.getDir': return { path: 'C:/VeinLauncher/minecraft' };
       case 'accounts.msClientId': return { client_id: '' };

@@ -533,3 +533,14 @@ window.__veinResult(12, true, {ok: 1})
   验收：英文模式 8 页 0 处中文；中文模式仅剩版本号/文件名/玩家名与 Java、PNG 等技术名词；51 项单测 + 插件自检通过 ·
   `settings.py`、`mlc/service.py`、`bridge.py`、`App.tsx`、`pages.tsx`、`i18n.ts`、`i18nDom.ts`、`commandTree.ts`、
   `cmdLabelsZh.ts`、`toolsPage.tsx`、`types.ts`、`tools/gen_cmd_labels.py` · 未提交
+
+- **2026-11-07 · feat/game-detect-installers** — 运行中游戏检测 + 多实例 + 双安装器：
+  新增 `application/services/game_registry.py`（psutil 识别 java 进程命令行中的 `net.minecraft.client.main.Main` 与各加载器主类，
+  返回 pid/版本/游戏目录/内存/运行时长，支持按 pid 结束；本启动器启动的会标记 source=launcher）；
+  `LauncherService` 改为每次启动独立 `GameProcess`，可同时开多个游戏，退出自动注销；bridge 新增 `game.running` / `game.kill`；
+  启动页新增「运行中的游戏」卡片（3 秒轮询，显示版本/PID/内存/时长 + 结束按钮，外部启动标注「外部启动」）。
+  启动时自动检测 Java：`context.startup()` 预热检测并缓存 60 秒，设置页不再每次扫盘。
+  新增 `installer/`：`install-online.ps1|cmd`（从 GitHub 拉 main 分支 → venv → 依赖 → 快捷方式 → 启动，失败时打印离线步骤）、
+  `install-offline.ps1|cmd`（本地 payload，不联网）、`build-payload.ps1`（生成 payload）；README 与 README-zh 都加了两种安装方式说明。
+  `requirements.txt` 清理并补 psutil；`tools/build_minimal_jre.py`（jlink 最小 JRE，已验证 1.20.1 可启动，45.5 MB）；
+  `tools/package_release.py`（打 zip 发布包）。51 项单测 + 插件自检通过 · 未提交

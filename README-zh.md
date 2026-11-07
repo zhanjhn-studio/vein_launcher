@@ -22,6 +22,23 @@
 | 日志 | 只写文件（不进控制台）：`launcher/plugin/mlc/download` 分类按天存放 |
 | 目录 | 与 exe 同级生成 `VeinLauncher/`：`plugin/ log/ config/ minecraft/ downloads/ democrat/` |
 
+## 安装
+
+两种安装器，装出来一样，按网络情况选一个：
+
+| 方式 | 入口 | 是否需要网络 |
+|---|---|---|
+| **在线安装**（推荐） | `installer\install-online.cmd` | 从 GitHub 拉取 `main` 分支后安装依赖 |
+| **离线安装** | `installer\install-offline.cmd` | 不需要网络，用随包携带的 payload |
+
+**在线**：双击 `installer\install-online.cmd`。它会检查 Python 3.10+、下载仓库 zip、创建 `.venv`、
+安装 `requirements.txt`、生成桌面快捷方式并启动。
+
+**离线**：先在有网的机器上运行 `installer\build-payload.ps1`（加 `-WithWheels` 可一并缓存依赖包），
+把整个 `installer\` 目录拷到目标机器，再双击 `installer\install-offline.cmd`。全程不联网。
+
+在线安装器如果连不上 GitHub，会直接打印离线安装的步骤并退出，不会卡住。
+
 ## 环境要求
 
 - Windows 10/11

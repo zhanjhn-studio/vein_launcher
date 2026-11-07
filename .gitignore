@@ -89,3 +89,7 @@ docs/side_zoom.png
 docs/loader_*.png
 docs/render_*.png
 docs/tools_*.png
+
+# 安装器 payload 与打好的发布包（体积大，走 Release 不放仓库）
+installer/payload/
+dist_release/

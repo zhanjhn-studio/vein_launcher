@@ -23,6 +23,24 @@ Team docs: [v0.1.0 internal](docs/v0.1.0/README.md) ·
 | Logs | File only (never the console): `launcher/plugin/mlc/download` split by category, daily files |
 | Data | `VeinLauncher/` next to the executable: `plugin/`, `log/`, `config/`, `minecraft/`, `downloads/`, `democrat/` |
 
+## Install
+
+Two installers, same result — pick whichever works on your network:
+
+| Option | Entry point | Network |
+|---|---|---|
+| **Online** (recommended) | `installer\install-online.cmd` | Pulls the `main` branch from GitHub, then installs dependencies |
+| **Offline** | `installer\install-offline.cmd` | No network; uses the payload zip you carry over |
+
+**Online**: run `installer\install-online.cmd`. It checks Python 3.10+, downloads the repo zip from
+GitHub, creates `.venv`, installs `requirements.txt`, adds a desktop shortcut and starts the launcher.
+
+**Offline**: on a machine with network run `installer\build-payload.ps1` (add `-WithWheels` to cache
+Python wheels too), copy the whole `installer\` folder to the target machine, then run
+`installer\install-offline.cmd`. It never touches the network.
+
+If the online installer cannot reach GitHub it prints the exact offline steps and stops.
+
 ## Requirements
 
 - Windows 10/11

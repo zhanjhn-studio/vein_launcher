@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { on, rpc } from './bridge';
-import type { AccountInfo, VersionInfo } from './types';
+import type { AccountInfo, RunningGameInfo, VersionInfo } from './types';
 import { LogPanel } from './ui';
 import { usePrefs } from './prefs';
 
@@ -25,6 +25,7 @@ export function LaunchPage({
 }) {
   const [busy, setBusy] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
+  const [games, setGames] = useState<RunningGameInfo[]>([]);
   const account = accounts.find((a) => a.selected) || null;
   const prefs = usePrefs();
   // Synchronous in-flight guard: `disabled` only takes effect after a re-render,
@@ -112,6 +113,35 @@ export function LaunchPage({
     );
     return () => off();
   }, [notify]);
+
+  // 运行中的游戏（本启动器启动的 + 外部启动的都能识别），每 3 秒刷新一次
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => {
+      try {
+        const result = await rpc<{ games: RunningGameInfo[] }>('game.running');
+        if (alive) setGames(result.games || []);
+      } catch {
+        /* 后端未就绪时忽略 */
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 3000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const killGame = async (pid: number) => {
+    try {
+      await rpc('game.kill', [pid]);
+      notify(`Game process ${pid} closed`);
+    } catch (err) {
+      notify(`Failed to close ${pid}: ${(err as Error).message}`);
+    }
+    setGames((prev) => prev.filter((game) => game.pid !== pid));
+  };
 
   const launch = async () => {
     if (inFlight.current) return;
@@ -204,6 +234,31 @@ export function LaunchPage({
               </div>
             </div>
           </div>
+
+          {games.length > 0 && (
+            <div className="card" style={{ marginTop: 14 }}>
+              <div className="card-title">
+                Running games <span className="muted">({games.length})</span>
+              </div>
+              {games.map((game) => (
+                <div className="kv" key={game.pid}>
+                  <span>
+                    {game.version_id} · PID {game.pid}
+                    {game.source === 'external' ? ' · external' : ''}
+                  </span>
+                  <span className="row-actions" style={{ gap: 8 }}>
+                    <span className="muted">
+                      {game.memory_mb ? `${game.memory_mb} MB` : ''}
+                      {game.uptime ? ` · ${game.uptime}s` : ''}
+                    </span>
+                    <button className="btn sm" onClick={() => killGame(game.pid)}>
+                      End
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {onNavigate && (
             <div className="quick-grid">

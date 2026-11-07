@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -12,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from vein_launcher import __version__ as LAUNCHER_VERSION
+from vein_launcher.application.services.game_registry import game_registry
 from vein_launcher.application.services.version_service import VersionService
 from vein_launcher.common.config.settings import settings_manager
 from vein_launcher.common.exceptions import GameLaunchError, JavaNotFoundError
@@ -40,10 +42,22 @@ class LauncherService:
         self._versions = versions
         self._detector = detector or JavaDetector()
         self._process = process or GameProcess()
+        # 多实例：每次启动一个独立 GameProcess，按 pid 跟踪，互不覆盖
+        self._processes: Dict[int, GameProcess] = {}
+        if process is not None:
+            pid = process.pid
+            if pid:
+                self._processes[pid] = process
 
     @property
     def process(self) -> GameProcess:
         return self._process
+
+    @property
+    def running_processes(self) -> Dict[int, GameProcess]:
+        alive = {pid: proc for pid, proc in self._processes.items() if proc.running}
+        self._processes = alive
+        return dict(alive)
 
     # ------------------------------------------------------------------
     async def build_command(
@@ -149,7 +163,33 @@ class LauncherService:
             user_type=user_type,
             extra_jvm=extra_jvm,
         )
-        return await self._process.launch(command, cwd=resolve_version_dir(version_id))
+        cwd = resolve_version_dir(version_id)
+        # 多实例：第一个实例复用注入的 process（测试/兼容），之后每次新建
+        reuse = (
+            self._process is not None
+            and not getattr(self._process, "running", False)
+            and not self._processes
+        )
+        process = self._process if reuse else GameProcess()
+        pid = await process.launch(command, cwd=cwd)
+        self._process = process
+        if isinstance(process, GameProcess):
+            self._processes[pid] = process
+            game_registry.register(pid, version_id, str(cwd), command)
+            asyncio.create_task(self._watch(pid, process))
+        return pid
+
+    async def _watch(self, pid: int, process: GameProcess) -> None:
+        """进程结束后自动从登记表与多实例表里移除"""
+        try:
+            await process.wait()
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # 监听失败不应影响启动
+            logger.exception("等待游戏进程结束失败：pid=%s", pid)
+        finally:
+            game_registry.unregister(pid)
+            self._processes.pop(pid, None)
 
     # ------------------------------------------------------------------
     def _jar_chain(self, version_id: str) -> List[Path]:

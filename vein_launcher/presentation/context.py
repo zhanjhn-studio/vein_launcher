@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -63,6 +64,8 @@ class AppContext:
         self.modrinth = ModrinthApiClient()
         self.detector = JavaDetector()
         self.java = JavaManager(self.detector)
+        self.java_runtimes: list = []  # 启动时预热，界面可直接复用
+        self.java_checked_at: float = 0.0
         self.announcements = AnnouncementClient(
             self.data_dir / "config" / "announcements.json"
         )
@@ -91,6 +94,18 @@ class AppContext:
             await self.plugins.start()
         except Exception as exc:
             logger.error("插件宿主启动失败：%s", exc)
+        await self.warm_java()
+
+    async def warm_java(self) -> None:
+        """启动时自动检测本机 Java，界面首次打开就能直接选到，不用等用户点检测"""
+        try:
+            runtimes = await self.detector.detect()
+            self.java_runtimes = runtimes
+            self.java_checked_at = time.time()
+            summary = ", ".join(f"Java {rt.major}" for rt in runtimes[:6]) or "无"
+            logger.info("启动时自动检测 Java：%d 个（%s）", len(runtimes), summary)
+        except Exception as exc:  # 检测失败不影响启动
+            logger.warning("启动时检测 Java 失败：%s", exc)
 
     async def close(self) -> None:
         await self.plugins.stop()

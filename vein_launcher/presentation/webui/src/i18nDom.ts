@@ -291,6 +291,9 @@ const ZH: Record<string, string> = {
     '启动器在后台、游戏在前台时，按',
   'to copy that command; switch to the game, press T and paste with Ctrl+V.':
     '可复制对应指令；切回游戏按 T 打开聊天框、Ctrl+V 粘贴。',
+  'Running games': '运行中的游戏',
+  'End': '结束',
+  'external': '外部启动',
   'Game log will stream here after launch.': '启动游戏后，游戏日志会在这里滚动显示。',
   'LittleSkin library is live': 'LittleSkin 皮肤库已上线',
   '(Results appear here)': '（结果会显示在这里）',
@@ -311,6 +314,7 @@ const PATTERNS: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^(\d+) files$/, (m) => `${m[1]} 个文件`],
   [/^(\d+) mods$/, (m) => `${m[1]} 个模组`],
   [/^(\d+) saves$/, (m) => `${m[1]} 个存档`],
+  [/^(.*) · external$/, (m) => `${m[1]} · 外部启动`],
 ];
 
 function dynamicZh(text: string): string | undefined {
