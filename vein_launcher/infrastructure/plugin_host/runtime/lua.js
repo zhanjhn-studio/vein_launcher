@@ -204,19 +204,53 @@ export function evalLua(source, builder) {
   return result;
 }
 
+const MAX_LIST_ITEMS = 200;
+const MAX_LIST_COLS = 24;
+
+function isScalar(value) {
+  return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
+}
+
+/** 只接受「标量数组」或「标量数组的数组」，用于 table 的 columns/rows 等 */
+function sanitizeList(value) {
+  if (!Array.isArray(value) || value.length > MAX_LIST_ITEMS) return undefined;
+  const out = [];
+  for (const item of value) {
+    if (isScalar(item)) {
+      out.push(String(item));
+    } else if (Array.isArray(item) && item.length <= MAX_LIST_COLS && item.every(isScalar)) {
+      out.push(item.map(String));
+    } else {
+      return undefined;
+    }
+  }
+  return out;
+}
+
 export function sanitize(node, depth = 0) {
   if (depth > 12 || node == null) return null;
-  if (typeof node === 'string' || typeof node === 'number' || typeof node === 'boolean') {
+  if (isScalar(node)) {
     return { type: 'text', props: { value: String(node) } };
   }
   if (typeof node !== 'object') return null;
   const type = String(node.type || '').toLowerCase();
   if (!ALLOWED_TYPES.has(type)) return null;
+
+  // 兼容两种写法：扁平 {type, title} 与 {type, props:{title}}
+  const source = {};
+  if (node.props && typeof node.props === 'object' && !Array.isArray(node.props)) {
+    Object.assign(source, node.props);
+  }
+  Object.assign(source, node);
+
   const props = {};
-  for (const [key, value] of Object.entries(node)) {
-    if (key === 'children' || key === 'type') continue;
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+  for (const [key, value] of Object.entries(source)) {
+    if (key === 'children' || key === 'type' || key === 'props') continue;
+    if (isScalar(value)) {
       props[key] = value;
+    } else if (Array.isArray(value)) {
+      const list = sanitizeList(value);
+      if (list !== undefined) props[key] = list;
     }
   }
   const rawChildren = Array.isArray(node.children) ? node.children : [];

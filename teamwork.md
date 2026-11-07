@@ -507,3 +507,17 @@ window.__veinResult(12, true, {ok: 1})
   `1280×720`，并在配置加载时把旧默认 `1920×1080` 一次性迁移为 `1280×720`（写回 config.json）
   · `common/config/settings.py` · 实测窗口 1296×759（客户区 1280×720）、未最大化、
   可移动可缩放；51 项测试通过 · 未提交
+
+- **2026-11-07 · feat/mlc-plugins** — MLC 与插件系统从占位变成可用：
+  `player_info()` 直接解析 `playerdata/*.dat` 的 NBT（血量/食物/经验/坐标/维度/游戏模式/背包格数），
+  `world_info()`/`world_detail()` 解析 `level.dat`（种子/难度/天数/最后游玩/玩家数/体积）并按最近游玩排序；
+  `state()` 给出 running/pid/uptime/exit_code/版本；`mod_load()` 把 jar 复制进实例 mods；
+  版本号留空时自动选最近改动的实例。插件侧新增 `mlc.state`、`mlc.world.detail` 能力，
+  Node 宿主补齐 `state/worldDetail/playerInfo(versionId, world)/modLoad(...)`；`lua.js` 的 `sanitize`
+  现在保留标量数组（表格 columns/rows）并兼容 `{props:{...}}` 写法；新增示例插件
+  `plugins_examples/mlc-panel`（徽章 + 存档表 + 玩家属性 + 刷新按钮，全部走 ui.render） ·
+  `mlc/service.py`、`plugin_service.py`、`bridge.py`、`runtime/{node_host,lua}.js`、
+  `plugins_examples/mlc-panel/*`、`tools/mlc_selftest.py` ·
+  `tools/mlc_selftest.py` 14 项 PASS（临时数据 + 真实宿主）、`tools/plugin_selftest.py` PASS、
+  51 项单测 OK；真实存档实测：世界「新的世界」种子 -1297348265404023800、玩家血量 20/食物 20 ·
+  未提交

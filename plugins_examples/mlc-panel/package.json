@@ -1,0 +1,12 @@
+{
+  "name": "vein-plugin-mlc-panel",
+  "version": "0.1.0",
+  "description": "Example plugin: live MLC status, save list and player stats rendered with Lua UI",
+  "type": "module",
+  "main": "index.js",
+  "vein": {
+    "displayName": "MLC status panel",
+    "activateOnStartup": true,
+    "permissions": ["mlc.state", "mlc.world", "mlc.player", "ui.lua", "ui.notify"]
+  }
+}

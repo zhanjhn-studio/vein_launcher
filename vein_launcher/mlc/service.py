@@ -1,24 +1,37 @@
-"""MLC 服务
+"""MLC 服务（游戏控制层）
 
-接口（与插件宿主共享）：
+接口（RPC 与插件宿主共用）：
+    mlc.state             运行状态（running / pid / version / exit_code）
     mlc.launch            启动游戏
-    mlc.world.create      创建世界（当前仅创建存档目录）
-    mlc.world.info        列出存档信息
-    mlc.player.info       玩家数据（需要游戏侧 mod 配合，当前 unsupported）
-    mlc.event.subscribe   订阅事件（日志 / 退出 / 下载进度）
-    mlc.mod.load          加载模组（当前返回 unsupported）
+    mlc.worlds            存档列表（含 level.dat 摘要与玩家数据是否存在）
+    mlc.world.create      预留存档目录（真正的世界生成仍需游戏内完成）
+    mlc.world.detail      单个存档详情（种子、难度、游戏模式、游玩时长）
+    mlc.player            玩家数据（从 playerdata/*.dat 的 NBT 读取）
+    mlc.mod.load          把 jar 装入实例 mods 目录
     mlc.plugin.search     搜索已安装插件
+    mlc.event.subscribe   事件订阅（日志 / 退出 / 下载进度）
+
+设计说明：
+    「玩家数据 / 世界详情」不需要游戏侧 mod —— Minecraft 自己会把它们写成 NBT 文件，
+    这里直接解析，所以离线也能给出真实数值。
 """
 
 from __future__ import annotations
 
 import logging
+import shutil
+import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from vein_launcher.common.events.event_bus import event_bus
 from vein_launcher.common.events.events import EventNames
-from vein_launcher.common.utils.path_utils import ensure_dir, get_version_dir
+from vein_launcher.common.utils.path_utils import (
+    ensure_dir,
+    get_instance_root,
+    get_version_dir,
+)
+from vein_launcher.infrastructure.mc2 import nbt
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +42,12 @@ EVENT_MAP = {
     "download.progress": EventNames.DOWNLOAD_TASK_PROGRESS,
 }
 
-UNSUPPORTED = {"supported": False, "reason": "需要游戏侧 mod 协作，尚未实现"}
+# 只允许装模组的扩展名，避免把任意文件塞进 mods
+MOD_SUFFIXES = {".jar", ".zip", ".disabled"}
+
+
+class MlcError(Exception):
+    """MLC 调用失败（参数不合法 / 文件缺失）"""
 
 
 class MlcService:
@@ -40,8 +58,11 @@ class MlcService:
         self._plugins_dir = plugins_dir
         self._subscribers: Dict[str, List[Callable[[Dict[str, Any]], None]]] = {}
         self._installed = False
+        self._started_at: Optional[float] = None
+        self._exit_code: Optional[int] = None
+        self._last_version: Optional[str] = None
 
-    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------ 事件桥
     def install_bridge(self) -> None:
         """把启动器事件桥接到 MLC 订阅者"""
         if self._installed:
@@ -49,6 +70,15 @@ class MlcService:
         self._installed = True
         for topic, event_name in EVENT_MAP.items():
             event_bus.subscribe(event_name, self._make_forwarder(topic))
+        event_bus.subscribe(EventNames.GAME_RUNNING, self._on_game_running)
+        event_bus.subscribe(EventNames.GAME_EXITED, self._on_game_exited)
+
+    def _on_game_running(self, pid: int = 0, **_: Any) -> None:
+        self._started_at = time.time()
+        self._exit_code = None
+
+    def _on_game_exited(self, exit_code: int = 0, **_: Any) -> None:
+        self._exit_code = int(exit_code or 0)
 
     def _make_forwarder(self, topic: str):
         def forward(**payload: Any) -> None:
@@ -63,40 +93,164 @@ class MlcService:
     def subscribe(self, topic: str, callback: Callable[[Dict[str, Any]], None]) -> None:
         self._subscribers.setdefault(topic, []).append(callback)
 
-    # ------------------------------------------------------------------
+    def unsubscribe(self, topic: str, callback: Callable[[Dict[str, Any]], None]) -> None:
+        handlers = self._subscribers.get(topic) or []
+        if callback in handlers:
+            handlers.remove(callback)
+
+    # ------------------------------------------------------------------ 状态
+    def state(self) -> Dict[str, Any]:
+        process = getattr(self._launcher, "_process", None)
+        running = bool(getattr(process, "running", False))
+        inner = getattr(process, "_process", None)
+        pid = getattr(inner, "pid", None) if running else None
+        uptime = None
+        if running and self._started_at:
+            uptime = int(time.time() - self._started_at)
+        return {
+            "running": running,
+            "pid": pid,
+            "exit_code": self._exit_code,
+            "uptime": uptime,
+            "version_id": self._last_version,
+        }
+
+    # ------------------------------------------------------------------ 启动
     async def launch(self, version_id: str, username: str = "Player") -> Dict[str, Any]:
+        self._last_version = str(version_id)
         pid = await self._launcher.launch(version_id, username)
         return {"pid": pid, "version_id": version_id}
+
+    # ------------------------------------------------------------------ 存档
+    def _resolve_version(self, version_id: str) -> str:
+        """没指定版本时，用最近改动过的实例，插件/界面就不用先知道版本号"""
+        if version_id:
+            return version_id
+        if self._last_version:
+            return self._last_version
+        root = get_instance_root()
+        if not root.is_dir():
+            return version_id
+        candidates = [d for d in root.iterdir() if d.is_dir()]
+        if not candidates:
+            return version_id
+        newest = max(candidates, key=lambda d: d.stat().st_mtime)
+        return newest.name
+
+    def _saves_dir(self, version_id: str) -> Path:
+        return get_version_dir(self._resolve_version(version_id)) / "saves"
 
     def world_create(self, version_id: str, name: str) -> Dict[str, Any]:
         """创建存档目录（真正的世界生成仍需游戏内完成）"""
         safe = "".join(c for c in name if c not in '\\/:*?"<>|').strip() or "New World"
-        target = ensure_dir(get_version_dir(version_id) / "saves" / safe)
+        target = ensure_dir(self._saves_dir(version_id) / safe)
         return {"path": str(target), "name": safe, "generated": False}
 
     def world_info(self, version_id: str) -> Dict[str, Any]:
-        saves = get_version_dir(version_id) / "saves"
+        saves = self._saves_dir(version_id)
         if not saves.is_dir():
             return {"worlds": []}
-        worlds = []
+
+        worlds: List[Dict[str, Any]] = []
         for child in sorted(saves.iterdir()):
             if not child.is_dir():
                 continue
-            worlds.append(
-                {
-                    "name": child.name,
-                    "path": str(child),
-                    "mtime": child.stat().st_mtime,
-                }
-            )
+            try:
+                stat = child.stat()
+            except OSError:
+                continue
+            summary: Dict[str, Any] = {
+                "name": child.name,
+                "path": str(child),
+                "mtime": stat.st_mtime,
+                "size": _dir_size(child),
+            }
+            level = child / "level.dat"
+            if level.is_file():
+                try:
+                    summary["level"] = _read_level(level)
+                except (OSError, ValueError) as exc:
+                    summary["level_error"] = str(exc)
+            players = list((child / "playerdata").glob("*.dat")) if (child / "playerdata").is_dir() else []
+            summary["players"] = len(players)
+            worlds.append(summary)
+
+        # 最近玩过（有玩家数据）的存档排在前面
+        worlds.sort(key=lambda w: (w.get("players", 0), w.get("mtime", 0)), reverse=True)
         return {"worlds": worlds}
 
-    def player_info(self) -> Dict[str, Any]:
-        return dict(UNSUPPORTED)
+    def world_detail(self, version_id: str, world: str) -> Dict[str, Any]:
+        target = self._saves_dir(version_id) / _safe_name(world)
+        if not target.is_dir():
+            raise MlcError(f"world not found: {world}")
+        level = target / "level.dat"
+        data: Dict[str, Any] = {"name": target.name, "path": str(target)}
+        if level.is_file():
+            data["level"] = _read_level(level)
+        data["player"] = self.player_info(version_id, world)
+        return data
 
-    def mod_load(self, *_: Any) -> Dict[str, Any]:
-        return dict(UNSUPPORTED)
+    # ------------------------------------------------------------------ 玩家
+    def player_info(self, version_id: str, world: str = "") -> Dict[str, Any]:
+        """从 playerdata/<uuid>.dat 读真实玩家数据（无需游戏侧 mod）"""
+        saves = self._saves_dir(version_id)
+        if not saves.is_dir():
+            return {"supported": False, "reason": "no saves directory"}
 
+        candidates: List[Path] = []
+        if world:
+            candidates = list((saves / _safe_name(world) / "playerdata").glob("*.dat"))
+        else:
+            for child in saves.iterdir():
+                if child.is_dir():
+                    candidates.extend((child / "playerdata").glob("*.dat"))
+        if not candidates:
+            return {
+                "supported": False,
+                "reason": "no player data yet — enter a world once so Minecraft writes playerdata",
+            }
+
+        latest = max(candidates, key=lambda p: p.stat().st_mtime)
+        try:
+            _root, data = nbt.load(latest)
+        except (OSError, ValueError) as exc:
+            raise MlcError(f"cannot read player data: {exc}") from exc
+
+        payload = data.get("player", data) if isinstance(data, dict) else {}
+        pos = payload.get("Pos") or [0, 0, 0]
+        inventory = payload.get("Inventory") or []
+        return {
+            "supported": True,
+            "world": latest.parent.parent.name,
+            "file": latest.name,
+            "uuid": latest.stem,
+            "name": payload.get("Health") is not None and latest.stem or latest.stem,
+            "health": payload.get("Health"),
+            "food": payload.get("foodLevel"),
+            "saturation": payload.get("foodSaturationLevel"),
+            "xp_level": payload.get("XpLevel"),
+            "xp_progress": payload.get("XpP"),
+            "game_type": payload.get("playerGameType"),
+            "dimension": payload.get("Dimension"),
+            "pos": [round(float(v), 1) for v in pos],
+            "inventory_slots": len(inventory),
+            "mtime": latest.stat().st_mtime,
+        }
+
+    # ------------------------------------------------------------------ 模组
+    def mod_load(self, version_id: str, source: str) -> Dict[str, Any]:
+        """把本地 jar 复制进实例 mods 目录（真正的加载仍由游戏完成）"""
+        src = Path(source)
+        if not src.is_file():
+            raise MlcError(f"mod file not found: {source}")
+        if src.suffix.lower() not in MOD_SUFFIXES:
+            raise MlcError(f"unsupported mod type: {src.suffix}")
+        target_dir = ensure_dir(get_version_dir(version_id) / "mods")
+        dest = target_dir / src.name
+        shutil.copy2(src, dest)
+        return {"installed": str(dest), "name": dest.name, "size": dest.stat().st_size}
+
+    # ------------------------------------------------------------------ 插件
     def plugin_search(self, keyword: str = "") -> Dict[str, Any]:
         if self._plugins_dir is None or not self._plugins_dir.is_dir():
             return {"plugins": []}
@@ -111,4 +265,47 @@ class MlcService:
         return {"plugins": found}
 
 
-__all__ = ["MlcService", "EVENT_MAP"]
+# ---------------------------------------------------------------------- 工具
+def _safe_name(raw: str) -> str:
+    safe = "".join(c for c in raw if c not in '\\/:*?"<>|').strip()
+    if not safe:
+        raise MlcError("empty name")
+    return safe
+
+
+def _dir_size(path: Path, limit: int = 5000) -> int:
+    total = 0
+    for index, item in enumerate(path.rglob("*")):
+        if index > limit:
+            break
+        try:
+            if item.is_file():
+                total += item.stat().st_size
+        except OSError:
+            continue
+    return total
+
+
+def _read_level(path: Path) -> Dict[str, Any]:
+    _root, data = nbt.load(path)
+    level = data.get("Data", data) if isinstance(data, dict) else {}
+    version = level.get("Version") or {}
+    # 1.16+ 把种子挪进了 WorldGenSettings.seed，老版本在顶层 RandomSeed
+    worldgen = level.get("WorldGenSettings") or {}
+    seed = worldgen.get("seed") if isinstance(worldgen, dict) else None
+    if seed is None:
+        seed = level.get("RandomSeed")
+    day_time = level.get("DayTime")
+    return {
+        "name": level.get("LevelName"),
+        "seed": seed,
+        "difficulty": level.get("Difficulty"),
+        "game_type": level.get("GameType"),
+        "hardcore": level.get("hardcore"),
+        "last_played": level.get("LastPlayed"),
+        "day": (day_time // 24000 + 1) if isinstance(day_time, int) else None,
+        "version": version.get("Name") if isinstance(version, dict) else None,
+    }
+
+
+__all__ = ["MlcService", "MlcError", "EVENT_MAP"]

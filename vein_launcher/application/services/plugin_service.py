@@ -155,11 +155,17 @@ class PluginService:
         async def mlc_world_create(plugin_id: str, version_id: str, name: str) -> Dict[str, Any]:
             return self._mlc.world_create(version_id, name)
 
-        async def mlc_player_info(plugin_id: str) -> Dict[str, Any]:
-            return self._mlc.player_info()
+        async def mlc_player_info(plugin_id: str, version_id: str = "", world: str = "") -> Dict[str, Any]:
+            return self._mlc.player_info(version_id, world)
 
-        async def mlc_mod_load(plugin_id: str) -> Dict[str, Any]:
-            return self._mlc.mod_load()
+        async def mlc_world_detail(plugin_id: str, version_id: str, world: str) -> Dict[str, Any]:
+            return self._mlc.world_detail(version_id, world)
+
+        async def mlc_state(plugin_id: str) -> Dict[str, Any]:
+            return self._mlc.state()
+
+        async def mlc_mod_load(plugin_id: str, version_id: str = "", path: str = "") -> Dict[str, Any]:
+            return self._mlc.mod_load(version_id, path)
 
         async def mlc_plugin_search(plugin_id: str, keyword: str = "") -> Dict[str, Any]:
             return self._mlc.plugin_search(keyword)
@@ -176,8 +182,10 @@ class PluginService:
         reg.register("download.queueTask", "download.queue", queue_task)
         reg.register("game.launch", "game.launch", game_launch)
         reg.register("mlc.launch", "game.launch", game_launch)
+        reg.register("mlc.state", "mlc.state", mlc_state)
         reg.register("mlc.world.info", "mlc.world", mlc_world_info)
         reg.register("mlc.world.create", "mlc.world", mlc_world_create)
+        reg.register("mlc.world.detail", "mlc.world", mlc_world_detail)
         reg.register("mlc.player.info", "mlc.player", mlc_player_info)
         reg.register("mlc.mod.load", "mlc.mod", mlc_mod_load)
         reg.register("mlc.plugin.search", "mlc.plugin", mlc_plugin_search)

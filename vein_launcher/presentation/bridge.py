@@ -185,6 +185,9 @@ class ApiBridge(QObject):
             "minecraft.getDir": self._minecraft_get_dir,
             "minecraft.setDir": self._minecraft_set_dir,
             "mlc.state": self._mlc_state,
+            "mlc.player": self._mlc_player,
+            "mlc.worldDetail": self._mlc_world_detail,
+            "mlc.modLoad": self._mlc_mod_load,
             "plugins.state": self._plugins_state,
             "plugins.setEnabled": self._plugins_set_enabled,
             "plugins.reload": self._plugins_reload,
@@ -1192,10 +1195,20 @@ class ApiBridge(QObject):
         return {"path": path}
 
     async def _mlc_state(self) -> dict:
-        return {
-            "connected": self._mlc_connected,
-            "pid": self._mlc_pid,
-        }
+        state = dict(self._ctx.mlc.state())
+        # connected 保留旧字段语义：游戏进程是否仍然连着
+        state["connected"] = bool(state.get("running"))
+        state["pid"] = state.get("pid") or self._mlc_pid
+        return state
+
+    async def _mlc_player(self, version_id: str = "", world: str = "") -> dict:
+        return self._ctx.mlc.player_info(str(version_id), str(world))
+
+    async def _mlc_world_detail(self, version_id: str = "", world: str = "") -> dict:
+        return self._ctx.mlc.world_detail(str(version_id), str(world))
+
+    async def _mlc_mod_load(self, version_id: str = "", path: str = "") -> dict:
+        return self._ctx.mlc.mod_load(str(version_id), str(path))
 
     def _on_plugin_ui(self, plugin_id: str = "", tree: Any = None) -> None:
         payload = json.dumps({"pluginId": plugin_id, "tree": tree}, ensure_ascii=False)
