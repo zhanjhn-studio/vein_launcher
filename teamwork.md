@@ -630,3 +630,10 @@ window.__veinResult(12, true, {ok: 1})
 - **2026-11-08 · feat/hotkey-startup-bind** — 启动即绑定已保存的指令热键：
   `MainWindow._bind_saved_hotkeys()` 在窗口显示 1.5s 后读取 `config/tools.json` 里带 slot 的自定义指令并注册全局热键，
   不必先打开工具箱页；内置 Ctrl+Alt+0..9 预设仍在工具箱页加载时绑定 · `main.py` · 未提交
+
+- **2026-11-08 · feat/palette-redesign** — Ctrl+Alt+Q 速查窗重做：
+  左右分栏（左：说明+状态+快捷键提示；右：候选列表），窗口 780×560、圆角深色、发光主按钮；
+  鼠标点击候选 = 追加（检索模式=填入），双击 = 直接发送；↑↓ 选择、Tab/→ 追加、Enter 发送（未完整时先追加）、Ctrl+Enter 强制发送、Esc 关闭；
+  `send_requested` 信号接主窗口：走 `mlc.agentChat` 发进游戏；失败弹 QMessageBox「游戏没有在运行，或 MLC agent 未连接」并**自动复制指令**到剪贴板。
+  修：顶层窗口 QGraphicsDropShadowEffect 导致内容裁剪/标题发虚（已移除）；固定尺寸过小导致标题被压扁（放大并设最小行高）。
+  实测：面板截图正常；`send_current()` 发出 `/time set day`；失败回调把 `/say hi` 写入剪贴板 · `palette.py`、`main.py` · 未提交

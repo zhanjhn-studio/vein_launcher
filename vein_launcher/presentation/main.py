@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QMessageBox,
     QSizeGrip,
     QToolButton,
     QVBoxLayout,
@@ -167,6 +168,7 @@ class MainWindow(QMainWindow):
         import queue as _queue
 
         self._hotkey_results: "_queue.Queue" = _queue.Queue()
+        self._palette_results: "_queue.Queue" = _queue.Queue()
         self._hotkey_timer = QTimer(self)
         self._hotkey_timer.timeout.connect(self._drain_hotkey_results)
         self._hotkey_timer.start(120)
@@ -210,6 +212,7 @@ class MainWindow(QMainWindow):
         self.palette = CommandPalette()
         self.palette.set_source(lambda: (self.bridge.palette_entries, self.bridge.palette_nodes))
         self.palette.picked.connect(self._on_palette_picked)
+        self.palette.send_requested.connect(self._on_palette_send)
         self.hotkeys.set_palette_callback(self.palette.open_palette)
         self.hotkeys.enable_palette()
 
@@ -355,6 +358,12 @@ class MainWindow(QMainWindow):
             except Exception:
                 return
             self._hotkey_done(slot, text, title, mode)
+        while True:
+            try:
+                command, ok, error = self._palette_results.get_nowait()
+            except Exception:
+                return
+            self._on_palette_send_done(command, ok, error)
 
     def _hotkey_done(self, slot: int, text: str, title: str, mode: str) -> None:
         from PySide6.QtGui import QGuiApplication
@@ -369,6 +378,45 @@ class MainWindow(QMainWindow):
                 return
             logger.info("全局热键 Ctrl+Alt+%s → 已复制：%s", slot, title or text)
         self.bridge.push_hotkey(slot, text, title, mode)
+
+    def _on_palette_send(self, command: str) -> None:
+        """速查窗按 Enter：通过 MLC agent 直接发进游戏"""
+        import asyncio
+        import threading
+
+        def worker() -> None:
+            ok = False
+            error = ""
+            try:
+                asyncio.run(self._ctx.mlc.agent_chat(command))
+                ok = True
+            except Exception as exc:  # 游戏没开 / agent 未连接
+                error = str(exc)
+            self._palette_results.put((command, ok, error))
+
+        threading.Thread(target=worker, name="vein-palette-send", daemon=True).start()
+
+    def _on_palette_send_done(self, command: str, ok: bool, error: str) -> None:
+        from PySide6.QtGui import QGuiApplication
+
+        if ok:
+            logger.info("速查窗已发送到游戏：%s", command)
+            return
+        try:
+            QGuiApplication.clipboard().setText(command)
+        except Exception:
+            logger.exception("速查窗复制失败")
+        logger.info("速查窗发送失败（%s），已复制到剪贴板：%s", error, command)
+
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle("发送失败")
+        box.setText("游戏没有在运行，或 MLC agent 未连接。")
+        box.setInformativeText(f"指令已自动复制到剪贴板：\n{command}")
+        box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        box.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        box.open()
+        QTimer.singleShot(8000, box.close)
 
     def _on_palette_picked(self, command: str) -> None:
         """速查窗里选中并复制了一条指令"""

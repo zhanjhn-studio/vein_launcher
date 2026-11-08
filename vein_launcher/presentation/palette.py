@@ -1,12 +1,13 @@
 """指令速查 / 构建器小窗（全局热键 Ctrl+Alt+Q 唤起）
 
-完整功能对齐工具页的「指令构建器」：
-- 输入一段指令 → 列出后面能接什么 → 点/回车追加 → 逐级构建
-- 输入中文或英文关键词 → 直接在全部候选里检索（物品、二级参数都能搜到）
-- 复制按钮 / Ctrl+Enter 把当前指令写进剪贴板，Esc 关闭，回退可逐级撤销
+交互设计：
+    左侧  输入框 + 当前指令预览 + 操作按钮
+    右侧  候选列表（鼠标点击 / ↑↓ 选择 / Tab 追加）
+    Enter：指令完整时直接发进游戏；还有候选时先追加
+    Ctrl+Enter：强制发送当前指令
+    Esc：关闭
 
-数据由前端通过 tools.syncPalette 推过来（带 parent 的扁平候选表），
-这里用 parent 重建「前缀 → 候选」的树，所以不依赖页面是否打开过。
+发送失败（游戏没开 / agent 未连接）时由主窗口弹提示，并自动把指令复制到剪贴板。
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from typing import Callable, Dict, List, Optional
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QCursor, QGuiApplication, QKeyEvent
 from PySide6.QtWidgets import (
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -31,35 +33,58 @@ from PySide6.QtWidgets import (
 
 logger = logging.getLogger(__name__)
 
-MAX_ROWS = 60
+MAX_ROWS = 80
 ITEM_ROLE = Qt.ItemDataRole.UserRole
 
 STYLE = """
-#plRoot { background: #151a22; border: 1px solid #2a3240; border-radius: 10px; }
-#plTitle { color: #e8ecf4; font-size: 13px; font-weight: 600; }
-#plHint, #plStatus { color: #6b7688; font-size: 11px; }
-#plSlash { color: #6f97f0; font-size: 16px; font-weight: 700; }
+#plRoot {
+    background: #12161d;
+    border: 1px solid #2a3444;
+    border-radius: 14px;
+}
+#plRoot QLabel { color: #d7deeb; }
+#plTitle { color: #eef2f9; font-size: 15px; font-weight: 700; letter-spacing: .01em; }
+#plSub { color: #6d7b90; font-size: 11px; }
+#plKbd {
+    color: #8fa6c8; background: #1b2230; border: 1px solid #2a3444;
+    border-radius: 5px; padding: 2px 7px; font-size: 10.5px;
+}
+#plSlash { color: #7fa3ff; font-size: 18px; font-weight: 800; }
 #plInput {
-    background: #1d232d; border: 1px solid #2a3240; border-radius: 7px;
-    padding: 8px 10px; color: #e8ecf4; font-size: 13px;
+    background: #171d27; border: 1px solid #2a3444; border-radius: 9px;
+    padding: 10px 12px; color: #eef2f9; font-size: 14px;
+    selection-background-color: #33507d;
 }
-#plInput:focus { border-color: #6f97f0; }
+#plInput:focus { border-color: #6f97f0; background: #182030; }
 #plCurrent {
-    background: #171c24; border: 1px solid #232a35; border-radius: 7px;
-    padding: 6px 10px; color: #9da8ba; font-size: 12px;
+    background: #151b24; border: 1px solid #222b37; border-radius: 9px;
+    padding: 8px 12px; color: #9fb0c8; font-size: 12.5px;
 }
-#plList {
-    background: #171c24; border: 1px solid #232a35; border-radius: 7px;
-    color: #c9d2e0; font-size: 12px; outline: none;
+#plCurrent[ready="true"] { color: #bcd0f5; border-color: #2f4570; }
+#plSend {
+    background: #4f7bf0; border: 1px solid #4f7bf0; border-radius: 9px;
+    color: #ffffff; padding: 10px 16px; font-size: 12.5px; font-weight: 700;
 }
-#plList::item { padding: 6px 9px; border-radius: 5px; }
-#plList::item:selected { background: #26324a; color: #ffffff; }
+#plSend:hover { background: #5f89f5; }
+#plSend:disabled { background: #232b38; border-color: #232b38; color: #5a6579; }
 #plBtn {
-    background: #1d232d; border: 1px solid #2a3240; border-radius: 6px;
-    color: #9da8ba; padding: 7px 12px; font-size: 12px;
+    background: #1a212c; border: 1px solid #2a3444; border-radius: 9px;
+    color: #9fb0c8; padding: 10px 12px; font-size: 12px;
 }
-#plBtn:hover { border-color: #6f97f0; color: #e8ecf4; }
-#plBtn:disabled { color: #4a5566; border-color: #232a35; }
+#plBtn:hover { border-color: #6f97f0; color: #eef2f9; }
+#plBtn:disabled { color: #4a5566; border-color: #222b37; }
+#plPanel {
+    background: #141a23; border: 1px solid #222b37; border-radius: 10px;
+}
+#plPanelTitle { color: #7c8ba2; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+#plList {
+    background: transparent; border: 0; color: #c9d4e6; font-size: 12.5px; outline: none;
+}
+#plList::item { padding: 7px 10px; border-radius: 7px; margin: 1px 4px; }
+#plList::item:hover { background: #1b2431; }
+#plList::item:selected { background: #24324a; color: #ffffff; }
+#plStatus { color: #6d7b90; font-size: 11.5px; }
+#plFoot { color: #5d6a7e; font-size: 10.5px; }
 """
 
 
@@ -85,9 +110,10 @@ def normalize(text: str) -> str:
 
 
 class CommandPalette(QWidget):
-    """无边框置顶小窗：指令构建器 + 中文检索"""
+    """无边框置顶小窗：指令构建器 + 中文检索 + 直接发送"""
 
     picked = Signal(str)
+    send_requested = Signal(str)
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(
@@ -98,8 +124,9 @@ class CommandPalette(QWidget):
         )
         self.setObjectName("plRoot")
         self.setWindowTitle("指令速查")
-        self.setFixedSize(660, 480)
+        self.setFixedSize(780, 560)
         self.setStyleSheet(STYLE)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
 
         self._entries: List[dict] = []
         self._tree: Dict[str, List[dict]] = {}
@@ -108,6 +135,7 @@ class CommandPalette(QWidget):
         self._rows: List[dict] = []
         self._history: List[str] = []
         self._mode = "root"
+        self._complete = False
         self._prev_hwnd = 0
         self._user32 = _user32()
         self._build_ui()
@@ -115,30 +143,44 @@ class CommandPalette(QWidget):
     # ------------------------------------------------------------------ UI
     def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 12, 14, 12)
-        layout.setSpacing(8)
+        layout.setContentsMargins(18, 16, 18, 14)
+        layout.setSpacing(10)
 
+        # 标题行
         head = QHBoxLayout()
         title = QLabel("指令速查")
         title.setObjectName("plTitle")
-        hint = QLabel("Enter 追加/复制 · Ctrl+Enter 复制 · Esc 关闭")
-        hint.setObjectName("plHint")
+        title.setMinimumHeight(24)
+        sub = QLabel("输入指令或中文关键词，右侧选候选项")
+        sub.setObjectName("plSub")
+        sub.setMinimumHeight(24)
         head.addWidget(title)
+        head.addSpacing(8)
+        head.addWidget(sub)
         head.addStretch(1)
-        head.addWidget(hint)
+        for text in ("↑↓ 选择", "Enter 发送", "Esc 关闭"):
+            chip = QLabel(text)
+            chip.setObjectName("plKbd")
+            chip.setMinimumHeight(22)
+            chip.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            head.addWidget(chip)
         layout.addLayout(head)
 
+        # 输入行
         row = QHBoxLayout()
-        row.setSpacing(6)
+        row.setSpacing(8)
         slash = QLabel("/")
         slash.setObjectName("plSlash")
         self.input = QLineEdit(self)
         self.input.setObjectName("plInput")
-        self.input.setPlaceholderText("输入指令（kill / give / time…）或中文关键词（钻石 / 封禁）")
+        self.input.setPlaceholderText("kill / give / time … 或中文关键词：钻石、封禁、白天")
+        self.input.setMinimumHeight(42)
         self.input.textChanged.connect(self._on_text_changed)
-        self.input.returnPressed.connect(self._accept)
         self.input.installEventFilter(self)
 
+        self.btn_send = QPushButton("发送到游戏", self)
+        self.btn_send.setObjectName("plSend")
+        self.btn_send.clicked.connect(lambda: self.send_current(force=True))
         self.btn_copy = QPushButton("复制", self)
         self.btn_copy.setObjectName("plBtn")
         self.btn_copy.clicked.connect(self._copy_draft)
@@ -151,24 +193,63 @@ class CommandPalette(QWidget):
 
         row.addWidget(slash)
         row.addWidget(self.input, 1)
+        row.addWidget(self.btn_send)
         row.addWidget(self.btn_copy)
         row.addWidget(self.btn_undo)
         row.addWidget(self.btn_clear)
         layout.addLayout(row)
 
+        # 当前指令
         self.current = QLabel("/…", self)
         self.current.setObjectName("plCurrent")
+        self.current.setMinimumHeight(34)
         layout.addWidget(self.current)
 
-        self.list = QListWidget(self)
+        # 主体：左信息 / 右候选
+        body = QHBoxLayout()
+        body.setSpacing(12)
+
+        left = QFrame(self)
+        left.setObjectName("plPanel")
+        left.setFixedWidth(250)
+        left_layout = QVBoxLayout(left)
+        left_layout.setContentsMargins(14, 12, 14, 12)
+        left_layout.setSpacing(8)
+        self.left_title = QLabel("说明")
+        self.left_title.setObjectName("plPanelTitle")
+        self.left_layout = left_layout
+        self.status = QLabel("", left)
+        self.status.setObjectName("plStatus")
+        self.status.setWordWrap(True)
+        left_layout.addWidget(self.left_title)
+        left_layout.addWidget(self.status)
+        left_layout.addStretch(1)
+        tip = QLabel(
+            "点击候选 = 追加到指令\nTab = 追加高亮项\nEnter = 完整指令直接发送\nCtrl+Enter = 强制发送",
+            left,
+        )
+        tip.setObjectName("plFoot")
+        tip.setWordWrap(True)
+        left_layout.addWidget(tip)
+        body.addWidget(left)
+
+        right = QFrame(self)
+        right.setObjectName("plPanel")
+        right_layout = QVBoxLayout(right)
+        right_layout.setContentsMargins(10, 10, 10, 10)
+        right_layout.setSpacing(6)
+        self.list_title = QLabel("候选", right)
+        self.list_title.setObjectName("plPanelTitle")
+        self.list = QListWidget(right)
         self.list.setObjectName("plList")
         self.list.setWordWrap(True)
         self.list.itemClicked.connect(self._on_item_clicked)
-        layout.addWidget(self.list, 1)
+        self.list.itemDoubleClicked.connect(lambda _i: self.send_current(force=True))
+        right_layout.addWidget(self.list_title)
+        right_layout.addWidget(self.list, 1)
+        body.addWidget(right, 1)
 
-        self.status = QLabel("", self)
-        self.status.setObjectName("plStatus")
-        layout.addWidget(self.status)
+        layout.addLayout(body, 1)
 
     # ------------------------------------------------------------------ 数据
     def set_source(self, source: Callable[[], List[dict]]) -> None:
@@ -209,13 +290,11 @@ class CommandPalette(QWidget):
         self._place_window()
         self.show()
         self.raise_()
-        # 窗口刚 show 出来还没真正 map，立刻抢焦点会被 Windows 拒绝，延后两拍再抢
         QTimer.singleShot(0, self._grab_focus)
         QTimer.singleShot(120, self._grab_focus)
         logger.info("指令速查已唤起（%d 条候选）", len(self._entries))
 
     def _grab_focus(self) -> None:
-        """把速查窗顶到前台并让输入框拿到键盘焦点"""
         self._force_foreground()
         self.activateWindow()
         self.input.setFocus()
@@ -225,17 +304,13 @@ class CommandPalette(QWidget):
         if screen is None:
             return
         geo = screen.availableGeometry()
-        dpr = float(screen.devicePixelRatio() or 1.0)
-        phys_w = int(self.width() * dpr)
-        phys_h = int(self.height() * dpr)
-        x = max(geo.left(), geo.center().x() - phys_w // 2)
-        y = max(geo.top(), geo.top() + int(geo.height() * 0.10))
-        if y + phys_h > geo.bottom():
-            y = max(geo.top(), geo.bottom() - phys_h)
+        x = max(geo.left(), geo.center().x() - self.width() // 2)
+        y = max(geo.top(), geo.top() + int(geo.height() * 0.12))
+        if y + self.height() > geo.bottom():
+            y = max(geo.top(), geo.bottom() - self.height())
         self.move(x, y)
 
     def _force_foreground(self) -> None:
-        """把速查窗顶到前台并抢到键盘焦点（AttachThreadInput 绕过前台锁）"""
         u = self._user32
         if u is None:
             return
@@ -265,12 +340,10 @@ class CommandPalette(QWidget):
         raw = self.input.text()
         key = normalize(raw)
 
-        # 1) 能对上合法前缀：构建模式（没有候选 = 指令已完整）
         if key in self._nodes or key in self._tree:
             self._mode = "builder" if key else "root"
             rows = self._tree.get(key, [])
             kind = "append"
-        # 2) 对不上但有输入：全局检索模式
         elif key:
             self._mode = "search"
             rows = self._search(key)
@@ -281,36 +354,44 @@ class CommandPalette(QWidget):
             kind = "append"
 
         self._rows = rows[:MAX_ROWS]
-        # 「指令已经完整」：前缀没候选，或者检索不到但首词是已知指令
         first = key.split(" ", 1)[0] if key else ""
         self._complete = bool(key) and (not self._rows) and (
             key in self._nodes or first in self._nodes
         )
+
         self.list.clear()
         for row in self._rows:
             label = self._row_label(row, kind)
             item = QListWidgetItem(label)
+            item.setData(ITEM_ROLE, row)
             self.list.addItem(item)
         if self._rows:
             self.list.setCurrentRow(0)
 
         draft = normalize(raw)
         self.current.setText("/" + draft if draft else "/…")
+        self.current.setProperty("ready", "true" if self._complete else "false")
+        self.current.style().unpolish(self.current)
+        self.current.style().polish(self.current)
+
+        self.list_title.setText(f"候选  ·  {len(self._rows)}")
+        self.btn_send.setEnabled(bool(draft))
         self.btn_copy.setEnabled(bool(draft))
         self.btn_undo.setEnabled(bool(self._history))
         self.btn_clear.setEnabled(bool(draft))
 
-        total = len(self._entries)
         if self._complete:
-            self.status.setText("这条指令已经完整：Enter 或 Ctrl+Enter 复制")
+            self.status.setText("这条指令已经完整，按 Enter 直接发送进游戏。")
         elif self._mode == "search":
             self.status.setText(
-                f"检索：{len(self._rows)} / {total} 条 · 点击填入输入框 · Enter 直接复制"
+                f"正在全局检索：命中 {len(self._rows)} 条。\n点击候选填入，Enter 发送。"
+            )
+        elif self._rows:
+            self.status.setText(
+                f"后面还能接 {len(self._rows)} 项。\n点击或 Tab 追加，Enter/按钮 发送。"
             )
         else:
-            self.status.setText(
-                f"后面可以接 {len(self._rows)} 项 · Enter 追加 · Ctrl+Enter 复制当前指令"
-            )
+            self.status.setText("输入指令前缀开始构建，或输入中文关键词检索。")
 
     def _row_label(self, row: dict, kind: str) -> str:
         hint = row.get("hint", "")
@@ -322,74 +403,71 @@ class CommandPalette(QWidget):
 
     def _search(self, key: str) -> List[dict]:
         low = key.lower()
-        hits = [
+        return [
             e
             for e in self._entries
             if low in str(e.get("token", "")).lower()
             or low in str(e.get("hint", "")).lower()
             or low in str(e.get("parent", "")).lower()
         ]
-        return hits
 
     # ------------------------------------------------------------------ 交互
-    def _on_item_clicked(self, _item) -> None:
-        """检索模式点结果 = 填进输入框（不关窗）；构建模式点结果 = 追加"""
-        if self._mode != "search":
-            self._accept()
-            return
+    def _append_current(self) -> bool:
+        """把高亮候选追加到输入框；返回是否真的追加了"""
         entry = self._rows[self.list.currentRow()] if self._rows else None
         if entry is None:
-            return
-        command = normalize(entry.get("command") or entry.get("token", ""))
-        if not command:
-            return
-        self._history.append(normalize(self.input.text()))
-        # 检索结果本身就是一条完整指令，标记为已知前缀，刷新后直接显示"已完整"
-        self._nodes.add(command)
-        self.input.setText(command)
-        self.input.setFocus()
-        logger.info("速查窗点击填入：/%s", command)
-
-    def _accept(self) -> None:
-        """构建模式追加选中项；检索模式直接复制整条指令"""
-        logger.info(
-            "速查窗 accept：mode=%s rows=%d cur=%d",
-            self._mode,
-            len(self._rows),
-            self.list.currentRow(),
-        )
-        entry = self._rows[self.list.currentRow()] if self._rows else None
-
-        if self._mode == "search":
-            if entry is None:
-                # 检索不到但首词是已知指令：当作"指令已完整"直接复制
-                if self._complete:
-                    self._copy_draft()
-                return
-            self._copy(entry.get("command") or entry.get("token", ""))
-            return
-
-        if entry is None:
-            # 没有候选 = 指令已经完整
-            self._copy_draft()
-            return
-
+            return False
         base = normalize(self.input.text())
         token = str(entry.get("token", ""))
         if not token:
-            return
+            return False
         self._history.append(base)
         self.input.setText((base + " " + token).strip())
+        self.input.setFocus()
+        return True
+
+    def _on_item_clicked(self, _item) -> None:
+        """点击候选：检索结果填进输入框，构建模式直接追加"""
+        if self._mode == "search":
+            entry = self._rows[self.list.currentRow()] if self._rows else None
+            if entry is None:
+                return
+            command = normalize(entry.get("command") or entry.get("token", ""))
+            if not command:
+                return
+            self._history.append(normalize(self.input.text()))
+            self._nodes.add(command)
+            self.input.setText(command)
+            self.input.setFocus()
+            logger.info("速查窗点击填入：/%s", command)
+            return
+        self._append_current()
+
+    def send_current(self, force: bool = False) -> None:
+        """Enter / 发送按钮：完整就发游戏，否则先追加候选"""
+        if not force and not self._complete and self._rows:
+            if self._append_current():
+                return
+        draft = normalize(self.input.text())
+        if not draft:
+            return
+        command = "/" + draft
+        logger.info("速查窗发送：%s", command)
+        self.hide()
+        self._restore_focus()
+        self.send_requested.emit(command)
 
     def _undo(self) -> None:
         if not self._history:
             return
         self.input.setText(self._history.pop())
+        self.input.setFocus()
 
     def _clear(self) -> None:
         if normalize(self.input.text()):
             self._history.append(normalize(self.input.text()))
         self.input.clear()
+        self.input.setFocus()
 
     def _copy_draft(self) -> None:
         draft = normalize(self.input.text())
@@ -416,12 +494,17 @@ class CommandPalette(QWidget):
                 row = max(0, min(self.list.count() - 1, row + step))
                 self.list.setCurrentRow(row)
                 return True
+            if key in (Qt.Key.Key_Tab, Qt.Key.Key_Right):
+                if self._append_current():
+                    return True
             if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                # 回车统一在这里处理，不依赖 returnPressed（焦点可能在列表上）
                 if mods & Qt.KeyboardModifier.ControlModifier:
-                    self._copy_draft()
+                    self.send_current(force=True)
                 else:
-                    self._accept()
+                    self.send_current()
+                return True
+            if key == Qt.Key.Key_C and (mods & Qt.KeyboardModifier.ControlModifier):
+                self._copy_draft()
                 return True
             if key == Qt.Key.Key_Backspace and not self.input.text() and self._history:
                 self._undo()
@@ -437,7 +520,7 @@ class CommandPalette(QWidget):
             self.hide()
             return
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            self._accept()
+            self.send_current()
             return
         super().keyPressEvent(event)
 
