@@ -659,3 +659,9 @@ window.__veinResult(12, true, {ok: 1})
   MLC 事件转发给插件：`vein.mlc.on('game.enter'|'game.leave'|'player.dimension'|'player.death')`。
   新增示例插件 `plugins_examples/status-panel`：一个面板展示版本/实例数/运行中游戏/MLC 状态，带刷新按钮与进世界通知
   （实测渲染出 v0.5.0、3 instances、2 running、MLC on）· `plugin_service.py`、`node_host.js`、示例插件 · 未提交
+
+- **2026-11-08 · release/0.5.0** — Windows 发布包：
+  新增 `packaging/entry.py` 与 `tools/build_exe.py`（PyInstaller onedir，含 webui/dist、assets、插件宿主 runtime、locales、
+  plugins_examples、随包 agent；裁剪 translations/qml 等后 495 MB，zip 199 MB，sha256 1F3FDBFE…A176C）；
+  `main.py` 首次启动把 `_internal/agent/*.jar` 复制到数据目录；冒烟测试 exe 可正常启动（窗口 “Vein Launcher 0.5.0”，
+  日志含速查表 660 条、Java 检测）。`packaging/RELEASE_NOTES-0.5.0.md` 提供发布说明 · 未提交

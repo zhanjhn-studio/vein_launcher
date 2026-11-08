@@ -47,6 +47,24 @@ def _resources_dir() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def _ensure_bundled_agent() -> None:
+    """打包版：把 resources/agent/*.jar 复制到 <数据目录>/agent/（首次或缺失时）"""
+    try:
+        bundled = _resources_dir() / "agent"
+        if not bundled.is_dir():
+            return
+        from vein_launcher.common.utils.path_utils import get_root_dir
+
+        target = get_root_dir() / "agent"
+        target.mkdir(parents=True, exist_ok=True)
+        for jar in bundled.glob("vein-agent-*.jar"):
+            dest = target / jar.name
+            if not dest.is_file() or dest.stat().st_size != jar.stat().st_size:
+                dest.write_bytes(jar.read_bytes())
+    except Exception:
+        logger.debug("复制随包 agent 失败", exc_info=True)
+
+
 def _webui_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent)) / "webui" / "dist"
@@ -498,6 +516,7 @@ def _schedule_auto_exit(app: QApplication) -> None:
 
 def main() -> int:
     _hide_console()
+    _ensure_bundled_agent()
     logger_root = setup_logger()
     _crash_handle = _enable_crash_handler(logger_root)
     install_excepthook(logger_root)
