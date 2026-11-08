@@ -170,6 +170,31 @@ class PluginService:
         async def mlc_plugin_search(plugin_id: str, keyword: str = "") -> Dict[str, Any]:
             return self._mlc.plugin_search(keyword)
 
+        async def game_running(plugin_id: str) -> Dict[str, Any]:
+            from vein_launcher.application.services.game_registry import game_registry
+
+            return {"games": game_registry.list()}
+
+        async def app_info(plugin_id: str) -> Dict[str, Any]:
+            from vein_launcher import __version__
+            from vein_launcher.common.utils.path_utils import get_root_dir
+
+            return {"version": __version__, "dataDir": str(get_root_dir())}
+
+        async def versions_list(plugin_id: str) -> list:
+            versions = getattr(self._launcher, "_versions", None)
+            try:
+                return versions.list_installed() if versions else []
+            except Exception:
+                return []
+
+        async def game_command(plugin_id: str, command: str, pid: int = 0) -> Dict[str, Any]:
+            if not self._mlc.enabled:
+                raise RuntimeError("MLC 总开关未开启")
+            from vein_launcher.infrastructure.process import game_input
+
+            return game_input.send_chat_command(str(command))
+
         reg.register("file.readText", "file.read", read_text)
         reg.register("file.writeText", "file.write", write_text)
         reg.register("file.listDir", "file.read", list_dir)
@@ -189,6 +214,10 @@ class PluginService:
         reg.register("mlc.player.info", "mlc.player", mlc_player_info)
         reg.register("mlc.mod.load", "mlc.mod", mlc_mod_load)
         reg.register("mlc.plugin.search", "mlc.plugin", mlc_plugin_search)
+        reg.register("game.running", "game.state", game_running)
+        reg.register("game.command", "game.command", game_command)
+        reg.register("app.info", "app.info", app_info)
+        reg.register("versions.list", "versions.read", versions_list)
 
     # ------------------------------------------------------------------
     # 生命周期
@@ -339,6 +368,11 @@ class PluginService:
             EventNames.GAME_LOG_UPDATE: "mlc.game.log",
             EventNames.GAME_EXITED: "mlc.game.exit",
             EventNames.DOWNLOAD_TASK_PROGRESS: "mlc.download.progress",
+            # MLC 状态事件（由 MlcService 轮询 agent 后发布）
+            "mlc.agent.game.enter": "mlc.game.enter",
+            "mlc.agent.game.leave": "mlc.game.leave",
+            "mlc.agent.player.dimension": "mlc.player.dimension",
+            "mlc.agent.player.death": "mlc.player.death",
         }
         for event_name, topic in mapping.items():
             event_bus.subscribe(event_name, self._forward(topic))

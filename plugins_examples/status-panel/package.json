@@ -1,0 +1,19 @@
+{
+  "name": "vein-plugin-status-panel",
+  "version": "0.1.0",
+  "description": "Example plugin: instance list, running games and MLC state in one panel",
+  "type": "module",
+  "main": "index.js",
+  "vein": {
+    "displayName": "Status panel",
+    "activateOnStartup": false,
+    "permissions": [
+      "game.state",
+      "versions.read",
+      "mlc.state",
+      "ui.lua",
+      "ui.notify",
+      "app.info"
+    ]
+  }
+}

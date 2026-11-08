@@ -651,3 +651,11 @@ window.__veinResult(12, true, {ok: 1})
   Agent 状态显示「MLC 已关闭」；工具页徽章显示「MLC 已关闭」且发送/运行按钮禁用；
   速查窗发送失败弹窗补充「或 MLC 总开关未开启」；全局热键回退时提示「MLC 未开启，指令已复制」；
   新增 `.btn:disabled` 弱化样式。实测：关闭时 agent_state/world_info 均被拒绝，按钮 disabled=true · 未提交
+
+- **2026-11-08 · feat/plugin-complete** — 插件系统补全：
+  新增能力 `game.running`（运行中游戏，含外部启动）、`game.command`（受 MLC 总开关控制）、
+  `app.info`（版本 + 数据目录）、`versions.list`（已安装实例）；Node 宿主同步暴露
+  `vein.game.running()/vein.game.command()/vein.app.info()/vein.versions.list()`；
+  MLC 事件转发给插件：`vein.mlc.on('game.enter'|'game.leave'|'player.dimension'|'player.death')`。
+  新增示例插件 `plugins_examples/status-panel`：一个面板展示版本/实例数/运行中游戏/MLC 状态，带刷新按钮与进世界通知
+  （实测渲染出 v0.5.0、3 instances、2 running、MLC on）· `plugin_service.py`、`node_host.js`、示例插件 · 未提交
