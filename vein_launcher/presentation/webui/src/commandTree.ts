@@ -1284,6 +1284,7 @@ export function buildPaletteEntries(): { token: string; hint: string; parent: st
   return ALL_CANDIDATES.map((c) => ({
     token: c.token,
     hint: displayHint(c),
+    hintZh: displayHint(c, 'zh'),
     parent: c.parent,
   }));
 }

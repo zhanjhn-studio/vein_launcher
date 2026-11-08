@@ -212,6 +212,8 @@ class LauncherService:
             extra_jvm=extra_jvm,
         )
         cwd = resolve_version_dir(version_id)
+        # 速查窗会短暂抢焦点：关掉「失焦暂停」，浏览指令时游戏不会被打断
+        self._ensure_no_pause_on_focus_loss(cwd)
         # 多实例：第一个实例复用注入的 process（测试/兼容），之后每次新建
         reuse = (
             self._process is not None
@@ -230,6 +232,27 @@ class LauncherService:
             game_registry.register(pid, version_id, str(cwd), command)
             asyncio.create_task(self._watch(pid, process))
         return pid
+
+    @staticmethod
+    def _ensure_no_pause_on_focus_loss(cwd: Path) -> None:
+        """把 options.txt 里的 pauseOnLostFocus 改成 false（游戏失焦不暂停）"""
+        options = cwd / "options.txt"
+        if not options.is_file():
+            return
+        try:
+            lines = options.read_text(encoding="utf-8-sig", errors="replace").splitlines()
+            kept = [
+                line for line in lines if not line.strip().startswith("pauseOnLostFocus:")
+            ]
+            if len(kept) < len(lines) and any(
+                line.strip() == "pauseOnLostFocus:false" for line in lines
+            ):
+                return
+            kept.append("pauseOnLostFocus:false")
+            options.write_text("\n".join(kept) + "\n", encoding="utf-8")
+            logger.info("已关闭失焦暂停：%s", options)
+        except OSError:
+            logger.debug("写入 pauseOnLostFocus 失败", exc_info=True)
 
     async def _watch(self, pid: int, process: GameProcess) -> None:
         """进程结束后自动从登记表与多实例表里移除"""

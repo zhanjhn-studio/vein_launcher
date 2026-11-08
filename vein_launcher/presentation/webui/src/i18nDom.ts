@@ -365,7 +365,7 @@ const TRANSLATED_ATTRS = ['placeholder', 'title', 'aria-label'] as const;
 const SKIP = '.mono, pre, code, .activity, [data-no-i18n]';
 
 /** 原文记录：文本节点 → 英文原串；元素 → 属性原文 */
-const textOriginal = new Map<Text, string>();
+const textOriginal = new Map<Text, { original: string; translated: string }>();
 const attrOriginal = new Map<Element, Record<string, string>>();
 
 let lang: Lang = 'en';
@@ -387,20 +387,25 @@ function translateTextNode(node: Text): void {
   if (!trimmed) return;
 
   if (lang === 'zh') {
-    const stored = textOriginal.get(node);
-    const source = stored ?? trimmed;
+    const entry = textOriginal.get(node);
+    // React 可能把已经翻译过的节点改成新文案（例如 Off → On）：
+    // 只有当前文本仍是上次译文时才复用旧原文，否则把当前英文当作新来源。
+    const source = entry && trimmed === entry.translated ? entry.original : trimmed;
     const hit = ZH[source] ?? ZH[source.replace(/\s+/g, ' ')] ?? dynamicZh(source);
-    if (!hit) return;
-    if (!stored) textOriginal.set(node, raw);
+    if (!hit) {
+      textOriginal.delete(node);
+      return;
+    }
+    textOriginal.set(node, { original: source, translated: hit });
     if (trimmed !== hit) {
       node.textContent = raw.replace(trimmed, hit);
     }
     return;
   }
 
-  const stored = textOriginal.get(node);
-  if (stored !== undefined) {
-    if (node.textContent !== stored) node.textContent = stored;
+  const entry = textOriginal.get(node);
+  if (entry !== undefined) {
+    if (node.textContent !== entry.original) node.textContent = entry.original;
     textOriginal.delete(node);
   }
 }

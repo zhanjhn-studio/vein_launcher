@@ -17,8 +17,8 @@ import logging
 import sys
 from typing import Callable, Dict, List, Optional
 
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
-from PySide6.QtGui import QCursor, QGuiApplication, QKeyEvent
+from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QCursor, QGuiApplication, QIcon, QKeyEvent
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -78,11 +78,20 @@ STYLE = """
 }
 #plPanelTitle { color: #7c8ba2; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
 #plList {
-    background: transparent; border: 0; color: #c9d4e6; font-size: 12.5px; outline: none;
+    background: transparent; border: 0; color: #cdd7ea; font-size: 12.5px; outline: none;
 }
-#plList::item { padding: 7px 10px; border-radius: 7px; margin: 1px 4px; }
-#plList::item:hover { background: #1b2431; }
-#plList::item:selected { background: #24324a; color: #ffffff; }
+#plList::item {
+    padding: 6px 10px; border-radius: 8px; margin: 2px 5px;
+    border-left: 2px solid transparent;
+}
+#plList::item:hover {
+    background: #1b2333; border-left-color: #3d4a63;
+}
+#plList::item:selected {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #2b2350, stop:0.55 #232a45, stop:1 #1c2437);
+    color: #f2ecff; border-left-color: #8a7ff0;
+}
 #plStatus { color: #6d7b90; font-size: 11.5px; }
 #plFoot { color: #5d6a7e; font-size: 10.5px; }
 """
@@ -107,6 +116,32 @@ def _user32():
 def normalize(text: str) -> str:
     """去掉开头的 /、压缩空白，和前端 normalizeCommand 保持一致"""
     return " ".join(str(text or "").lstrip("/").split())
+
+
+def asset_path(name: str):
+    """找 assets/ 下的资源（源码运行与打包后都能找到）"""
+    from pathlib import Path
+
+    candidates = [
+        Path(__file__).resolve().parents[2] / "assets" / name,
+        Path(__file__).resolve().parents[1] / "assets" / name,
+    ]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base) / "assets" / name)
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return candidates[0]
+
+
+def ui_language_is_zh() -> bool:
+    try:
+        from vein_launcher.common.config.settings import settings_manager
+
+        return str(settings_manager.get().ui.language).lower().startswith("zh")
+    except Exception:
+        return False
 
 
 class CommandPalette(QWidget):
@@ -138,6 +173,7 @@ class CommandPalette(QWidget):
         self._complete = False
         self._prev_hwnd = 0
         self._user32 = _user32()
+        self._book_icon = QIcon(str(asset_path("palette_book.png")))
         self._build_ui()
 
     # ------------------------------------------------------------------ UI
@@ -243,6 +279,9 @@ class CommandPalette(QWidget):
         self.list = QListWidget(right)
         self.list.setObjectName("plList")
         self.list.setWordWrap(True)
+        self.list.setIconSize(QSize(26, 26))
+        self.list.setUniformItemSizes(True)
+        self.list.setSpacing(1)
         self.list.itemClicked.connect(self._on_item_clicked)
         self.list.itemDoubleClicked.connect(lambda _i: self.send_current(force=True))
         right_layout.addWidget(self.list_title)
@@ -364,6 +403,9 @@ class CommandPalette(QWidget):
             label = self._row_label(row, kind)
             item = QListWidgetItem(label)
             item.setData(ITEM_ROLE, row)
+            if not self._book_icon.isNull():
+                item.setIcon(self._book_icon)
+            item.setSizeHint(QSize(0, 42))
             self.list.addItem(item)
         if self._rows:
             self.list.setCurrentRow(0)
@@ -394,7 +436,8 @@ class CommandPalette(QWidget):
             self.status.setText("输入指令前缀开始构建，或输入中文关键词检索。")
 
     def _row_label(self, row: dict, kind: str) -> str:
-        hint = row.get("hint", "")
+        hint = row.get("hintZh") if ui_language_is_zh() else row.get("hint")
+        hint = hint or row.get("hint", "")
         if kind == "apply":
             label = row.get("command") or row.get("token", "")
         else:

@@ -637,3 +637,10 @@ window.__veinResult(12, true, {ok: 1})
   `send_requested` 信号接主窗口：走 `mlc.agentChat` 发进游戏；失败弹 QMessageBox「游戏没有在运行，或 MLC agent 未连接」并**自动复制指令**到剪贴板。
   修：顶层窗口 QGraphicsDropShadowEffect 导致内容裁剪/标题发虚（已移除）；固定尺寸过小导致标题被压扁（放大并设最小行高）。
   实测：面板截图正常；`send_current()` 发出 `/time set day`；失败回调把 `/say hi` 写入剪贴板 · `palette.py`、`main.py` · 未提交
+
+- **2026-11-08 · fix/switch-i18n + feat/palette-book** — 开关文案、失焦暂停、附魔书速查窗：
+  ① 翻译层缓存旧原文导致「Off→On」仍显示“关”：`i18nDom` 改为记录 {原文,译文}，当前文本与译文不一致时把新文本当来源（实测 关→开→关 正确）。
+  ② 选指令不打断游戏：`LauncherService` 启动前把 `options.txt` 的 `pauseOnLostFocus` 写为 false（处理 BOM、去重，实测只剩一行 false）。
+  ③ 速查窗指令中文说明：`buildPaletteEntries` 增加 `hintZh`，palette 按 `settings.ui.language` 选择（实测显示 自己/所有玩家/所有实体）。
+  ④ 附魔书样式：新增 `assets/palette_book.png`（PIL 生成）与 `tools/gen_palette_book_icon.py`；列表项 26px 书本图标、42px 行高、紫色渐变选中 + 左侧高亮条。
+  · `i18nDom.ts`、`launcher_service.py`、`commandTree.ts`、`palette.py` · 未提交
