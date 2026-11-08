@@ -620,3 +620,9 @@ window.__veinResult(12, true, {ok: 1})
   顶部显示 `MLC 离线 / 已连接 / 游戏内` 状态（徽章改用 `t()`，中文稳定显示）；
   MLC 总开关重做为独立行（标题+说明在左、状态胶囊+胶囊开关在右），CSS 新增 `.switch-row/.switch-control/.switch-state`
   与 46×26 胶囊开关样式，修掉原来小方块错位问题 · `pages.tsx`、`toolsPage.tsx`、`styles.css`、`i18n.ts`、`i18nDom.ts` · 未提交
+
+- **2026-11-08 · feat/hotkey-mlc** — 全局热键接 MLC：
+  `MainWindow._on_hotkey_fired` 改为「先通过 `mlc.agentChat` 直接发进游戏，失败再复制到剪贴板」；
+  工作线程用队列回传结果，主线程 `QTimer(120ms)` 轮询 `_drain_hotkey_results` 处理（原先跨线程 `QTimer.singleShot` 不触发）；
+  `push_hotkey` 增加 mode 字段，前端 `__veinHotkey` 透传，工具箱提示区分「已发送 / 已复制」，并补中文动态文案。
+  实测：游戏内按 Ctrl+Alt+1 → `results [('sent','/time set day')]`；关闭游戏后 → `[('copy', ...)]` 回退正常；51 项单测 OK · 未提交

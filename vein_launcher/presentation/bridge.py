@@ -1106,12 +1106,13 @@ class ApiBridge(QObject):
         logger.info("指令速查表已同步：%d 条候选 / %d 个前缀", len(rows), len(self.palette_nodes))
         return {"ok": True, "count": len(rows), "nodes": len(self.palette_nodes)}
 
-    def push_hotkey(self, slot: int, text: str, title: str) -> None:
-        """热键触发后通知前端弹提示"""
+    def push_hotkey(self, slot: int, text: str, title: str, mode: str = "copy") -> None:
+        """热键触发后通知前端弹提示（mode: sent / copy）"""
         self._run_js(
             "window.__veinHotkey && window.__veinHotkey("
             f"{int(slot)},{json.dumps(text, ensure_ascii=False)},"
-            f"{json.dumps(title, ensure_ascii=False)})"
+            f"{json.dumps(title, ensure_ascii=False)},"
+            f"{json.dumps(mode, ensure_ascii=False)})"
         )
 
     async def _instance_toggle(self, version_id: str, kind: str, name: str, enabled: bool) -> dict:

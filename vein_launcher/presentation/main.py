@@ -163,6 +163,12 @@ class MainWindow(QMainWindow):
         self._ctx = context
 
         self.setWindowTitle(f"Vein Launcher {VERSION}")
+        import queue as _queue
+
+        self._hotkey_results: "_queue.Queue" = _queue.Queue()
+        self._hotkey_timer = QTimer(self)
+        self._hotkey_timer.timeout.connect(self._drain_hotkey_results)
+        self._hotkey_timer.start(120)
         self.resize(1280, 820)
         self.setMinimumSize(1080, 680)
 
@@ -301,23 +307,46 @@ class MainWindow(QMainWindow):
             holder["event"].set()
 
     def _on_hotkey_fired(self, slot: int, text: str, title: str) -> None:
-        """热键按下：复制指令并提示前端"""
+        """热键按下：优先通过 MLC agent 直接发给游戏，失败再复制到剪贴板"""
+        import asyncio
+        import threading
+
+        def worker() -> None:
+            mode = "copy"
+            try:
+                command = (text or "").strip()
+                if command:
+                    payload = command if command.startswith("/") else "/" + command
+                    asyncio.run(self._ctx.mlc.agent_chat(payload))
+                    mode = "sent"
+            except Exception as exc:  # agent 不在线 / 游戏未启动
+                logger.info("热键 MLC 发送失败，改用剪贴板：%s", exc)
+            self._hotkey_results.put((slot, text, title, mode))
+
+        threading.Thread(target=worker, name="vein-hotkey", daemon=True).start()
+
+    def _drain_hotkey_results(self) -> None:
+        """主线程轮询：把工作线程的热键结果取回来处理"""
+        while True:
+            try:
+                slot, text, title, mode = self._hotkey_results.get_nowait()
+            except Exception:
+                return
+            self._hotkey_done(slot, text, title, mode)
+
+    def _hotkey_done(self, slot: int, text: str, title: str, mode: str) -> None:
         from PySide6.QtGui import QGuiApplication
 
-        try:
-            clipboard = QGuiApplication.clipboard()
-            clipboard.setText(text)
-            readback = clipboard.text()
-        except Exception:
-            logger.exception("热键复制失败")
-            return
-        logger.info(
-            "全局热键 Ctrl+Alt+%s 触发，已复制：%s（回读=%r）",
-            slot,
-            title or text,
-            readback[:60],
-        )
-        self.bridge.push_hotkey(slot, text, title)
+        if mode == "sent":
+            logger.info("全局热键 Ctrl+Alt+%s → 已发送到游戏：%s", slot, title or text)
+        else:
+            try:
+                QGuiApplication.clipboard().setText(text)
+            except Exception:
+                logger.exception("热键复制失败")
+                return
+            logger.info("全局热键 Ctrl+Alt+%s → 已复制：%s", slot, title or text)
+        self.bridge.push_hotkey(slot, text, title, mode)
 
     def _on_palette_picked(self, command: str) -> None:
         """速查窗里选中并复制了一条指令"""

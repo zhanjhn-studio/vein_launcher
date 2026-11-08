@@ -349,6 +349,8 @@ const PATTERNS: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^(\d+) mods$/, (m) => `${m[1]} 个模组`],
   [/^(\d+) saves$/, (m) => `${m[1]} 个存档`],
   [/^(.*) · external$/, (m) => `${m[1]} · 外部启动`],
+  [/^Sent Ctrl\+Alt\+(\d+): (.*)$/, (m) => `已发送 Ctrl+Alt+${m[1]}：${m[2]}`],
+  [/^Copied Ctrl\+Alt\+(\d+): (.*)$/, (m) => `已复制 Ctrl+Alt+${m[1]}：${m[2]}`],
 ];
 
 function dynamicZh(text: string): string | undefined {

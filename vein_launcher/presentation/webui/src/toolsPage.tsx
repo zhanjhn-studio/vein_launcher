@@ -149,6 +149,7 @@ const PALETTE_KEYS = [
 const SLOT_OPTIONS = Array.from({ length: 10 }, (_, i) => i);
 
 interface HotkeyEvent {
+  mode?: string;
   slot: number;
   text: string;
   title: string;
@@ -264,7 +265,11 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
   useEffect(
     () =>
       on<HotkeyEvent>('vein:hotkey', (d) => {
-        notify(`Copied Ctrl+Alt+${d.slot}: ${d.title || d.text}`);
+        notify(
+          d.mode === 'sent'
+            ? `Sent Ctrl+Alt+${d.slot}: ${d.title || d.text}`
+            : `Copied Ctrl+Alt+${d.slot}: ${d.title || d.text}`,
+        );
       }),
     [notify],
   );
