@@ -644,3 +644,10 @@ window.__veinResult(12, true, {ok: 1})
   ③ 速查窗指令中文说明：`buildPaletteEntries` 增加 `hintZh`，palette 按 `settings.ui.language` 选择（实测显示 自己/所有玩家/所有实体）。
   ④ 附魔书样式：新增 `assets/palette_book.png`（PIL 生成）与 `tools/gen_palette_book_icon.py`；列表项 26px 书本图标、42px 行高、紫色渐变选中 + 左侧高亮条。
   · `i18nDom.ts`、`launcher_service.py`、`commandTree.ts`、`palette.py` · 未提交
+
+- **2026-11-08 · feat/mlc-hard-gate** — MLC 总开关成为硬总闸：
+  关闭时 `agentState / agentChat / watchStart / launch / world / player / modLoad` 全部抛 `MlcError("MLC 总开关未开启…")`，
+  `game.command`（键盘输入桥）同样拒绝；MLC 页发送/启动/世界信息按钮禁用并显示黄色提示条，
+  Agent 状态显示「MLC 已关闭」；工具页徽章显示「MLC 已关闭」且发送/运行按钮禁用；
+  速查窗发送失败弹窗补充「或 MLC 总开关未开启」；全局热键回退时提示「MLC 未开启，指令已复制」；
+  新增 `.btn:disabled` 弱化样式。实测：关闭时 agent_state/world_info 均被拒绝，按钮 disabled=true · 未提交

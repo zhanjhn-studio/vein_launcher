@@ -84,7 +84,7 @@ class MlcService:
 
     def _require_enabled(self) -> None:
         if not self.enabled:
-            raise MlcError("MLC is turned off. Enable the master switch on the MLC page first.")
+            raise MlcError("MLC 总开关未开启：请先到 MLC 页打开总开关（MLC is turned off）")
 
     # ------------------------------------------------------------------ 事件桥
     def install_bridge(self) -> None:
@@ -142,6 +142,7 @@ class MlcService:
 
     # ------------------------------------------------------------------ 启动
     async def launch(self, version_id: str, username: str = "Player") -> Dict[str, Any]:
+        self._require_enabled()
         self._last_version = str(version_id)
         pid = await self._launcher.launch(version_id, username)
         return {"pid": pid, "version_id": version_id}
@@ -260,6 +261,8 @@ class MlcService:
         """轮询 agent 状态，状态变化时发布 mlc.agent.* 事件（幂等）"""
         import asyncio
 
+        self._require_enabled()
+
         if getattr(self, "_agent_watch_task", None) and not self._agent_watch_task.done():
             return
         self._agent_watch_task = asyncio.create_task(self._agent_watch_loop(interval, port))
@@ -306,9 +309,11 @@ class MlcService:
             await asyncio.sleep(interval)
 
     async def agent_state(self, port: int = 0) -> dict:
+        self._require_enabled()
         return await self._agent_call({"cmd": "state"}, self._resolve_agent_port(port))
 
     async def agent_chat(self, text: str, port: int = 0) -> dict:
+        self._require_enabled()
         return await self._agent_call({"cmd": "chat", "text": text}, self._resolve_agent_port(port))
 
     # ------------------------------------------------------------------ 玩家

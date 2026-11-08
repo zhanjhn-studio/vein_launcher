@@ -569,7 +569,9 @@ class ApiBridge(QObject):
         return await asyncio.to_thread(run)
 
     async def _game_command(self, command: str = "", pid: int = 0) -> dict:
-        """原版通道：切到游戏窗口，用键盘输入一条聊天指令"""
+        """原版通道：切到游戏窗口，用键盘输入一条聊天指令（受 MLC 总开关控制）"""
+        if not self._ctx.mlc.enabled:
+            raise RuntimeError("MLC 总开关未开启：请先到 MLC 页打开总开关（MLC is turned off）")
         from vein_launcher.infrastructure.process import game_input
 
         def run() -> dict:

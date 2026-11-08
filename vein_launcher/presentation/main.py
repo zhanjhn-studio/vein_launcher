@@ -323,8 +323,11 @@ class MainWindow(QMainWindow):
                     payload = command if command.startswith("/") else "/" + command
                     asyncio.run(self._ctx.mlc.agent_chat(payload))
                     mode = "sent"
-            except Exception as exc:  # agent 不在线 / 游戏未启动
-                logger.info("热键 MLC 发送失败，改用剪贴板：%s", exc)
+            except Exception as exc:  # agent 不在线 / 游戏未启动 / 总开关关闭
+                message = str(exc)
+                logger.info("热键 MLC 发送失败，改用剪贴板：%s", message)
+                if "总开关" in message or "turned off" in message:
+                    mode = "copy-mlc-off"
             self._hotkey_results.put((slot, text, title, mode))
 
         threading.Thread(target=worker, name="vein-hotkey", daemon=True).start()
@@ -411,7 +414,7 @@ class MainWindow(QMainWindow):
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Warning)
         box.setWindowTitle("发送失败")
-        box.setText("游戏没有在运行，或 MLC agent 未连接。")
+        box.setText("游戏没有在运行、MLC agent 未连接，或 MLC 总开关未开启。")
         box.setInformativeText(f"指令已自动复制到剪贴板：\n{command}")
         box.setStandardButtons(QMessageBox.StandardButton.Ok)
         box.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)

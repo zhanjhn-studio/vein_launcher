@@ -200,7 +200,7 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [paletteKey, setPaletteKey] = useState('Q');
   const [saving, setSaving] = useState(false);
-  const [agent, setAgent] = useState<{ ok?: boolean; inGame?: boolean } | null>(null);
+  const [agent, setAgent] = useState<{ ok?: boolean; inGame?: boolean; disabled?: boolean } | null>(null);
   const [running, setRunning] = useState(false);
   const [openFav, setOpenFav] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -268,6 +268,8 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
         notify(
           d.mode === 'sent'
             ? `Sent Ctrl+Alt+${d.slot}: ${d.title || d.text}`
+            : d.mode === 'copy-mlc-off'
+            ? `MLC is off — command copied for Ctrl+Alt+${d.slot}`
             : `Copied Ctrl+Alt+${d.slot}: ${d.title || d.text}`,
         );
       }),
@@ -291,7 +293,14 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
         const state = await rpc<{ ok?: boolean; inGame?: boolean }>('mlc.agentState', [0]);
         if (alive) setAgent(state);
       } catch {
-        if (alive) setAgent({ ok: false });
+        let disabled = false;
+        try {
+          const master = await rpc<{ enabled?: boolean }>('mlc.state');
+          disabled = master?.enabled === false;
+        } catch {
+          /* ignore */
+        }
+        if (alive) setAgent({ ok: false, disabled });
       }
     };
     tick();
@@ -461,7 +470,13 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
             className="btn sm primary"
             onClick={() => runCommand(fullCommand)}
             disabled={!normalizeCommand(draft) || running || agent?.ok === false}
-            title={agent?.ok === false ? 'MLC agent offline — launch a vanilla instance first' : 'Send this command to the running game'}
+            title={
+              agent?.disabled
+                ? 'MLC 总开关未开启'
+                : agent?.ok === false
+                ? 'MLC agent offline — launch a vanilla instance first'
+                : 'Send this command to the running game'
+            }
           >
             Send to game
           </button>
@@ -486,7 +501,9 @@ export function ToolsPage({ notify }: { notify: (text: string) => void }) {
             <span className="cmd-badge">Command complete — copy it</span>
           )}
           <span className="cmd-badge">
-            {t(`MLC ${agent?.ok === false ? 'offline' : agent?.inGame ? 'in game' : 'connected'}`)}
+            {agent?.disabled
+              ? t('MLC is off')
+              : t(`MLC ${agent?.ok === false ? 'offline' : agent?.inGame ? 'in game' : 'connected'}`)}
           </span>
         </div>
 

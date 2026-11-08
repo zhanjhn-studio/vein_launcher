@@ -704,7 +704,9 @@ export function MlcPage({
         <div className="kv">
           <span>Agent</span>
           <b>
-            {agent?.ok === false
+            {!mlcOn
+              ? 'MLC is off'
+              : agent?.ok === false
               ? 'offline'
               : agent?.inGame
               ? `in game · ${agent.player?.x?.toFixed?.(1) ?? '?'}, ${agent.player?.y?.toFixed?.(1) ?? '?'}, ${agent.player?.z?.toFixed?.(1) ?? '?'}`
@@ -721,7 +723,12 @@ export function MlcPage({
               if (event.key === 'Enter') sendCommand();
             }}
           />
-          <button className="btn primary" onClick={sendCommand} disabled={sending || !command.trim()}>
+          <button
+            className="btn primary"
+            onClick={sendCommand}
+            disabled={sending || !command.trim() || !mlcOn}
+            title={mlcOn ? undefined : 'MLC 总开关未开启'}
+          >
             {sending ? 'Sending…' : 'Send to game'}
           </button>
         </div>
@@ -744,6 +751,11 @@ export function MlcPage({
             />
           </div>
         </div>
+        {!mlcOn && (
+          <p className="muted" style={{ margin: '12px 0 0', color: '#d9b46a' }}>
+            MLC is off — saves, player data, command sending and events are unavailable until you turn it on.
+          </p>
+        )}
       </div>
       <div className="pane-head">
         <span>VL-MLC 控制层</span>
@@ -759,10 +771,20 @@ export function MlcPage({
           <div className="kv"><span>状态</span><b>{state.connected ? '运行中' : '空闲'}</b></div>
           <div className="kv"><span>实例</span><b>{selected || '—'}</b></div>
           <div className="row-actions">
-            <button className="btn primary" onClick={launch} disabled={busy === 'launch'}>
+            <button
+              className="btn primary"
+              onClick={launch}
+              disabled={busy === 'launch' || !mlcOn}
+              title={mlcOn ? undefined : 'MLC 总开关未开启'}
+            >
               mlc.launch
             </button>
-            <button className="btn" onClick={worlds} disabled={busy === 'worlds'}>
+            <button
+              className="btn"
+              onClick={worlds}
+              disabled={busy === 'worlds' || !mlcOn}
+              title={mlcOn ? undefined : 'MLC 总开关未开启'}
+            >
               World info
             </button>
           </div>

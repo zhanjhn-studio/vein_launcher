@@ -318,6 +318,9 @@ const ZH: Record<string, string> = {
   'Vanilla control': '原版控制',
   'Send to game': '发送到游戏',
   'Run': '运行',
+  'MLC is off': 'MLC 已关闭',
+  'MLC is off — saves, player data, command sending and events are unavailable until you turn it on.':
+    'MLC 已关闭：存档、玩家数据、指令发送与事件推送都不可用，请先打开总开关。',
   'MLC offline': 'MLC 离线',
   'MLC connected': 'MLC 已连接',
   'MLC in game': 'MLC 游戏内',
@@ -349,6 +352,7 @@ const PATTERNS: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^(\d+) mods$/, (m) => `${m[1]} 个模组`],
   [/^(\d+) saves$/, (m) => `${m[1]} 个存档`],
   [/^(.*) · external$/, (m) => `${m[1]} · 外部启动`],
+  [/^MLC is off — command copied for Ctrl\+Alt\+(\d+)$/, (m) => `MLC 未开启，指令已复制到剪贴板（Ctrl+Alt+${m[1]}）`],
   [/^Sent Ctrl\+Alt\+(\d+): (.*)$/, (m) => `已发送 Ctrl+Alt+${m[1]}：${m[2]}`],
   [/^Copied Ctrl\+Alt\+(\d+): (.*)$/, (m) => `已复制 Ctrl+Alt+${m[1]}：${m[2]}`],
 ];
