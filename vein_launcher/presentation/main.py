@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import faulthandler
+import json
 import logging
 import os
 import sys
@@ -325,6 +326,27 @@ class MainWindow(QMainWindow):
 
         threading.Thread(target=worker, name="vein-hotkey", daemon=True).start()
 
+    def _bind_saved_hotkeys(self) -> None:
+        """启动时把 config/tools.json 里带槽位的自定义指令绑成全局热键"""
+        try:
+            from vein_launcher.common.utils.path_utils import get_config_dir
+
+            config_path = get_config_dir() / "tools.json"
+            if not config_path.is_file():
+                return
+            data = json.loads(config_path.read_text(encoding="utf-8-sig"))
+            entries = [
+                {"slot": item.get("slot"), "text": item.get("cmd"), "title": item.get("title")}
+                for item in data.get("favorites", [])
+                if item.get("slot") is not None and item.get("cmd")
+            ]
+            if not entries:
+                return
+            result = self.hotkeys.bind(entries)
+            logger.info("启动时绑定自定义指令热键：%s", result.get("bound"))
+        except Exception:
+            logger.exception("启动时绑定指令热键失败")
+
     def _drain_hotkey_results(self) -> None:
         """主线程轮询：把工作线程的热键结果取回来处理"""
         while True:
@@ -463,6 +485,7 @@ def main() -> int:
     if icon.is_file():
         window.setWindowIcon(QIcon(str(icon)))
     window.show()
+    QTimer.singleShot(1500, window._bind_saved_hotkeys)
     # 窗口真正显示后句柄才稳定，这里再注册一次 Ctrl+Alt+Q
     try:
         window.hotkeys.enable_palette()

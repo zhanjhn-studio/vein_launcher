@@ -626,3 +626,7 @@ window.__veinResult(12, true, {ok: 1})
   工作线程用队列回传结果，主线程 `QTimer(120ms)` 轮询 `_drain_hotkey_results` 处理（原先跨线程 `QTimer.singleShot` 不触发）；
   `push_hotkey` 增加 mode 字段，前端 `__veinHotkey` 透传，工具箱提示区分「已发送 / 已复制」，并补中文动态文案。
   实测：游戏内按 Ctrl+Alt+1 → `results [('sent','/time set day')]`；关闭游戏后 → `[('copy', ...)]` 回退正常；51 项单测 OK · 未提交
+
+- **2026-11-08 · feat/hotkey-startup-bind** — 启动即绑定已保存的指令热键：
+  `MainWindow._bind_saved_hotkeys()` 在窗口显示 1.5s 后读取 `config/tools.json` 里带 slot 的自定义指令并注册全局热键，
+  不必先打开工具箱页；内置 Ctrl+Alt+0..9 预设仍在工具箱页加载时绑定 · `main.py` · 未提交
