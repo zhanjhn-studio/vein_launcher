@@ -26,7 +26,7 @@ ZIP = "https://github.com/zhanjhn-studio/vein_launcher/releases/download/v0.5.1/
 VERSION = "0.5.1"
 
 ROOT_PAGES = [
-    ("index.html", "首页", "Vein Launcher — Minecraft，但更干净", "Home", "Vein Launcher — Minecraft, but cleaner"),
+    ("index.html", "首页", "Vein Launcher — Vein，掌控 Minecraft", "Home", "Vein Launcher — Vein, take control of Minecraft"),
     ("docs.html", "文档", "文档 — Vein Launcher", "Docs", "Docs — Vein Launcher"),
     ("quickstart.html", "快速开始", "快速开始 — Vein Launcher 文档", "Quick start", "Quick start — Vein Launcher Docs"),
     ("player.html", "玩家指南", "玩家指南 — Vein Launcher 文档", "Player guide", "Player guide — Vein Launcher Docs"),
@@ -475,7 +475,7 @@ def build_lang(lang: str) -> list[tuple[str, str, str]]:
             if lang == "en":
                 home = home.replace('src="assets/', 'src="../assets/')
             body = home
-            title = "Vein Launcher — Minecraft，但更干净" if lang == "zh" else "Vein Launcher — Minecraft, but cleaner"
+            title = "Vein Launcher — Vein，掌控 Minecraft" if lang == "zh" else "Vein Launcher — Vein, take control of Minecraft"
             desc = "便携 Minecraft Java 启动器" if lang == "zh" else "Portable Minecraft Java launcher"
         elif path == "docs.html":
             out = base_dir / path

@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <b>Minecraft, but cleaner.</b><br />
+  <b>Vein, take control of Minecraft.</b><br />
   A portable Minecraft Java launcher for Windows — install, manage, launch, and drive vanilla
   Minecraft without installing a single mod.
 </p>

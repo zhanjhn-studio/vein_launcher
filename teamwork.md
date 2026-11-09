@@ -696,3 +696,6 @@ window.__veinResult(12, true, {ok: 1})
   皮肤完整流程与排错、指令表、热键回退、故障日志解读、架构数据流、RPC 错误与推送、前端主题、测试分层、打包清单、
   插件进程模型/字段/权限全表/API 示例/Lua 组件/示例/调试、MLC 状态与限制/agent 生成/协议手测/事件/排错、配置全表、FAQ、术语、安全边界）；
   首页去掉表情图标，改纯排版；生成后 98 页链接缺失 0
+
+- **2026-11-09 · copy/slogan** — 首页主标语改为「Vein，掌控 Minecraft」（英文 "Vein, take control of Minecraft"）：
+  site_home_v6 hero、页面 title、README/README-zh 同步；重新生成 98 页并截图确认

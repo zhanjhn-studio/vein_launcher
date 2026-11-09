@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <b>Minecraft，但更干净。</b><br />
+  <b>Vein，掌控 Minecraft</b><br />
   面向 Windows 的便携 Minecraft Java 启动器：安装、管理、启动，还能在不装任何 mod 的原版里直接控制游戏。
 </p>
 

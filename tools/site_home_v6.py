@@ -11,7 +11,7 @@ HOME_ZH = f"""<main>
     <div class="wrap hero-grid">
       <div class="hero-copy">
         <span class="eyebrow">Minecraft Java Edition · Windows</span>
-        <h1>Minecraft，<br /><span class="grad-text">但更干净。</span>
+        <h1>Vein，<br /><span class="grad-text">掌控 Minecraft</span>
           <em>安装、管理、启动，一步到位；还能在不装 mod 的原版里直接执行指令。</em>
         </h1>
         <p class="lead">面向 Minecraft Java 版的便携启动器：镜像优先下载、真实例管理、LittleSkin 皮肤、沙箱插件宿主，以及 MLC 控制层。</p>
@@ -132,7 +132,7 @@ HOME_EN = f"""<main>
     <div class="wrap hero-grid">
       <div class="hero-copy">
         <span class="eyebrow">Minecraft Java Edition · Windows</span>
-        <h1>Minecraft,<br /><span class="grad-text">but cleaner.</span>
+        <h1>Vein,<br /><span class="grad-text">take control of Minecraft</span>
           <em>Install, manage, launch — and drive vanilla Minecraft without a single mod.</em>
         </h1>
         <p class="lead">A portable launcher for Minecraft Java Edition: mirror-first downloads, real instance management, LittleSkin skins, a sandboxed plugin host and the MLC control layer.</p>
