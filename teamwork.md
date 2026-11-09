@@ -699,3 +699,9 @@ window.__veinResult(12, true, {ok: 1})
 
 - **2026-11-09 · copy/slogan** — 首页主标语改为「Vein，掌控 Minecraft」（英文 "Vein, take control of Minecraft"）：
   site_home_v6 hero、页面 title、README/README-zh 同步；重新生成 98 页并截图确认
+
+- **2026-11-09 · docs/examples** — 插件与 MLC 文档补充可运行示例：
+  `tools/site_docs_examples_zh/en.py` 为 6 篇插件页与 5 篇 MLC 页追加示例级长文：
+  插件 API 5 个完整示例（最小插件、状态面板、MLC 事件、发送指令、配置）、UI 3 个（按钮/表格徽章/Lua）、
+  示例页 3 个完整插件（status-panel / game-log / lua-ui，含 package.json 与 index.js）、清单/权限/调试示例；
+  MLC 协议 3 种客户端（Python/PowerShell/Node）、事件订阅 3 例（前端/进世界去抖/死亡记录）、agent 生成与注入验证、完整交互与限制。

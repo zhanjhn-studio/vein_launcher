@@ -10,6 +10,8 @@ from site_content import PAGES
 from site_content_en import PAGES_EN
 from site_home_v6 import HOME_EN as HOME_EN_V6, HOME_ZH as HOME_ZH_V6
 from site_docs_extra_zh import EXTRA as EXTRA_ZH
+from site_docs_examples_zh import EXTRA2 as EX2_ZH
+from site_docs_examples_en import EXTRA2 as EX2_EN
 from site_docs_extra_en import EXTRA as EXTRA_EN
 from site_pages import (
     ABOUT_EN, ABOUT_ZH, COMMUNITY_EN, COMMUNITY_ZH, CONTRIBUTE_EN, CONTRIBUTE_ZH,
@@ -285,7 +287,8 @@ def doc_page(lang: str, p: dict, order: list[str]) -> str:
     next_p = docs[pos + 1] if pos + 1 < len(docs) else None
 
     extra = EXTRA_ZH if lang == "zh" else EXTRA_EN
-    body, toc = with_ids_and_toc(p["body"] + extra.get(p["path"], ""), lang)
+    extra2 = EX2_ZH if lang == "zh" else EX2_EN
+    body, toc = with_ids_and_toc(p["body"] + extra.get(p["path"], "") + extra2.get(p["path"], ""), lang)
     pager = '<div class="pager">'
     pager += (f'<a href="../{prev_p["path"]}" data-order="{order.index(prev_p["path"])}">← {prev_p["title"]}</a>'
               if prev_p else "<span></span>")
