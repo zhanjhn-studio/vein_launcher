@@ -665,3 +665,10 @@ window.__veinResult(12, true, {ok: 1})
   plugins_examples、随包 agent；裁剪 translations/qml 等后 495 MB，zip 199 MB，sha256 1F3FDBFE…A176C）；
   `main.py` 首次启动把 `_internal/agent/*.jar` 复制到数据目录；冒烟测试 exe 可正常启动（窗口 “Vein Launcher 0.5.0”，
   日志含速查表 660 条、Java 检测）。`packaging/RELEASE_NOTES-0.5.0.md` 提供发布说明 · 未提交
+
+- **2026-11-09 · style/theme-align** — 启动器主题对齐官网、图片整理：
+  dark accent `#6f97f0/#8a7ff0` → `#7ea6ff/#5cd3c4`，light accent → `#2563eb/#0e9488`；清除硬编码紫色 rgba；
+  `accent.ts` 调色板去掉紫色预设（蓝/青/绿/橙/红/青/黄绿/金）；logo 双真源同步（assets ↔ webui/src ↔ dist）；
+  删除未使用图片：bucket / experience_bottle / vanilla_anvil（webui icons 与 dist），
+  及孤儿素材 wordmark.png / _slide.png / logo.svg；官网截图全部换成新主题的 0.5.0 截图；
+  删除网站未引用资源 cursor-*.png / film.css / film.js / shot-mlc-off.png · 已重启验证（PID 46380）

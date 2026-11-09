@@ -10,13 +10,13 @@ export const ACCENT_VARS = [
 
 /** 预设色板（第一个是内置主色） */
 export const ACCENT_PRESETS = [
-  '#6f97f0',
-  '#8a7ff0',
-  '#46b39e',
-  '#f0916f',
-  '#e06c8b',
-  '#6fb0f0',
-  '#a3d977',
+  '#2563eb',
+  '#0e9488',
+  '#22c55e',
+  '#f59e0b',
+  '#ef4444',
+  '#06b6d4',
+  '#84cc16',
   '#c9a227',
 ];
 
