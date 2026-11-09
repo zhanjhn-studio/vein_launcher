@@ -18,7 +18,7 @@ PAGES = [
 </tbody></table>
 <h2>下载</h2>
 <p>从 <a href="../download.html">下载页</a> 或 GitHub Releases 获取最新版本：</p>
-<pre><code>https://github.com/zhanjhn-studio/vein_launcher/releases/download/v0.5.0/VeinLauncher-0.5.0-win64.zip</code></pre>
+<pre><code>https://github.com/zhanjhn-studio/vein_launcher/releases/download/v0.5.1/VeinLauncher-0.5.1-win64.zip</code></pre>
 <h2>安装步骤</h2>
 <ol class="steps"><li><h3>解压</h3><p>把 zip 解压到任意目录，例如 <code>D:\\VeinLauncher</code>，路径不要带中文以外的特殊符号。</p></li>
 <li><h3>运行</h3><p>双击 <code>VeinLauncher.exe</code>。首次启动会生成 <code>VeinLauncher/</code> 数据目录。</p></li>
@@ -232,14 +232,14 @@ python tools/agent_smoke.py               # 真机 agent 验证</code></pre>
          subtitle="PyInstaller onedir + zip + latest.json。",
          tags=["打包", "PyInstaller", "Release"],
          body="""
-<pre><code>python tools/build_exe.py --version 0.5.0</code></pre>
-<p>产物：<code>dist_exe/VeinLauncher/</code>（约 495 MB）、<code>VeinLauncher-0.5.0-win64.zip</code>（约 199 MB）与 <code>latest.json</code>。</p>
+<pre><code>python tools/build_exe.py --version 0.5.1</code></pre>
+<p>产物：<code>dist_exe/VeinLauncher/</code>（约 495 MB）、<code>VeinLauncher-0.5.1-win64.zip</code>（约 199 MB）与 <code>latest.json</code>。</p>
 <h2>打包内容</h2>
 <ul><li>webui/dist、assets、插件宿主 runtime、i18n locales</li>
 <li>plugins_examples 与随包 agent jar</li>
 <li>裁剪 translations / qml / opengl32sw 减小体积</li></ul>
 <h2>发布</h2>
-<pre><code>gh release upload v0.5.0 dist_exe/VeinLauncher-0.5.0-win64.zip
+<pre><code>gh release upload v0.5.0 dist_exe/VeinLauncher-0.5.1-win64.zip
 gh release edit v0.5.0 --draft=false</code></pre>
 <div class="callout warn"><b>发布前：</b>核对版本号、资产校验值与 latest.json，再确认更新入口指向新版本。</div>
 """),

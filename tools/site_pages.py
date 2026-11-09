@@ -1,20 +1,20 @@
 """根页面内容（v7）：关于/下载/社区/路线图/安全/贡献/展示墙/许可/FAQ/文档入口。"""
 
-ZIP = "https://github.com/zhanjhn-studio/vein_launcher/releases/download/v0.5.0/VeinLauncher-0.5.0-win64.zip"
-REL = "https://github.com/zhanjhn-studio/vein_launcher/releases/tag/v0.5.0"
+ZIP = "https://github.com/zhanjhn-studio/vein_launcher/releases/download/v0.5.1/VeinLauncher-0.5.1-win64.zip"
+REL = "https://github.com/zhanjhn-studio/vein_launcher/releases/tag/v0.5.1"
 GH = "https://github.com/zhanjhn-studio/vein_launcher"
 ISSUES = f"{GH}/issues"
 DISCUSS = f"{GH}/discussions"
-SHA = "1F3FDBFEB2B3E2E612EA6DC94B27570810CCD72F1F70F71C42ACA665EE8A176C"
+SHA = "BD6ADBC34054DB327B12621580B9C5749FF92D5AB5657FC04255C9016E7BC5E0"
 
 DOWNLOAD_ZH = f"""
 <h1>下载</h1>
 <p class="lead">Windows 10/11 x64 · 便携免安装 · 解压即用。需要 Java 时启动器会自动下载。</p>
 <div class="download-card" style="margin:30px 0 46px;">
   <div>
-    <span class="eyebrow">Latest · 2026-11-08</span>
+    <span class="eyebrow">Latest · 2026-11-09</span>
     <h2>Vein Launcher 0.5.0</h2>
-    <p>MLC 原版控制、附魔书指令速查、插件能力补全、总开关硬拦截。</p>
+    <p>界面自定义（圆角 / 缩放 / 动效）、默认浅色 + 橙色主题；含 0.5.0 的 MLC 与插件能力。</p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
       <a class="btn primary lg" href="{ZIP}">下载 zip（199 MB）</a>
       <a class="btn lg" href="{REL}" target="_blank" rel="noopener">Release 说明</a>
@@ -26,15 +26,16 @@ DOWNLOAD_ZH = f"""
 <div class="meta-grid">
   <div><b>Windows 10 / 11 x64</b><span>支持平台</span></div>
   <div><b>199 MB</b><span>压缩包大小</span></div>
-  <div><b>2026-11-08</b><span>更新时间</span></div>
-  <div><b>v0.5.0</b><span>当前版本</span></div>
+  <div><b>2026-11-09</b><span>更新时间</span></div>
+  <div><b>v0.5.1</b><span>当前版本</span></div>
 </div>
 <h2>SHA-256 校验</h2>
 <pre><code>{SHA}</code></pre>
-<p>下载后可执行 <code>certutil -hashfile VeinLauncher-0.5.0-win64.zip SHA256</code> 比对。</p>
+<p>下载后可执行 <code>certutil -hashfile VeinLauncher-0.5.1-win64.zip SHA256</code> 比对。</p>
 <h2>历史版本</h2>
 <table><thead><tr><th>版本</th><th>日期</th><th>说明</th><th>下载</th></tr></thead><tbody>
-<tr><td>v0.5.0</td><td>2026-11-08</td><td>MLC、指令速查、插件能力</td><td><a href="{ZIP}">zip</a></td></tr>
+<tr><td>v0.5.1</td><td>2026-11-09</td><td>界面自定义、浅色 + 橙色主题</td><td><a href="{ZIP}">zip</a></td></tr>
+<tr><td>v0.5.0</td><td>2026-11-08</td><td>MLC、指令速查、插件能力</td><td><a href="{GH}/releases/tag/v0.5.0" target="_blank" rel="noopener">Release</a></td></tr>
 <tr><td>v0.1.0</td><td>2026-10-31</td><td>首个公开版本</td><td><a href="{GH}/releases/tag/v0.1.0" target="_blank" rel="noopener">Release</a></td></tr>
 </tbody></table>
 <h2>升级说明</h2>
@@ -48,9 +49,9 @@ DOWNLOAD_EN = f"""
 <p class="lead">Windows 10/11 x64 · portable · unzip and run. Java is downloaded automatically when needed.</p>
 <div class="download-card" style="margin:30px 0 46px;">
   <div>
-    <span class="eyebrow">Latest · 2026-11-08</span>
+    <span class="eyebrow">Latest · 2026-11-09</span>
     <h2>Vein Launcher 0.5.0</h2>
-    <p>MLC vanilla control, enchanted-book command palette, plugin capabilities, hard master switch.</p>
+    <p>UI customization (radius / zoom / motion), light default with orange accent; includes 0.5.0 MLC and plugin work.</p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
       <a class="btn primary lg" href="{ZIP}">Download zip (199 MB)</a>
       <a class="btn lg" href="{REL}" target="_blank" rel="noopener">Release notes</a>
@@ -62,14 +63,14 @@ DOWNLOAD_EN = f"""
 <div class="meta-grid">
   <div><b>Windows 10 / 11 x64</b><span>Platform</span></div>
   <div><b>199 MB</b><span>Archive size</span></div>
-  <div><b>2026-11-08</b><span>Updated</span></div>
-  <div><b>v0.5.0</b><span>Version</span></div>
+  <div><b>2026-11-09</b><span>Updated</span></div>
+  <div><b>v0.5.1</b><span>Version</span></div>
 </div>
 <h2>SHA-256</h2>
 <pre><code>{SHA}</code></pre>
 <h2>Previous versions</h2>
 <table><thead><tr><th>Version</th><th>Date</th><th>Notes</th><th>Download</th></tr></thead><tbody>
-<tr><td>v0.5.0</td><td>2026-11-08</td><td>MLC, command palette, plugin capabilities</td><td><a href="{ZIP}">zip</a></td></tr>
+<tr><td>v0.5.1</td><td>2026-11-09</td><td>MLC, command palette, plugin capabilities</td><td><a href="{ZIP}">zip</a></td></tr>
 <tr><td>v0.1.0</td><td>2026-10-31</td><td>First public release</td><td><a href="{GH}/releases/tag/v0.1.0" target="_blank" rel="noopener">Release</a></td></tr>
 </tbody></table>
 <h2>Upgrading</h2>

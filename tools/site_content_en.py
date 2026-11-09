@@ -15,7 +15,7 @@ PAGES_EN = [
 </tbody></table>
 <h2>Download</h2>
 <p>Get the latest build from the <a href="../download.html">download page</a> or GitHub Releases:</p>
-<pre><code>https://github.com/zhanjhn-studio/vein_launcher/releases/download/v0.5.0/VeinLauncher-0.5.0-win64.zip</code></pre>
+<pre><code>https://github.com/zhanjhn-studio/vein_launcher/releases/download/v0.5.1/VeinLauncher-0.5.1-win64.zip</code></pre>
 <h2>Steps</h2>
 <ol class="steps"><li><h3>Unzip</h3><p>Extract to a path such as <code>D:\\VeinLauncher</code>.</p></li>
 <li><h3>Run</h3><p>Double-click <code>VeinLauncher.exe</code>; the <code>VeinLauncher/</code> data folder is created on first launch.</p></li>
@@ -209,9 +209,9 @@ python tools/mlc_selftest.py</code></pre>
          subtitle="PyInstaller onedir, zip and latest.json.",
          tags=["Packaging", "Release"],
          body="""
-<pre><code>python tools/build_exe.py --version 0.5.0</code></pre>
+<pre><code>python tools/build_exe.py --version 0.5.1</code></pre>
 <p>Outputs <code>dist_exe/VeinLauncher/</code>, a ~199 MB zip and <code>latest.json</code>.</p>
-<pre><code>gh release upload v0.5.0 dist_exe/VeinLauncher-0.5.0-win64.zip
+<pre><code>gh release upload v0.5.0 dist_exe/VeinLauncher-0.5.1-win64.zip
 gh release edit v0.5.0 --draft=false</code></pre>
 <div class="callout warn"><b>Before publishing:</b> check the version, asset checksum and latest.json, then point the updater at the new build.</div>
 """),

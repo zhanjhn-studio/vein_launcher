@@ -10,14 +10,14 @@ export const ACCENT_VARS = [
 
 /** 预设色板（第一个是内置主色） */
 export const ACCENT_PRESETS = [
-  '#2563eb',
-  '#0e9488',
-  '#22c55e',
+  '#f97316',
+  '#fb923c',
   '#f59e0b',
   '#ef4444',
-  '#06b6d4',
-  '#84cc16',
-  '#c9a227',
+  '#22c55e',
+  '#0e9488',
+  '#2563eb',
+  '#8b5cf6',
 ];
 
 export function isHex(value: string): boolean {

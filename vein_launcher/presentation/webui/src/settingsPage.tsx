@@ -6,6 +6,7 @@ import { currentLang, setLang as applyLang, type Lang } from './i18n';
 import { LayuiProgress } from './ui';
 import { clearWallpaper, importWallpaper, savePrefs, usePrefs } from './prefs';
 import { ACCENT_PRESETS, currentAccent } from './accent';
+import { getUiCustom, setUiCustom } from './uiCustom';
 
 interface AccountRow {
   id: string;
@@ -23,6 +24,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
   const [javaMsg, setJavaMsg] = useState('');
   const [mcDir, setMcDir] = useState('');
   const [theme, setTheme] = useState<Theme>(currentTheme());
+  const [uiC, setUiCState] = useState(getUiCustom());
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [newName, setNewName] = useState('');
   const [msId, setMsId] = useState('');
@@ -301,6 +303,56 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
               <p className="muted" style={{ margin: '8px 0 0' }}>
                 主色会套用到按钮、选中态、进度条与强调文字；点色块即时生效，「默认」恢复内置配色。
               </p>
+            </div>
+            <div className="setting-block">
+              <div className="setting-label">界面自定义</div>
+              <div className="kv" style={{ marginTop: 6 }}>
+                <span>圆角</span>
+                <b>
+                  <select
+                    value={uiC.radius}
+                    onChange={(e) => {
+                      setUiCustom({ radius: e.target.value as any });
+                      setUiCState(getUiCustom());
+                    }}
+                  >
+                    <option value="small">小</option>
+                    <option value="medium">中</option>
+                    <option value="large">大</option>
+                  </select>
+                </b>
+              </div>
+              <div className="kv">
+                <span>界面缩放</span>
+                <b>
+                  <select
+                    value={uiC.zoom}
+                    onChange={(e) => {
+                      setUiCustom({ zoom: e.target.value as any });
+                      setUiCState(getUiCustom());
+                    }}
+                  >
+                    <option value="95">95%</option>
+                    <option value="100">100%</option>
+                    <option value="105">105%</option>
+                  </select>
+                </b>
+              </div>
+              <div className="kv">
+                <span>动效</span>
+                <b>
+                  <select
+                    value={uiC.motion}
+                    onChange={(e) => {
+                      setUiCustom({ motion: e.target.value as any });
+                      setUiCState(getUiCustom());
+                    }}
+                  >
+                    <option value="on">开启</option>
+                    <option value="off">关闭</option>
+                  </select>
+                </b>
+              </div>
             </div>
             <div className="kv">
               <span>Language</span>

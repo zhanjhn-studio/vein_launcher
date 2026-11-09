@@ -15,12 +15,12 @@
   --text: #e9ecf3;
   --text-2: #a8b2c4;
   --text-3: #717c90;
-  --accent: #7ea6ff;
-  --accent-2: #5cd3c4;
-  --accent-soft: rgba(126, 166, 255, .13);
+  --accent: #fb923c;
+  --accent-2: #f59e0b;
+  --accent-soft: rgba(251, 146, 60, .13);
   --accent-grad: linear-gradient(135deg, var(--accent), var(--accent-2));
-  --accent-glow: rgba(126, 166, 255, .30);
-  --accent-faint: rgba(126, 166, 255, .07);
+  --accent-glow: rgba(251, 146, 60, .30);
+  --accent-faint: rgba(251, 146, 60, .07);
   --edge: rgba(255, 255, 255, .05);
   --ok: #5fbf94;
   --warn: #d9b46a;
@@ -44,12 +44,12 @@
   --text: #1f2837;
   --text-2: #5b6778;
   --text-3: #94a0b2;
-  --accent: #2563eb;
-  --accent-2: #0e9488;
-  --accent-soft: rgba(37, 99, 235, .10);
+  --accent: #f97316;
+  --accent-2: #f59e0b;
+  --accent-soft: rgba(249, 115, 22, .10);
   --accent-grad: linear-gradient(135deg, var(--accent), var(--accent-2));
-  --accent-glow: rgba(37, 99, 235, .22);
-  --accent-faint: rgba(37, 99, 235, .06);
+  --accent-glow: rgba(249, 115, 22, .22);
+  --accent-faint: rgba(249, 115, 22, .06);
   --edge: rgba(255, 255, 255, .70);
   --ok: #2fa572;
   --warn: #c79138;
@@ -137,7 +137,7 @@ input, select, textarea { font: inherit; color: inherit; }
 .side-btn:hover { background: var(--surface-2); color: var(--text); transform: translateX(2px); }
 .side-btn.active {
   background: var(--accent-soft); color: var(--accent); font-weight: 600;
-  box-shadow: inset 3px 0 0 var(--accent), 0 0 18px rgba(126, 166, 255, .10);
+  box-shadow: inset 3px 0 0 var(--accent), 0 0 18px rgba(251, 146, 60, .10);
 }
 .side-btn.star .ico::after { content: "★"; font-size: 8px; color: var(--warn); margin-left: -2px; vertical-align: super; }
 
@@ -291,7 +291,7 @@ select { cursor: pointer; }
 }
 .version-card.active {
   border-color: var(--accent); background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--accent), 0 0 18px rgba(126, 166, 255, .12);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 18px rgba(251, 146, 60, .12);
 }
 .version-card .mark {
   width: 34px; height: 34px; border-radius: 9px; flex: none;
@@ -474,7 +474,7 @@ html[data-transparent="on"][data-theme="light"] {
 }
 html[data-transparent="on"] body {
   background:
-    radial-gradient(900px 520px at 12% 0%, rgba(126, 166, 255, .16), transparent 60%),
+    radial-gradient(900px 520px at 12% 0%, rgba(251, 146, 60, .16), transparent 60%),
     radial-gradient(760px 480px at 92% 8%, rgba(92, 211, 196, .14), transparent 60%),
     var(--bg);
 }
@@ -486,7 +486,7 @@ html[data-transparent="on"] body {
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .35));
 }
 .head-ico { width: 20px; height: 20px; image-rendering: pixelated; }
-.side-btn.active .side-ico { filter: drop-shadow(0 0 6px rgba(126, 166, 255, .55)); }
+.side-btn.active .side-ico { filter: drop-shadow(0 0 6px rgba(251, 146, 60, .55)); }
 
 /* ---------- Layui 风格进度条 ---------- */
 .progress {
@@ -1859,4 +1859,17 @@ img[src$="chest.png"] {
 .switch-control .vl-checkbox:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+
+/* ---------- 0.5.1 界面自定义 ---------- */
+:root[data-radius='small'] { --radius: 9px; --radius-sm: 7px; }
+:root[data-radius='large'] { --radius: 18px; --radius-sm: 12px; }
+:root[data-zoom='95'] body { zoom: .95; }
+:root[data-zoom='105'] body { zoom: 1.05; }
+:root[data-motion='off'] *,
+:root[data-motion='off'] *::before,
+:root[data-motion='off'] *::after {
+  animation: none !important;
+  transition: none !important;
 }

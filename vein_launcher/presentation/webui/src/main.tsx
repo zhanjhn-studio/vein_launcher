@@ -2,6 +2,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { initBridge } from './bridge';
+import { applyUiCustom } from './uiCustom';
+
+applyUiCustom();
 
 async function boot() {
   const root = createRoot(document.getElementById('root')!);
