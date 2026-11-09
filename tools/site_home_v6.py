@@ -20,6 +20,12 @@ HOME_ZH = f"""<main>
           <a class="btn lg" href="docs.html" data-order="1">阅读文档</a>
           <a class="btn ghost lg" href="{GH}" target="_blank" rel="noopener">GitHub</a>
         </div>
+        <div class="quickjump">
+          <a href="docs.html" data-order="1">文档</a>
+          <a href="faq.html">FAQ</a>
+          <a href="download.html" data-order="2">下载</a>
+          <a href="{GH}" target="_blank" rel="noopener">GitHub</a>
+        </div>
         <div class="stat-row">
           <div class="stat"><b data-count="51">0</b><span>项单元测试</span></div>
           <div class="stat"><b data-count="4">0</b><span>种加载器</span></div>
@@ -114,7 +120,7 @@ HOME_ZH = f"""<main>
     <div><span class="eyebrow">Download</span><h2>下载 Windows 版</h2>
       <p>解压即用，不写注册表；删除目录即卸载。需要 Java 时启动器会自动下载。</p>
       <div class="cta-row"><a class="btn primary lg shine" href="{ZIP}">下载 v0.5.0（199 MB）</a><a class="btn lg" href="download.html" data-order="2">全部版本</a></div>
-      <div class="download-meta"><span>v0.5.0</span><span>Windows 10/11 x64</span><span>便携 · 免安装</span><span>51 项单元测试</span></div>
+      <div class="download-meta"><span>v0.5.0</span><span>2026-11-08</span><span>Windows 10/11 x64</span><span>SHA-256 1F3FDBFE…A176C</span></div>
     </div>
     <div class="role-visual"><img src="assets/shot-download.png" alt="" /></div>
   </div></div></section>
@@ -221,7 +227,7 @@ HOME_EN = f"""<main>
     <div><span class="eyebrow">Download</span><h2>Download for Windows</h2>
       <p>Unzip and run. No registry writes, delete the folder to uninstall. Java is downloaded automatically if needed.</p>
       <div class="cta-row"><a class="btn primary lg shine" href="{ZIP}">Download v0.5.0 (199 MB)</a><a class="btn lg" href="download.html" data-order="2">All versions</a></div>
-      <div class="download-meta"><span>v0.5.0</span><span>Windows 10/11 x64</span><span>Portable</span><span>51 unit tests</span></div>
+      <div class="download-meta"><span>v0.5.0</span><span>2026-11-08</span><span>Windows 10/11 x64</span><span>SHA-256 1F3FDBFE…A176C</span></div>
     </div>
     <div class="role-visual"><img src="assets/shot-download.png" alt="" /></div>
   </div></div></section>

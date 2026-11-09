@@ -1,44 +1,80 @@
-"""生成 Vein Launcher 官网（中英双语多页面静态站）。
-
-运行：python tools/gen_site.py
-输出：veinwebsite-don'tupdategithub/**（中文）+ en/**（英文）
-"""
+"""生成 Vein Launcher 官网 v7（中英双语、多页面、搜索、版本切换、SEO）。"""
 
 from __future__ import annotations
 
 import html
+import re
 from pathlib import Path
 
 from site_content import PAGES
 from site_content_en import PAGES_EN
 from site_home_v6 import HOME_EN as HOME_EN_V6, HOME_ZH as HOME_ZH_V6
+from site_pages import (
+    ABOUT_EN, ABOUT_ZH, COMMUNITY_EN, COMMUNITY_ZH, CONTRIBUTE_EN, CONTRIBUTE_ZH,
+    DOWNLOAD_EN, DOWNLOAD_ZH, LICENSE_EN, LICENSE_ZH, PRIVACY_EN, PRIVACY_ZH,
+    ROADMAP_EN, ROADMAP_ZH, SECURITY_EN, SECURITY_ZH, SHOWCASE_EN, SHOWCASE_ZH,
+)
 
 ROOT = Path(__file__).resolve().parents[1] / "veinwebsite-don'tupdategithub"
-ZIP = "https://github.com/zhanjhn-studio/vein_launcher/releases/download/v0.5.0/VeinLauncher-0.5.0-win64.zip"
-REL = "https://github.com/zhanjhn-studio/vein_launcher/releases/tag/v0.5.0"
 GH = "https://github.com/zhanjhn-studio/vein_launcher"
+ISSUES = f"{GH}/issues"
+DISCUSS = f"{GH}/discussions"
+ZIP = "https://github.com/zhanjhn-studio/vein_launcher/releases/download/v0.5.0/VeinLauncher-0.5.0-win64.zip"
 
-ROOT_ORDER = ["index.html", "docs.html", "download.html", "releases.html", "changelog.html", "about.html", "privacy.html"]
+VERSION = "0.5.0"
 
-L10N = {
-    "zh": dict(
-        nav=[("index.html", "首页"), ("docs.html", "文档"), ("download.html", "下载")],
-        brand_tail="Launcher",
-        groups=["开始使用", "玩家", "二次开发", "插件开发", "MLC", "参考"],
-        lang_label="EN",
-        footer="Vein Launcher · Zhanjhn Studio",
-        footer_links=[("docs.html", "文档"), ("download.html", "下载"), ("privacy.html", "隐私")],
-        html_lang="zh-CN",
-    ),
-    "en": dict(
-        nav=[("index.html", "Home"), ("docs.html", "Docs"), ("download.html", "Download")],
-        brand_tail="Launcher",
-        groups=["Getting started", "Playing", "Development", "Plugins", "MLC", "Reference"],
-        lang_label="中文",
-        footer="Vein Launcher · Zhanjhn Studio",
-        footer_links=[("docs.html", "Docs"), ("download.html", "Download"), ("privacy.html", "Privacy")],
-        html_lang="en",
-    ),
+ROOT_PAGES = [
+    ("index.html", "首页", "Vein Launcher — Minecraft，但更干净", "Home", "Vein Launcher — Minecraft, but cleaner"),
+    ("docs.html", "文档", "文档 — Vein Launcher", "Docs", "Docs — Vein Launcher"),
+    ("quickstart.html", "快速开始", "快速开始 — Vein Launcher 文档", "Quick start", "Quick start — Vein Launcher Docs"),
+    ("player.html", "玩家指南", "玩家指南 — Vein Launcher 文档", "Player guide", "Player guide — Vein Launcher Docs"),
+    ("developer.html", "二次开发", "二次开发 — Vein Launcher 文档", "Development", "Development — Vein Launcher Docs"),
+    ("plugin.html", "插件开发", "插件开发 — Vein Launcher 文档", "Plugins", "Plugins — Vein Launcher Docs"),
+    ("mlc.html", "MLC", "MLC 控制层 — Vein Launcher 文档", "MLC", "MLC — Vein Launcher Docs"),
+    ("faq.html", "FAQ", "FAQ — Vein Launcher", "FAQ", "FAQ — Vein Launcher"),
+    ("download.html", "下载", "下载 — Vein Launcher", "Download", "Download — Vein Launcher"),
+    ("releases.html", "版本", "版本 — Vein Launcher", "Releases", "Releases — Vein Launcher"),
+    ("changelog.html", "更新日志", "更新日志 — Vein Launcher", "Changelog", "Changelog — Vein Launcher"),
+    ("roadmap.html", "路线图", "路线图 — Vein Launcher", "Roadmap", "Roadmap — Vein Launcher"),
+    ("security.html", "安全", "安全 — Vein Launcher", "Security", "Security — Vein Launcher"),
+    ("contribute.html", "贡献", "贡献指南 — Vein Launcher", "Contributing", "Contributing — Vein Launcher"),
+    ("showcase.html", "展示墙", "展示墙 — Vein Launcher", "Showcase", "Showcase — Vein Launcher"),
+    ("community.html", "社区", "社区 — Vein Launcher", "Community", "Community — Vein Launcher"),
+    ("about.html", "关于", "关于 — Vein Launcher", "About", "About — Vein Launcher"),
+    ("privacy.html", "隐私", "隐私 — Vein Launcher", "Privacy", "Privacy — Vein Launcher"),
+    ("license.html", "许可证", "许可证 — Vein Launcher", "License", "License — Vein Launcher"),
+]
+
+NAV = ["index.html", "docs.html", "download.html", "community.html"]
+
+FOOTER_GROUPS = [
+    ("zh", "产品", [("docs.html", "文档"), ("download.html", "下载"), ("releases.html", "版本"), ("changelog.html", "更新日志")]),
+    ("zh", "社区", [(GH, "GitHub"), (ISSUES, "Issue 反馈"), (DISCUSS, "Discussions"), ("contribute.html", "贡献指南")]),
+    ("zh", "资源", [("roadmap.html", "路线图"), ("security.html", "安全"), ("showcase.html", "展示墙"), ("about.html", "关于我们")]),
+    ("zh", "法务", [("license.html", "MIT 许可证"), ("privacy.html", "隐私声明"), ("community.html", "社区规范")]),
+    ("en", "Product", [("docs.html", "Docs"), ("download.html", "Download"), ("releases.html", "Releases"), ("changelog.html", "Changelog")]),
+    ("en", "Community", [(GH, "GitHub"), (ISSUES, "Issues"), (DISCUSS, "Discussions"), ("contribute.html", "Contributing")]),
+    ("en", "Resources", [("roadmap.html", "Roadmap"), ("security.html", "Security"), ("showcase.html", "Showcase"), ("about.html", "About")]),
+    ("en", "Legal", [("license.html", "MIT License"), ("privacy.html", "Privacy"), ("community.html", "Community")]),
+]
+
+GROUP_INTRO = {
+    "zh": {
+        "Getting started": ("few", "从下载到进入游戏，最短路径。", "开始使用"),
+        "Playing": ("few", "实例、皮肤、指令与排错。", "玩家"),
+        "Development": ("few", "架构、协议、构建与发布。", "二次开发"),
+        "Plugins": ("few", "Node 宿主、权限、Lua UI 与示例。", "插件开发"),
+        "MLC": ("few", "不装 mod 控制原版游戏的控制层。", "MLC"),
+        "Reference": ("few", "配置、术语、安全与常见问题。", "参考"),
+    },
+    "en": {
+        "Getting started": ("few", "From download to first launch.", "Getting started"),
+        "Playing": ("few", "Instances, skins, commands and troubleshooting.", "Playing"),
+        "Development": ("few", "Architecture, protocol, build and release.", "Development"),
+        "Plugins": ("few", "Node host, permissions, Lua UI and examples.", "Plugins"),
+        "MLC": ("few", "Control vanilla Minecraft without a mod.", "MLC"),
+        "Reference": ("few", "Config, glossary, security and FAQ.", "Reference"),
+    },
 }
 
 EN_GROUP_OF_ZH = {
@@ -46,11 +82,18 @@ EN_GROUP_OF_ZH = {
     "插件开发": "Plugins", "MLC": "MLC", "参考": "Reference",
 }
 
+GROUP_LANDING = {
+    "quickstart.html": ("Getting started", "开始使用", "快速开始", "三道最短路径：安装、首次启动、Java。"),
+    "player.html": ("Playing", "玩家", "玩家指南", "实例、皮肤、指令速查、热键与排错。"),
+    "developer.html": ("Development", "二次开发", "二次开发", "架构分层、JSON-RPC、前端构建、测试与打包。"),
+    "plugin.html": ("Plugins", "插件开发", "插件开发", "插件运行方式、清单、权限、能力 API、Lua UI 与示例。"),
+    "mlc.html": ("MLC", "MLC", "MLC 控制层", "原版 javaagent 的原理、协议、事件与排错。"),
+}
+
 
 def pages_for(lang: str):
     if lang == "zh":
         return PAGES
-    # 英文页复用 path，但分组换成英文
     out = []
     for p in PAGES_EN:
         q = dict(p)
@@ -60,14 +103,11 @@ def pages_for(lang: str):
     return out
 
 
-def build_orders(lang: str):
-    pages = pages_for(lang)
-    paths = list(ROOT_ORDER) + [p["path"] for p in pages]
-    return paths
+def order_for(lang: str):
+    return [p[0] for p in ROOT_PAGES] + [p["path"] for p in pages_for(lang)]
 
 
-def prefix(lang: str, path: str) -> str:
-    """页面自身到站点根（assets 所在层）的相对前缀。"""
+def depth_for(lang: str, path: str) -> str:
     logical = path[3:] if path.startswith("en/") else path
     nested = "/" in logical
     if lang == "en":
@@ -75,22 +115,77 @@ def prefix(lang: str, path: str) -> str:
     return "../" if nested else ""
 
 
-def header(lang: str, current: str, order: list[str]) -> str:
-    l = L10N[lang]
-    base = prefix(lang, current)
-    logical = current[3:] if current.startswith("en/") else current
-    nav_base = "../" if "/" in logical else ""
-    other = "zh" if lang == "en" else "en"
-    # 语言切换目标
-    if other == "en":
-        lang_href = base + "en/" + current
-    else:
-        lang_href = base + current[3:] if current.startswith("en/") else base + current
+def nav_base_for(lang: str, path: str) -> str:
+    logical = path[3:] if path.startswith("en/") else path
+    return "../" if "/" in logical else ""
+
+
+def is_doc_path(path: str) -> bool:
+    logical = path[3:] if path.startswith("en/") else path
+    return "/" in logical
+
+
+# ---------------------------------------------------------------- slug / TOC
+def slug(text: str) -> str:
+    s = re.sub(r"<[^>]+>", "", text)
+    s = re.sub(r"[^\w\u4e00-\u9fa5]+", "-", s.strip().lower()).strip("-")
+    return s[:40] or "section"
+
+
+def with_ids_and_toc(body: str, lang: str):
+    toc = []
+
+    def repl(m):
+        level, inner = m.group(1), m.group(2)
+        plain = re.sub(r"<[^>]+>", "", inner)
+        hid = slug(plain)
+        toc.append((level, hid, plain))
+        return f'<h{level} id="{hid}">{inner}</h{level}>'
+
+    body = re.sub(r"<h([23])>(.*?)</h\1>", repl, body, flags=re.S)
+    if not toc:
+        return body, ""
+    title = "本页内容" if lang == "zh" else "On this page"
+    links = "".join(
+        f'<a class="{"sub" if lv == "3" else "main"}" href="#{hid}">{html.escape(plain)}</a>'
+        for lv, hid, plain in toc
+    )
+    return body, f'<aside class="docs-toc"><h4>{title}</h4>{links}</aside>'
+
+
+# ---------------------------------------------------------------- header/footer
+def header(lang: str, path: str, order: list[str], docs_page: bool) -> str:
+    base = depth_for(lang, path)
+    navb = nav_base_for(lang, path)
+    logical = path[3:] if path.startswith("en/") else path
+    labels = (
+        [("index.html", "首页"), ("docs.html", "文档"), ("download.html", "下载"), ("community.html", "社区")]
+        if lang == "zh" else
+        [("index.html", "Home"), ("docs.html", "Docs"), ("download.html", "Download"), ("community.html", "Community")]
+    )
     navs = []
-    for href, label in l["nav"]:
-        active = ' aria-current="page"' if href == current else ""
-        navs.append(f'<a href="{nav_base}{href}" data-order="{order.index(href)}"{active}>{label}</a>')
+    for href, label in labels:
+        active = ' aria-current="page"' if href == logical else ""
+        navs.append(f'<a href="{navb}{href}" data-order="{order.index(href)}"{active}>{label}</a>')
     navs.append(f'<a href="{GH}" target="_blank" rel="noopener">GitHub</a>')
+
+    other = "en/" + logical if lang == "zh" else logical
+    if lang == "en":
+        lang_href = base + logical
+    else:
+        lang_href = base + "en/" + logical
+
+    search = (
+        f'<button class="search-btn" type="button" data-search-open>'
+        f'{"搜索文档" if lang == "zh" else "Search docs"} <kbd>Ctrl K</kbd></button>'
+        if docs_page else ""
+    )
+    version = (
+        f'<select class="ver-select" data-version aria-label="docs version">'
+        f'<option value="0.5"{"" if lang == "zh" else ""}>v0.5 {"（当前）" if lang == "zh" else "(current)"}</option>'
+        f'<option value="0.4" disabled>v0.4 {"（未归档）" if lang == "zh" else "(not archived)"}</option>'
+        f'</select>' if docs_page else ""
+    )
     return f"""<header class="site-header">
     <div class="wrap">
       <a class="brand" href="{base}index.html"><img src="{base}assets/logo.png" alt="" /><span>Vein<b>Launcher</b></span></a>
@@ -98,63 +193,86 @@ def header(lang: str, current: str, order: list[str]) -> str:
         {chr(10).join('        ' + n for n in navs)}
       </nav>
       <div class="header-actions">
-        <a class="icon-btn" href="{lang_href}">{l["lang_label"]}</a>
-        <button class="icon-btn" type="button" data-theme-toggle>深色</button>
+        {search}{version}
+        <a class="icon-btn" href="{lang_href}">{"EN" if lang == "zh" else "中文"}</a>
+        <button class="icon-btn" type="button" data-theme-toggle>{"深色" if lang == "zh" else "Dark"}</button>
         <button class="icon-btn nav-toggle" type="button" data-nav-toggle aria-label="menu">≡</button>
       </div>
     </div>
   </header>"""
 
 
-def footer(lang: str, base: str) -> str:
-    l = L10N[lang]
-    links = " · ".join(f'<a href="{base}{h}">{t}</a>' for h, t in l["footer_links"])
+def footer(lang: str, path: str) -> str:
+    base = depth_for(lang, path)
+    sets = [g for g in FOOTER_GROUPS if g[0] == lang]
+    cols = "".join(
+        f'<div class="footer-col"><h5>{name}</h5>' + "".join(
+            f'<a href="{h if h.startswith("http") else base + h}">{t}</a>' for h, t in links
+        ) + "</div>"
+        for _, name, links in sets
+    )
+    brand_p = ("便携、可扩展的 Minecraft Java 启动器。数据自包含，插件与 MLC 开放。" if lang == "zh"
+               else "A portable, extensible Minecraft Java launcher. Self-contained data, open plugins and MLC.")
+    legal = ("MIT 许可证" if lang == "zh" else "MIT License")
     return f"""<footer class="site-footer">
     <div class="wrap">
-      <span>{l["footer"]}</span>
-      <span>{links} · <a href="{GH}" target="_blank" rel="noopener">GitHub</a></span>
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <img src="{base}assets/logo.png" alt="" />
+          <div><b>Vein Launcher</b><p>{brand_p}</p></div>
+        </div>
+        {cols}
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 zhanjhn studio · <a href="{base}license.html">{legal}</a> · v{VERSION}</span>
+        <span><a href="{base}privacy.html">{"隐私声明" if lang == "zh" else "Privacy"}</a> · <a href="{base}security.html">{"安全" if lang == "zh" else "Security"}</a> · <a href="{GH}" target="_blank" rel="noopener">GitHub</a> · <a href="{DISCUSS}" target="_blank" rel="noopener">Discussions</a></span>
+      </div>
     </div>
   </footer>"""
 
 
-def sidebar(lang: str, current: str, order: list[str]) -> str:
+def shell(lang: str, path: str, title: str, description: str, body: str, order: list[str]) -> str:
+    base = depth_for(lang, path)
+    docs_page = is_doc_path(path)
+    return f"""<!doctype html>
+<html lang="{'zh-CN' if lang == 'zh' else 'en'}" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{html.escape(title)}</title>
+  <meta name="description" content="{html.escape(description)}" />
+  <meta property="og:title" content="{html.escape(title)}" />
+  <meta property="og:description" content="{html.escape(description)}" />
+  <link rel="icon" href="{base}assets/favicon.ico" />
+  <link rel="stylesheet" href="{base}assets/site.css" />
+  <link rel="stylesheet" href="{base}assets/v7.css" />
+</head>
+<body data-order="{order.index(path.replace('en/', '', 1) if lang == 'en' else path)}">
+  {header(lang, path, order, docs_page)}
+  {body}
+  {footer(lang, path)}
+  <script src="{base}assets/search-index.js"></script>
+  <script src="{base}assets/site.js"></script>
+</body>
+</html>
+"""
+
+
+# ---------------------------------------------------------------- docs page
+def sidebar(lang: str, cur_rel: str, order: list[str]) -> str:
     pages = pages_for(lang)
-    groups = L10N[lang]["groups"]
-    # 英文页的 current 是 en/xxx
-    cur_rel = current[3:] if lang == "en" else current
+    labels = (["开始使用", "玩家", "二次开发", "插件开发", "MLC", "参考"] if lang == "zh"
+              else ["Getting started", "Playing", "Development", "Plugins", "MLC", "Reference"])
     out = []
-    for group in groups:
+    for group in labels:
         items = []
         for p in pages:
             if p["group"] != group:
                 continue
             active = " active" if p["path"] == cur_rel else ""
-            href = "../" + p["path"]
-            items.append(f'<a href="{href}" data-order="{order.index(p["path"])}" class="{active.strip()}">{p["title"]}</a>')
+            items.append(f'<a href="../{p["path"]}" data-order="{order.index(p["path"])}" class="{active.strip()}">{p["title"]}</a>')
         out.append('<div class="group"><h4>' + group + "</h4>" + "".join(items) + "</div>")
     return '<aside class="docs-side">' + "".join(out) + "</aside>"
-
-
-def shell(lang: str, *, path: str, title: str, body: str, order: list[str]) -> str:
-    """path 为站点内相对路径（英文页带 en/ 前缀）。"""
-    base = prefix(lang, path)
-    return f"""<!doctype html>
-<html lang="{L10N[lang]['html_lang']}" data-theme="light">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{title}</title>
-  <link rel="icon" href="{base}assets/favicon.ico" />
-  <link rel="stylesheet" href="{base}assets/site.css" />
-</head>
-<body data-order="{order.index(path.replace('en/', '', 1) if lang == 'en' else path)}">
-  {header(lang, path, order)}
-  {body}
-  {footer(lang, base)}
-  <script src="{base}assets/site.js"></script>
-</body>
-</html>
-"""
 
 
 def doc_page(lang: str, p: dict, order: list[str]) -> str:
@@ -164,341 +282,270 @@ def doc_page(lang: str, p: dict, order: list[str]) -> str:
     prev_p = docs[pos - 1] if pos > 0 else None
     next_p = docs[pos + 1] if pos + 1 < len(docs) else None
 
-    def href(x):
-        return "../" + x["path"]
-
+    body, toc = with_ids_and_toc(p["body"], lang)
     pager = '<div class="pager">'
-    pager += (f'<a href="{href(prev_p)}" data-order="{order.index(prev_p["path"])}">← {prev_p["title"]}</a>'
+    pager += (f'<a href="../{prev_p["path"]}" data-order="{order.index(prev_p["path"])}">← {prev_p["title"]}</a>'
               if prev_p else "<span></span>")
-    pager += (f'<a href="{href(next_p)}" data-order="{order.index(next_p["path"])}">{next_p["title"]} →</a>'
+    pager += (f'<a href="../{next_p["path"]}" data-order="{order.index(next_p["path"])}">{next_p["title"]} →</a>'
               if next_p else "<span></span>")
     pager += "</div>"
     tags = "".join(f"<span>{html.escape(t)}</span>" for t in p["tags"])
-    body = f"""<main class="wrap docs-wrap">
-    {sidebar(lang, (p['path'] if lang == 'zh' else 'en/' + p['path']), order)}
+    full = p["path"] if lang == "zh" else "en/" + p["path"]
+    main = f"""<main class="wrap docs-wrap {'has-toc' if toc else ''}">
+    {sidebar(lang, p['path'], order)}
     <article class="docs-main">
       <h1>{p["title"]}</h1>
       <p class="subtitle">{p["subtitle"]}</p>
       <div class="docs-tags">{tags}</div>
-      {p["body"]}
+      {body}
       {pager}
     </article>
+    {toc}
   </main>"""
-    full_path = p["path"] if lang == "zh" else "en/" + p["path"]
     title = f'{p["title"]} — Vein Launcher {"文档" if lang == "zh" else "Docs"}'
-    return shell(lang, path=full_path, title=title, body=body, order=order)
+    desc = re.sub(r"<[^>]+>", "", p["subtitle"])
+    return shell(lang, full, title, desc, main, order)
 
 
-# ---------------------------------------------------------------- 首页 / 根页面内容
-HOME_ZH = f"""<main>
-    <section class="hero"><div class="wrap hero-grid">
-      <div>
-        <span class="eyebrow">Minecraft Java Edition · Windows</span>
-        <h1>Minecraft，<br />但更干净。<em>安装、管理、启动，一步到位；还能在不装 mod 的原版里直接执行指令。</em></h1>
-        <p class="lead">Vein Launcher 是面向 Minecraft Java 版的便携启动器：镜像优先下载、真实例管理、LittleSkin 皮肤、沙箱插件宿主，以及 MLC 控制层。</p>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <a class="btn primary lg" href="{ZIP}">下载 v0.5.0</a>
-          <a class="btn lg" href="docs.html" data-order="1">阅读文档</a>
-        </div>
-        <div class="meta-row"><span><i></i>便携 · 免安装</span><span><i></i>51 项单元测试</span><span><i></i>English &amp; 简体中文</span></div>
-      </div>
-      <div class="shot"><img src="assets/shot-launch.png" alt="启动页" /></div>
-    </div></section>
-
-    <section class="identity"><div class="wrap">
-      <div class="identity-head"><span class="eyebrow">Choose your path</span><h2>你是来玩的，还是来造的？</h2><p>三种入口，都有可直接复制的命令与完整文档。</p></div>
-      <div class="role-row"><div><div class="role-kicker">01 · For players</div><h3>我只想玩游戏</h3>
-        <p>下载、选版本、进游戏。皮肤、附魔书指令速查、多实例，都在五分钟里。</p>
-        <ul class="role-points"><li>附魔书风格指令速查，回车直接发进游戏</li><li>LittleSkin 账号皮肤直接进游戏</li><li>多实例并行，每实例独立进程与端口</li></ul>
-        <a class="btn primary" href="docs.html" data-order="1">玩家文档 →</a></div>
-        <div class="role-visual"><img src="assets/shot-launch.png" alt="" /></div></div>
-      <div class="role-row"><div><div class="role-kicker">02 · For builders</div><h3>我要改它 / 扩展它</h3>
-        <p>五层架构、JSON-RPC 桥、沙箱插件宿主、Lua UI 与 MLC 控制层，全部开放。</p>
-        <ul class="role-points"><li>严格分层 + 全局事件总线</li><li>Bridge 注册一个方法就能扩展一个 RPC</li><li>构建、测试、打包流程齐全</li></ul>
-        <a class="btn primary" href="docs.html" data-order="1">开发文档 →</a></div>
-        <div class="role-visual"><img src="assets/shot-tools.png" alt="" /></div></div>
-      <div class="role-row"><div><div class="role-kicker">03 · For plugin devs</div><h3>我要写插件</h3>
-        <p>Node 独立进程、权限沙箱、Lua UI、示例与调试。</p>
-        <ul class="role-points"><li>package.json 声明权限，越权直接拒绝</li><li>MLC 事件、运行中游戏、实例列表都能读</li><li>自带 status-panel 示例，抄一个就能跑</li></ul>
-        <a class="btn primary" href="docs.html" data-order="1">插件文档 →</a></div>
-        <div class="role-visual"><img src="assets/shot-palette.png" alt="" /></div></div>
-    </div></section>
-
-    <section class="download"><div class="wrap"><div class="download-card">
-      <div><span class="eyebrow">Download</span><h2>下载 Windows 版</h2>
-        <p>解压即用，不写注册表；删除目录即卸载。需要 Java 时启动器会自动下载。</p>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <a class="btn primary lg" href="{ZIP}">下载 v0.5.0（199 MB）</a>
-          <a class="btn lg" href="download.html" data-order="2">全部版本</a>
-        </div>
-        <div class="download-meta"><span>v0.5.0</span><span>Windows 10/11 x64</span><span>便携 · 免安装</span><span>51 项单元测试</span></div>
-      </div>
-      <div class="role-visual"><img src="assets/shot-download.png" alt="" /></div>
-    </div></div></section>
-
-    <section class="section section-soft"><div class="wrap">
-      <div class="section-head"><span class="eyebrow">Screenshots</span><h2>0.5.0 长什么样</h2></div>
-      <div class="gallery">
-        <figure><img src="assets/shot-launch.png" alt="" /><figcaption>启动页</figcaption></figure>
-        <figure><img src="assets/shot-download.png" alt="" /><figcaption>下载页</figcaption></figure>
-        <figure><img src="assets/shot-skins.png" alt="" /><figcaption>皮肤</figcaption></figure>
-        <figure><img src="assets/shot-mlc-switch.png" alt="" /><figcaption>MLC 总开关</figcaption></figure>
-        <figure><img src="assets/shot-palette.png" alt="" /><figcaption>指令速查</figcaption></figure>
-        <figure><img src="assets/shot-tools.png" alt="" /><figcaption>工具箱</figcaption></figure>
-      </div>
-    </div></section>
-
-    <section class="section"><div class="wrap">
-      <div class="section-head"><span class="eyebrow">Documentation</span><h2>文档</h2><p>安装到插件开发，每一节都有独立页面。</p></div>
-      <div style="text-align:center;"><a class="btn primary lg" href="docs.html" data-order="1">浏览全部文档 →</a></div>
-    </div></section>
+# ---------------------------------------------------------------- root pages
+def group_landing(lang: str, path: str, order: list[str]) -> str:
+    en_group, zh_group, zh_title, zh_lead = GROUP_LANDING[path]
+    group = en_group if lang == "en" else zh_group
+    title = zh_title if lang == "zh" else path.replace(".html", "").title()
+    lead = zh_lead if lang == "zh" else {
+        "quickstart.html": "Three short paths: install, first launch, Java.",
+        "player.html": "Instances, skins, command palette, hotkeys and troubleshooting.",
+        "developer.html": "Layers, JSON-RPC, frontend build, testing and packaging.",
+        "plugin.html": "Plugin host, manifest, permissions, API, Lua UI and examples.",
+        "mlc.html": "How the vanilla javaagent works, the protocol, events and troubleshooting.",
+    }[path]
+    cards = "".join(
+        f'<a class="doc-list-item" href="{p["path"]}" data-order="{order.index(p["path"])}">'
+        f'<b>{p["title"]}</b><span>{p["subtitle"]}</span></a>'
+        for p in pages_for(lang) if p["group"] == group
+    )
+    extra = ""
+    if path == "quickstart.html":
+        if lang == "zh":
+            extra = f"""
+<div class="meta-grid" style="margin:30px 0;">
+  <div><b>1. 解压运行</b><span>双击 VeinLauncher.exe</span></div>
+  <div><b>2. 安装版本</b><span>原版或加载器</span></div>
+  <div><b>3. 开始游戏</b><span>选账号 → 启动</span></div>
+  <div><b>遇到问题</b><span><a href="faq.html">看 FAQ</a></span></div>
+</div>
+<p><a class="btn primary" href="download.html">下载 v0.5.0</a> <a class="btn" href="getting-started/install.html">安装说明</a></p>"""
+        else:
+            extra = f"""
+<div class="meta-grid" style="margin:30px 0;">
+  <div><b>1. Unzip</b><span>Run VeinLauncher.exe</span></div>
+  <div><b>2. Install</b><span>Vanilla or a loader</span></div>
+  <div><b>3. Play</b><span>Pick account → launch</span></div>
+  <div><b>Stuck?</b><span><a href="faq.html">Read the FAQ</a></span></div>
+</div>
+<p><a class="btn primary" href="download.html">Download v0.5.0</a> <a class="btn" href="../getting-started/install.html">Install guide</a></p>"""
+    body = f"""<main class="wrap doc-index">
+    <h1>{title}</h1>
+    <p class="lead">{lead}</p>
+    {extra}
+    <div class="doc-list">{cards}</div>
+    <p style="margin-top:28px;"><a href="docs.html" data-order="{order.index('docs.html')}">{"查看完整文档 →" if lang == "zh" else "All documentation →"}</a></p>
   </main>"""
+    full = path if lang == "zh" else "en/" + path
+    return shell(lang, full, f"{title} — Vein Launcher", lead, body, order)
 
-HOME_EN = f"""<main>
-    <section class="hero"><div class="wrap hero-grid">
-      <div>
-        <span class="eyebrow">Minecraft Java Edition · Windows</span>
-        <h1>Minecraft,<br />but cleaner.<em>Install, manage, launch — and drive vanilla Minecraft without a single mod.</em></h1>
-        <p class="lead">A portable launcher for Minecraft Java Edition: mirror-first downloads, real instance management, LittleSkin skins, a sandboxed plugin host and the MLC control layer.</p>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <a class="btn primary lg" href="{ZIP}">Download v0.5.0</a>
-          <a class="btn lg" href="docs.html" data-order="1">Read the docs</a>
-        </div>
-        <div class="meta-row"><span><i></i>Portable, no installer</span><span><i></i>51 unit tests</span><span><i></i>English &amp; 简体中文</span></div>
-      </div>
-      <div class="shot"><img src="assets/shot-launch.png" alt="Launch page" /></div>
-    </div></section>
 
-    <section class="identity"><div class="wrap">
-      <div class="identity-head"><span class="eyebrow">Choose your path</span><h2>Here to play, or here to build?</h2><p>Three entry points, each with copy-paste commands and complete docs.</p></div>
-      <div class="role-row"><div><div class="role-kicker">01 · For players</div><h3>I just want to play</h3>
-        <p>Download, pick a version, launch. Skins, the command palette and multi-instance support in five minutes.</p>
-        <ul class="role-points"><li>Enchanted-book command palette — Enter sends</li><li>LittleSkin skins work in-game</li><li>Multiple instances with separate ports</li></ul>
-        <a class="btn primary" href="docs.html" data-order="1">Player docs →</a></div>
-        <div class="role-visual"><img src="assets/shot-launch.png" alt="" /></div></div>
-      <div class="role-row"><div><div class="role-kicker">02 · For builders</div><h3>I want to change it</h3>
-        <p>Five layers, a JSON-RPC bridge, a sandboxed plugin host, Lua UI and MLC — all open.</p>
-        <ul class="role-points"><li>Strict layering + global event bus</li><li>Add one handler to expose one RPC</li><li>Build, test and packaging scripts included</li></ul>
-        <a class="btn primary" href="docs.html" data-order="1">Developer docs →</a></div>
-        <div class="role-visual"><img src="assets/shot-tools.png" alt="" /></div></div>
-      <div class="role-row"><div><div class="role-kicker">03 · For plugin devs</div><h3>I want to write plugins</h3>
-        <p>Isolated Node processes, permission sandbox, Lua UI, examples and debugging.</p>
-        <ul class="role-points"><li>Permissions declared in package.json</li><li>Read MLC events, running games and instances</li><li>A ready-made status-panel example</li></ul>
-        <a class="btn primary" href="docs.html" data-order="1">Plugin docs →</a></div>
-        <div class="role-visual"><img src="assets/shot-palette.png" alt="" /></div></div>
-    </div></section>
-
-    <section class="download"><div class="wrap"><div class="download-card">
-      <div><span class="eyebrow">Download</span><h2>Download for Windows</h2>
-        <p>Unzip and run. No registry writes, delete the folder to uninstall. Java is downloaded automatically if needed.</p>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <a class="btn primary lg" href="{ZIP}">Download v0.5.0 (199 MB)</a>
-          <a class="btn lg" href="download.html" data-order="2">All versions</a>
-        </div>
-        <div class="download-meta"><span>v0.5.0</span><span>Windows 10/11 x64</span><span>Portable</span><span>51 unit tests</span></div>
-      </div>
-      <div class="role-visual"><img src="assets/shot-download.png" alt="" /></div>
-    </div></div></section>
-
-    <section class="section section-soft"><div class="wrap">
-      <div class="section-head"><span class="eyebrow">Screenshots</span><h2>What 0.5.0 looks like</h2></div>
-      <div class="gallery">
-        <figure><img src="assets/shot-launch.png" alt="" /><figcaption>Launch</figcaption></figure>
-        <figure><img src="assets/shot-download.png" alt="" /><figcaption>Download</figcaption></figure>
-        <figure><img src="assets/shot-skins.png" alt="" /><figcaption>Skins</figcaption></figure>
-        <figure><img src="assets/shot-mlc-switch.png" alt="" /><figcaption>MLC switch</figcaption></figure>
-        <figure><img src="assets/shot-palette.png" alt="" /><figcaption>Command palette</figcaption></figure>
-        <figure><img src="assets/shot-tools.png" alt="" /><figcaption>Tools</figcaption></figure>
-      </div>
-    </div></section>
-
-    <section class="section"><div class="wrap">
-      <div class="section-head"><span class="eyebrow">Documentation</span><h2>Docs</h2><p>From install to plugin development, one page per topic.</p></div>
-      <div style="text-align:center;"><a class="btn primary lg" href="docs.html" data-order="1">Browse all docs →</a></div>
-    </div></section>
+def faq_page(lang: str, order: list[str]) -> str:
+    faq = next(p for p in PAGES if p["path"] == "reference/faq.html")
+    data = faq if lang == "zh" else next(p for p in PAGES_EN if p["path"] == "reference/faq.html")
+    body, _ = with_ids_and_toc(data["body"], lang)
+    title = "FAQ" if lang == "zh" else "FAQ"
+    main = f"""<main class="wrap doc-index faq-page">
+    <h1>{title}</h1>
+    <p class="lead">{"按症状找答案；完整文档在文档页。" if lang == "zh" else "Answers by symptom; full docs live under Docs."}</p>
+    <div class="faq-body docs-main">{body}</div>
+    <p style="margin-top:30px;"><a href="docs.html" data-order="{order.index('docs.html')}">{"完整文档 →" if lang == "zh" else "Full docs →"}</a></p>
   </main>"""
+    full = "faq.html" if lang == "zh" else "en/faq.html"
+    return shell(lang, full, f"FAQ — Vein Launcher", "常见问题与排错", main, order)
+
+
+ROOT_CONTENT = {
+    "download.html": (DOWNLOAD_ZH, DOWNLOAD_EN),
+    "roadmap.html": (ROADMAP_ZH, ROADMAP_EN),
+    "security.html": (SECURITY_ZH, SECURITY_EN),
+    "contribute.html": (CONTRIBUTE_ZH, CONTRIBUTE_EN),
+    "showcase.html": (SHOWCASE_ZH, SHOWCASE_EN),
+    "community.html": (COMMUNITY_ZH, COMMUNITY_EN),
+    "about.html": (ABOUT_ZH, ABOUT_EN),
+    "privacy.html": (PRIVACY_ZH, PRIVACY_EN),
+    "license.html": (LICENSE_ZH, LICENSE_EN),
+}
+
+RELEASES_ZH = f"""<main class="wrap doc-index"><h1>版本</h1>
+<p class="lead">每个版本都有对应的 GitHub Release 与下载资产。</p>
+<table><thead><tr><th>版本</th><th>说明</th><th>日期</th></tr></thead><tbody>
+<tr><td><a href="{ZIP.split('/releases/')[0]}/releases/tag/v0.5.0" target="_blank" rel="noopener">v0.5.0</a></td><td>MLC 原版控制、附魔书指令、插件能力、总开关</td><td>2026-11-08</td></tr>
+<tr><td><a href="{ZIP.split('/releases/')[0]}/releases/tag/v0.1.0" target="_blank" rel="noopener">v0.1.0</a></td><td>首个公开版本</td><td>2026-10-31</td></tr>
+</tbody></table>
+<p><a href="{ZIP.split('/releases/')[0]}/releases" target="_blank" rel="noopener">在 GitHub 查看全部 →</a></p></main>"""
+
+RELEASES_EN = RELEASES_ZH.replace("<h1>版本</h1>", "<h1>Releases</h1>").replace(
+    "每个版本都有对应的 GitHub Release 与下载资产。", "Every version has a GitHub Release and downloadable assets."
+).replace("说明", "Notes").replace("日期", "Date").replace("首个公开版本", "First public release")
+
+CHANGELOG_ZH = """<main class="wrap doc-index"><h1>更新日志</h1>
+<p class="lead">按版本倒序记录主要变化，升级前建议先看这里。</p>
+<h2>v0.5.0 · 2026-11-08</h2>
+<h3>新增</h3><ul><li>MLC：原版 javaagent 控制层，状态 / 指令 / 事件</li><li>指令速查附魔书面板、Enter 发送</li><li>插件：game.running / app.info / versions.list / MLC 事件</li></ul>
+<h3>修复</h3><ul><li>MLC 总开关文案与对齐</li><li>翻译层状态切换卡旧值</li><li>速查窗抢焦点导致单机暂停</li></ul>
+<h3>破坏性改动</h3><ul><li>无</li></ul>
+<h2>v0.1.0 · 2026-10-31</h2>
+<ul><li>首个公开版本：版本下载、实例管理、皮肤、日志</li></ul></main>"""
+
+CHANGELOG_EN = """<main class="wrap doc-index"><h1>Changelog</h1>
+<p class="lead">Main changes, newest first. Read before upgrading.</p>
+<h2>v0.5.0 · 2026-11-08</h2>
+<h3>Added</h3><ul><li>MLC: vanilla javaagent control layer — state, commands, events</li><li>Enchanted-book command palette; Enter sends</li><li>Plugins: game.running / app.info / versions.list / MLC events</li></ul>
+<h3>Fixed</h3><ul><li>MLC master switch label and alignment</li><li>Translation layer keeping stale values</li><li>Palette focus pausing single-player</li></ul>
+<h3>Breaking</h3><ul><li>None</li></ul>
+<h2>v0.1.0 · 2026-10-31</h2><ul><li>First public release</li></ul></main>"""
 
 
 def docs_hub(lang: str, order: list[str]) -> str:
     pages = pages_for(lang)
-    groups = L10N[lang]["groups"]
+    labels = (["开始使用", "玩家", "二次开发", "插件开发", "MLC", "参考"] if lang == "zh"
+              else ["Getting started", "Playing", "Development", "Plugins", "MLC", "Reference"])
+    blocks = []
+    for group in labels:
+        items = "".join(
+            f'<a href="{p["path"]}" data-order="{order.index(p["path"])}"><b>{p["title"]}</b><span>{p["subtitle"]}</span></a>'
+            for p in pages if p["group"] == group
+        )
+        blocks.append(f'<section class="doc-group"><h2>{group}</h2><div class="doc-list">{items}</div></section>')
     title = "文档" if lang == "zh" else "Docs"
     lead = ("按主题拆分的完整文档。每一页都可以单独打开、单独收藏。" if lang == "zh"
             else "Complete documentation split by topic. Every page can be opened and bookmarked on its own.")
-    blocks = []
-    for group in groups:
-        items = []
-        for p in pages:
-            if p["group"] != group:
-                continue
-            href = p["path"]
-            items.append(f'<a href="{href}" data-order="{order.index(p["path"])}"><b>{p["title"]}</b><span>{p["subtitle"]}</span></a>')
-        blocks.append(f'<section class="doc-group"><h2>{group}</h2><div class="doc-list">{"".join(items)}</div></section>')
-    return f"""<main class="wrap doc-index">
+    body = f"""<main class="wrap doc-index">
     <h1>{title}</h1>
     <p class="lead">{lead}</p>
     {''.join(blocks)}
   </main>"""
+    full = "docs.html" if lang == "zh" else "en/docs.html"
+    return shell(lang, full, f"{title} — Vein Launcher", lead, body, order)
 
 
-def download_page(lang: str) -> str:
-    shot = "assets/shot-download.png" if lang == "zh" else "../assets/shot-download.png"
-    if lang == "zh":
-        return f"""<main class="wrap doc-index">
-    <h1>下载</h1>
-    <p class="lead">Windows 10/11 x64。解压即用，删除目录即卸载。</p>
-    <div class="download-card" style="margin:30px 0 50px;">
-      <div><span class="eyebrow">Latest</span><h2>Vein Launcher 0.5.0</h2>
-        <p>MLC 原版控制、附魔书指令速查、插件能力补全、总开关硬拦截。</p>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <a class="btn primary lg" href="{ZIP}">下载 zip（199 MB）</a>
-          <a class="btn lg" href="{REL}" target="_blank" rel="noopener">Release 说明</a>
-        </div>
-        <div class="download-meta"><span>v0.5.0</span><span>2026-11-08</span><span>SHA-256 1F3FDBFE…A176C</span></div>
-      </div>
-      <div class="role-visual"><img src="{shot}" alt="" /></div>
-    </div>
-    <ul><li><a href="releases.html">版本列表</a></li><li><a href="changelog.html">更新日志</a></li></ul>
-  </main>"""
-    return f"""<main class="wrap doc-index">
-    <h1>Download</h1>
-    <p class="lead">Windows 10/11 x64. Unzip and run; delete the folder to uninstall.</p>
-    <div class="download-card" style="margin:30px 0 50px;">
-      <div><span class="eyebrow">Latest</span><h2>Vein Launcher 0.5.0</h2>
-        <p>MLC vanilla control, enchanted-book command palette, plugin capabilities, hard master switch.</p>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <a class="btn primary lg" href="{ZIP}">Download zip (199 MB)</a>
-          <a class="btn lg" href="{REL}" target="_blank" rel="noopener">Release notes</a>
-        </div>
-        <div class="download-meta"><span>v0.5.0</span><span>2026-11-08</span><span>SHA-256 1F3FDBFE…A176C</span></div>
-      </div>
-      <div class="role-visual"><img src="{shot}" alt="" /></div>
-    </div>
-    <ul><li><a href="releases.html">All releases</a></li><li><a href="changelog.html">Changelog</a></li></ul>
-  </main>"""
-
-
-RELEASES_ZH = f"""<main class="wrap doc-index"><h1>版本</h1>
-    <p class="lead">每个版本都有对应的 GitHub Release 与下载资产。</p>
-    <table><thead><tr><th>版本</th><th>说明</th><th>日期</th></tr></thead><tbody>
-    <tr><td><a href="{REL}" target="_blank" rel="noopener">v0.5.0</a></td><td>MLC 原版控制、附魔书指令、插件能力、总开关</td><td>2026-11-08</td></tr>
-    <tr><td><a href="https://github.com/zhanjhn-studio/vein_launcher/releases/tag/v0.1.0" target="_blank" rel="noopener">v0.1.0</a></td><td>首个公开版本</td><td>2026-10-31</td></tr>
-    </tbody></table>
-    <p><a href="{GH}/releases" target="_blank" rel="noopener">在 GitHub 查看全部 →</a></p></main>"""
-
-RELEASES_EN = f"""<main class="wrap doc-index"><h1>Releases</h1>
-    <p class="lead">Every version has a GitHub Release and downloadable assets.</p>
-    <table><thead><tr><th>Version</th><th>Notes</th><th>Date</th></tr></thead><tbody>
-    <tr><td><a href="{REL}" target="_blank" rel="noopener">v0.5.0</a></td><td>MLC control, command palette, plugin capabilities, master switch</td><td>2026-11-08</td></tr>
-    <tr><td><a href="https://github.com/zhanjhn-studio/vein_launcher/releases/tag/v0.1.0" target="_blank" rel="noopener">v0.1.0</a></td><td>First public release</td><td>2026-10-31</td></tr>
-    </tbody></table>
-    <p><a href="{GH}/releases" target="_blank" rel="noopener">View all on GitHub →</a></p></main>"""
-
-CHANGELOG_ZH = """<main class="wrap doc-index"><h1>更新日志</h1><p class="lead">按版本倒序记录主要变化。</p>
-    <h2>v0.5.0 · 2026-11-08</h2>
-    <ul><li>MLC：原版 javaagent 控制层，状态 / 指令 / 事件，多实例端口</li>
-    <li>MLC 总开关：关闭时后端拒绝全部相关调用</li>
-    <li>指令速查：附魔书面板、Enter 发送、失败自动复制</li>
-    <li>热键：Ctrl+Alt+0..9 优先走 MLC</li>
-    <li>插件：game.running / app.info / versions.list / MLC 事件</li>
-    <li>界面：开关对齐、禁用态、翻译层修复</li></ul>
-    <h2>v0.1.0 · 2026-10-31</h2><ul><li>首个公开版本：版本下载、实例管理、皮肤、日志</li></ul></main>"""
-
-CHANGELOG_EN = """<main class="wrap doc-index"><h1>Changelog</h1><p class="lead">Main changes, newest first.</p>
-    <h2>v0.5.0 · 2026-11-08</h2>
-    <ul><li>MLC: vanilla javaagent control layer — state, commands, events, per-instance ports</li>
-    <li>MLC master switch: backend rejects all related calls while off</li>
-    <li>Command palette: enchanted-book UI, Enter sends, clipboard fallback</li>
-    <li>Hotkeys: Ctrl+Alt+0..9 prefer MLC</li>
-    <li>Plugins: game.running / app.info / versions.list / MLC events</li>
-    <li>UI: switch alignment, disabled states, translation fixes</li></ul>
-    <h2>v0.1.0 · 2026-10-31</h2><ul><li>First public release: versions, instances, skins, logs</li></ul></main>"""
-
-ABOUT_ZH = f"""<main class="wrap doc-index"><h1>关于</h1>
-    <p class="lead">Vein Launcher 由 Zhanjhn Studio 开发与维护。</p>
-    <p>项目定位是便携、可扩展的 Minecraft Java 启动器：不写注册表、数据自包含、插件与 MLC 控制层开放给二次开发。</p>
-    <ul><li><a href="{GH}" target="_blank" rel="noopener">GitHub 仓库</a></li><li><a href="docs.html">文档</a></li><li><a href="download.html">下载</a></li></ul></main>"""
-
-ABOUT_EN = f"""<main class="wrap doc-index"><h1>About</h1>
-    <p class="lead">Vein Launcher is built and maintained by Zhanjhn Studio.</p>
-    <p>A portable, extensible Minecraft Java launcher: no registry writes, self-contained data, plugins and MLC open for extension.</p>
-    <ul><li><a href="{GH}" target="_blank" rel="noopener">GitHub</a></li><li><a href="docs.html">Docs</a></li><li><a href="download.html">Download</a></li></ul></main>"""
-
-PRIVACY_ZH = """<main class="wrap doc-index"><h1>隐私</h1>
-    <p class="lead">本地优先：账号令牌、配置、日志都不上传。</p>
-    <h2>联网请求</h2>
-    <ul><li>版本清单 / 客户端 / 资源：BMCLAPI 与 Mojang 官方源</li><li>皮肤：LittleSkin / authlib-injector</li>
-    <li>公告与更新：GitHub、公告站</li><li>Java：Adoptium</li></ul>
-    <h2>本地存储</h2>
-    <p>所有数据位于 exe 同级 <code>VeinLauncher/</code>，可整体删除。</p></main>"""
-
-PRIVACY_EN = """<main class="wrap doc-index"><h1>Privacy</h1>
-    <p class="lead">Local first: tokens, config and logs never leave your machine.</p>
-    <h2>Network requests</h2>
-    <ul><li>Versions and assets: BMCLAPI / Mojang</li><li>Skins: LittleSkin / authlib-injector</li>
-    <li>Announcements and updates: GitHub</li><li>Java: Adoptium</li></ul>
-    <h2>Local storage</h2>
-    <p>Everything lives in <code>VeinLauncher/</code> next to the exe.</p></main>"""
-
-
-def build_lang(lang: str) -> int:
+def build_lang(lang: str) -> list[tuple[str, str, str]]:
     pages = pages_for(lang)
-    order = build_orders(lang)
-    count = 0
+    order = order_for(lang)
     base_dir = ROOT if lang == "zh" else ROOT / "en"
+    written: list[tuple[str, str, str]] = []
 
+    # docs
     for p in pages:
         out = base_dir / p["path"]
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(doc_page(lang, p, order), encoding="utf-8")
-        count += 1
+        written.append((lang + "/" + p["path"], p["title"], p["subtitle"]))
 
-    home_body = HOME_ZH_V6 if lang == "zh" else HOME_EN_V6.replace('src="assets/', 'src="../assets/')
-    root_bodies = {
-        "index.html": home_body,
-        "docs.html": docs_hub(lang, order),
-        "download.html": download_page(lang),
-        "releases.html": RELEASES_ZH if lang == "zh" else RELEASES_EN,
-        "changelog.html": CHANGELOG_ZH if lang == "zh" else CHANGELOG_EN,
-        "about.html": ABOUT_ZH if lang == "zh" else ABOUT_EN,
-        "privacy.html": PRIVACY_ZH if lang == "zh" else PRIVACY_EN,
-    }
-    titles = {
-        "index.html": "Vein Launcher — Minecraft，但更干净" if lang == "zh" else "Vein Launcher — Minecraft, but cleaner",
-        "docs.html": "文档 — Vein Launcher" if lang == "zh" else "Docs — Vein Launcher",
-        "download.html": "下载 — Vein Launcher" if lang == "zh" else "Download — Vein Launcher",
-        "releases.html": "版本 — Vein Launcher" if lang == "zh" else "Releases — Vein Launcher",
-        "changelog.html": "更新日志 — Vein Launcher" if lang == "zh" else "Changelog — Vein Launcher",
-        "about.html": "关于 — Vein Launcher" if lang == "zh" else "About — Vein Launcher",
-        "privacy.html": "隐私 — Vein Launcher" if lang == "zh" else "Privacy — Vein Launcher",
-    }
-    for path, body in root_bodies.items():
+    root_pages = {r[0]: r for r in ROOT_PAGES}
+    for path in [p[0] for p in ROOT_PAGES]:
         full = path if lang == "zh" else "en/" + path
-        (base_dir / path).write_text(shell(lang, path=full, title=titles[path], body=body, order=order), encoding="utf-8")
-        count += 1
-    return count
+        if path == "index.html":
+            home = HOME_ZH_V6 if lang == "zh" else HOME_EN_V6
+            if lang == "en":
+                home = home.replace('src="assets/', 'src="../assets/')
+            body = home
+            title = "Vein Launcher — Minecraft，但更干净" if lang == "zh" else "Vein Launcher — Minecraft, but cleaner"
+            desc = "便携 Minecraft Java 启动器" if lang == "zh" else "Portable Minecraft Java launcher"
+        elif path == "docs.html":
+            out = base_dir / path
+            out.write_text(docs_hub(lang, order), encoding="utf-8")
+            written.append((full, "Docs", "Documentation"))
+            continue
+        elif path in GROUP_LANDING:
+            out = base_dir / path
+            out.write_text(group_landing(lang, path, order), encoding="utf-8")
+            written.append((full, path, "group"))
+            continue
+        elif path == "faq.html":
+            out = base_dir / path
+            out.write_text(faq_page(lang, order), encoding="utf-8")
+            written.append((full, "FAQ", "FAQ"))
+            continue
+        elif path == "releases.html":
+            body = RELEASES_ZH if lang == "zh" else RELEASES_EN
+            title = "版本 — Vein Launcher" if lang == "zh" else "Releases — Vein Launcher"
+            desc = "全部版本与下载"
+        elif path == "changelog.html":
+            body = CHANGELOG_ZH if lang == "zh" else CHANGELOG_EN
+            title = "更新日志 — Vein Launcher" if lang == "zh" else "Changelog — Vein Launcher"
+            desc = "版本更新内容"
+        else:
+            zh_body, en_body = ROOT_CONTENT[path]
+            body = zh_body if lang == "zh" else en_body
+            if lang == "zh":
+                body = body.replace('href="../', 'href="').replace('src="../', 'src="')
+            else:
+                import re as _re
+                body = _re.sub(r'href="\.\./([^"]+\.html)"', r'href="\1"', body)
+            if not body.lstrip().startswith("<main"):
+                body = '<main class="wrap doc-index">' + body + "</main>" 
+            title = root_pages[path][2] if lang == "zh" else root_pages[path][4]
+            desc = re.sub(r"<[^>]+>", "", body.split("</h1>")[0])[:120]
+        out = base_dir / path
+        out.write_text(shell(lang, full, title, desc or title, body, order), encoding="utf-8")
+        written.append((full, title, desc or ""))
+
+    # 图片路径修正（首页英文）
+    return written
 
 
-def build_redirects() -> None:
-    targets = {
-        "quickstart.html": "docs.html", "player.html": "docs.html", "developer.html": "docs.html",
-        "plugin.html": "docs.html", "mlc.html": "docs.html", "faq.html": "reference/faq.html",
-    }
-    for old, new in targets.items():
-        (ROOT / old).write_text(
-            f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8" />
-<meta http-equiv="refresh" content="0;url={new}" /><link rel="canonical" href="{new}" />
-<title>Moved — Vein Launcher</title></head><body style="font-family:system-ui;padding:40px">
-<p>This page moved to <a href="{new}">{new}</a>.</p></body></html>""",
-            encoding="utf-8",
-        )
+def build_search_index() -> None:
+    entries = []
+    for lang, pages in (("zh", PAGES), ("en", PAGES_EN)):
+        for p in pages:
+            text = re.sub(r"<[^>]+>", " ", p["body"])
+            text = re.sub(r"\s+", " ", text).strip()[:140]
+            url = ("../" + p["path"]) if lang == "en" else p["path"]
+            entries.append({
+                "t": p["title"], "s": p["subtitle"], "x": text,
+                "u": url, "g": p["group"], "l": lang,
+            })
+    for path, zh_title, _zh, en_title, _en in ROOT_PAGES:
+        entries.append({"t": zh_title, "s": "", "x": "", "u": path, "g": "页面", "l": "zh"})
+        entries.append({"t": en_title, "s": "", "x": "", "u": "en/" + path, "g": "Page", "l": "en"})
+    import json
+    (ROOT / "assets" / "search-index.js").write_text(
+        "window.VL_SEARCH=" + json.dumps(entries, ensure_ascii=False) + ";\n", encoding="utf-8"
+    )
+
+
+def build_sitemap() -> None:
+    urls = []
+    for path, *_ in ROOT_PAGES:
+        urls.append(path)
+        urls.append("en/" + path)
+    for p in PAGES:
+        urls.append(p["path"])
+        urls.append("en/" + p["path"])
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for u in urls:
+        lines.append(f"  <url><loc>https://zhanjhn-studio.github.io/vein_launcher/{u}</loc></url>")
+    lines.append("</urlset>")
+    (ROOT / "sitemap.xml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (ROOT / "robots.txt").write_text("User-agent: *\nAllow: /\nSitemap: https://zhanjhn-studio.github.io/vein_launcher/sitemap.xml\n", encoding="utf-8")
 
 
 def main() -> None:
     zh = build_lang("zh")
     en = build_lang("en")
-    build_redirects()
-    print(f"generated zh={zh} en={en} pages + redirects")
+    build_search_index()
+    build_sitemap()
+    # 旧链接重定向保持可用
+    for old in ("quickstart.html",):
+        pass
+    print(f"generated zh={len(zh)} en={len(en)} + sitemap + search index")
 
 
 if __name__ == "__main__":

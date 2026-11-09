@@ -672,3 +672,10 @@ window.__veinResult(12, true, {ok: 1})
   删除未使用图片：bucket / experience_bottle / vanilla_anvil（webui icons 与 dist），
   及孤儿素材 wordmark.png / _slide.png / logo.svg；官网截图全部换成新主题的 0.5.0 截图；
   删除网站未引用资源 cursor-*.png / film.css / film.js / shot-mlc-off.png · 已重启验证（PID 46380）
+
+- **2026-11-09 · docs/site-v7** — 官网补齐正规化页面与底层能力：
+  新增 quickstart / player / developer / plugin / mlc 文档入口页、faq 全文页、download（SHA-256 / 平台 / 更新时间 / 历史版本）、
+  releases / changelog、roadmap、security、contribute、showcase、community、about、privacy、license（MIT）；
+  导航改为 首页 / 文档 / 下载 / 社区 + GitHub，页脚升级为品牌 + 产品/社区/资源/法务四栏 + MIT/版权/版本；
+  文档页新增全局搜索（Ctrl+K、静态索引、按语言过滤）、版本切换选择器、右侧大纲滚动高亮；
+  新增 sitemap.xml、robots.txt、每页独立 description；中英双语 98 页 · 链接缺失 0
