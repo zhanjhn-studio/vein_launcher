@@ -9,6 +9,8 @@ from pathlib import Path
 from site_content import PAGES
 from site_content_en import PAGES_EN
 from site_home_v6 import HOME_EN as HOME_EN_V6, HOME_ZH as HOME_ZH_V6
+from site_docs_extra_zh import EXTRA as EXTRA_ZH
+from site_docs_extra_en import EXTRA as EXTRA_EN
 from site_pages import (
     ABOUT_EN, ABOUT_ZH, COMMUNITY_EN, COMMUNITY_ZH, CONTRIBUTE_EN, CONTRIBUTE_ZH,
     DOWNLOAD_EN, DOWNLOAD_ZH, LICENSE_EN, LICENSE_ZH, PRIVACY_EN, PRIVACY_ZH,
@@ -282,7 +284,8 @@ def doc_page(lang: str, p: dict, order: list[str]) -> str:
     prev_p = docs[pos - 1] if pos > 0 else None
     next_p = docs[pos + 1] if pos + 1 < len(docs) else None
 
-    body, toc = with_ids_and_toc(p["body"], lang)
+    extra = EXTRA_ZH if lang == "zh" else EXTRA_EN
+    body, toc = with_ids_and_toc(p["body"] + extra.get(p["path"], ""), lang)
     pager = '<div class="pager">'
     pager += (f'<a href="../{prev_p["path"]}" data-order="{order.index(prev_p["path"])}">← {prev_p["title"]}</a>'
               if prev_p else "<span></span>")
@@ -358,7 +361,8 @@ def group_landing(lang: str, path: str, order: list[str]) -> str:
 def faq_page(lang: str, order: list[str]) -> str:
     faq = next(p for p in PAGES if p["path"] == "reference/faq.html")
     data = faq if lang == "zh" else next(p for p in PAGES_EN if p["path"] == "reference/faq.html")
-    body, _ = with_ids_and_toc(data["body"], lang)
+    extra = (EXTRA_ZH if lang == "zh" else EXTRA_EN).get(data["path"], "")
+    body, _ = with_ids_and_toc(data["body"] + extra, lang)
     title = "FAQ" if lang == "zh" else "FAQ"
     main = f"""<main class="wrap doc-index faq-page">
     <h1>{title}</h1>

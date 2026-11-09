@@ -43,12 +43,12 @@ HOME_ZH = f"""<main>
 
   <section class="feature-band">
     <div class="wrap feature-grid">
-      <article class="feature" data-tilt><div class="fi">⚡</div><h3>原版直连（MLC）</h3><p>5 KB javaagent + 官方映射，不装 mod 也能读状态、发指令、收事件。</p></article>
-      <article class="feature" data-tilt><div class="fi">📖</div><h3>附魔书指令速查</h3><p>Ctrl+Alt+Q 打开，Enter 直接发送进游戏，失败自动复制。</p></article>
-      <article class="feature" data-tilt><div class="fi">🧩</div><h3>沙箱插件宿主</h3><p>独立 Node 进程、权限声明、Lua UI，越权直接拒绝。</p></article>
-      <article class="feature" data-tilt><div class="fi">🎨</div><h3>皮肤直接进游戏</h3><p>LittleSkin 走 authlib-injector；本地皮肤配 Fabric 注入。</p></article>
-      <article class="feature" data-tilt><div class="fi">🪟</div><h3>多实例并行</h3><p>每个实例独立进程与端口，同时开多个游戏互不干扰。</p></article>
-      <article class="feature" data-tilt><div class="fi">🌐</div><h3>中英双语</h3><p>界面、文档、公告都支持简体中文与 English。</p></article>
+      <article class="feature" data-tilt><h3>原版直连（MLC）</h3><p>5 KB javaagent + 官方映射，不装 mod 也能读状态、发指令、收事件。</p></article>
+      <article class="feature" data-tilt><h3>附魔书指令速查</h3><p>Ctrl+Alt+Q 打开，Enter 直接发送进游戏，失败自动复制。</p></article>
+      <article class="feature" data-tilt><h3>沙箱插件宿主</h3><p>独立 Node 进程、权限声明、Lua UI，越权直接拒绝。</p></article>
+      <article class="feature" data-tilt><h3>皮肤直接进游戏</h3><p>LittleSkin 走 authlib-injector；本地皮肤配 Fabric 注入。</p></article>
+      <article class="feature" data-tilt><h3>多实例并行</h3><p>每个实例独立进程与端口，同时开多个游戏互不干扰。</p></article>
+      <article class="feature" data-tilt><h3>中英双语</h3><p>界面、文档、公告都支持简体中文与 English。</p></article>
     </div>
   </section>
 
@@ -157,12 +157,12 @@ HOME_EN = f"""<main>
   </section>
 
   <section class="feature-band"><div class="wrap feature-grid">
-    <article class="feature" data-tilt><div class="fi">⚡</div><h3>Vanilla control (MLC)</h3><p>A 5 KB javaagent plus official mappings: state, commands and events without a mod.</p></article>
-    <article class="feature" data-tilt><div class="fi">📖</div><h3>Command palette</h3><p>Ctrl+Alt+Q, Enter sends straight into the game; failures copy to clipboard.</p></article>
-    <article class="feature" data-tilt><div class="fi">🧩</div><h3>Sandboxed plugins</h3><p>Isolated Node processes, declared permissions and Lua UI.</p></article>
-    <article class="feature" data-tilt><div class="fi">🎨</div><h3>Skins in game</h3><p>LittleSkin through authlib-injector; local skins with Fabric support.</p></article>
-    <article class="feature" data-tilt><div class="fi">🪟</div><h3>Multiple instances</h3><p>Separate processes and agent ports; run several games at once.</p></article>
-    <article class="feature" data-tilt><div class="fi">🌐</div><h3>Bilingual</h3><p>Launcher, docs and announcements in English and Simplified Chinese.</p></article>
+    <article class="feature" data-tilt><h3>Vanilla control (MLC)</h3><p>A 5 KB javaagent plus official mappings: state, commands and events without a mod.</p></article>
+    <article class="feature" data-tilt><h3>Command palette</h3><p>Ctrl+Alt+Q, Enter sends straight into the game; failures copy to clipboard.</p></article>
+    <article class="feature" data-tilt><h3>Sandboxed plugins</h3><p>Isolated Node processes, declared permissions and Lua UI.</p></article>
+    <article class="feature" data-tilt><h3>Skins in game</h3><p>LittleSkin through authlib-injector; local skins with Fabric support.</p></article>
+    <article class="feature" data-tilt><h3>Multiple instances</h3><p>Separate processes and agent ports; run several games at once.</p></article>
+    <article class="feature" data-tilt><h3>Bilingual</h3><p>Launcher, docs and announcements in English and Simplified Chinese.</p></article>
   </div></section>
 
   <section class="section steps-sec"><div class="wrap">
