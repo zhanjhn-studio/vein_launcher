@@ -29,6 +29,16 @@ interface RemoteVersion {
   release_time?: string;
 }
 
+interface ModVersion {
+  id: string;
+  version_number: string;
+  name?: string;
+  game_versions: string[];
+  loaders: string[];
+  date?: string;
+  file?: { name: string; size?: number };
+}
+
 export function DownloadPage({
   installed,
   onInstalled,
@@ -52,6 +62,8 @@ export function DownloadPage({
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [installing, setInstalling] = useState('');
   const [modTasks, setModTasks] = useState<{ id: string; title: string; state: string }[]>([]);
+  const [projectVersions, setProjectVersions] = useState<ModVersion[]>([]);
+  const [pvLoading, setPvLoading] = useState(false);
   const [optiLog, setOptiLog] = useState('');
 
   useEffect(() => {
@@ -150,7 +162,21 @@ export function DownloadPage({
     }
   };
 
-  const installProject = async (item: ModItem) => {
+  const openDetail = async (item: ModItem) => {
+    setDetail(item);
+    setProjectVersions([]);
+    setPvLoading(true);
+    try {
+      const list = await rpc<ModVersion[]>('mods.versions', [item.slug, mcVersion, loader]);
+      setProjectVersions(list);
+    } catch (err) {
+      notify(`版本列表加载失败：${(err as Error).message}`);
+    } finally {
+      setPvLoading(false);
+    }
+  };
+
+  const installProject = async (item: ModItem, versionId = '') => {
     const instance = targetInstance || installed[0]?.id;
     if (!instance) {
       notify('Install a game version first');
@@ -162,7 +188,7 @@ export function DownloadPage({
     try {
       const res = await rpc<{ needsLoader?: boolean; mcVersion?: string; justInstalled?: boolean }>(
         'mods.install',
-        [item.slug, instance, projectType || 'mod', loader]
+        [item.slug, instance, projectType || 'mod', loader, versionId]
       );
       if (res?.needsLoader) {
         const mc = res.mcVersion || instance;
@@ -392,16 +418,48 @@ export function DownloadPage({
                 </option>
               ))}
             </select>
-            <button className="btn primary" onClick={() => installProject(detail)} disabled={busy === 'install'}>
-              {busy === 'install' ? 'Installing…' : 'Install'}
+            <button
+              className="btn primary"
+              onClick={() => installProject(detail)}
+              disabled={!!installing}
+            >
+              {installing ? 'Installing…' : 'Install latest'}
             </button>
+          </div>
+
+          <div className="version-list">
+            <div className="card-title">
+              版本列表 {pvLoading ? '· 加载中…' : `· ${projectVersions.length}`}
+            </div>
+            {projectVersions.length === 0 && !pvLoading && (
+              <div className="muted">没有匹配当前版本 / 加载器的文件，可以清空上方筛选再试。</div>
+            )}
+            {projectVersions.map((v) => (
+              <div className="version-row" key={v.id}>
+                <div className="version-main">
+                  <b>{v.version_number || v.name || v.id}</b>
+                  <span className="muted">
+                    {(v.game_versions || []).slice(0, 4).join(' / ') || 'any'}
+                    {v.loaders?.length ? ` · ${v.loaders.join(' / ')}` : ''}
+                    {v.date ? ` · ${v.date.slice(0, 10)}` : ''}
+                  </span>
+                </div>
+                <button
+                  className="btn sm"
+                  onClick={() => installProject(detail, v.id)}
+                  disabled={!!installing}
+                >
+                  安装
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       ) : (
         <>
           <div className="proj-grid">
             {items.map((item) => (
-              <button className="proj-card" key={item.slug} onClick={() => setDetail(item)}>
+              <button className="proj-card" key={item.slug} onClick={() => openDetail(item)}>
                 <RemoteIcon src={item.icon} />
                 <div>
                   <b>{item.title}</b>

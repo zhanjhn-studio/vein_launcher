@@ -40,7 +40,7 @@ class ModpackService:
             raise VeinError(f"整合包损坏：{exc}") from exc
 
     # ------------------------------------------------------------------
-    async def install(self, archive: Path, instance_id: str) -> Dict[str, Any]:
+    async def install(self, archive: Path, instance_id: str, progress=None) -> Dict[str, Any]:
         index = self.read_index(archive)
         instance_dir = ensure_dir(get_version_dir(instance_id))
 
@@ -74,6 +74,7 @@ class ModpackService:
         downloader = self._downloader or Downloader()
         owns = self._downloader is None
         ok = failed = 0
+        total_files = max(1, len(tasks))
         try:
             for url, target, sha1 in tasks:
                 try:
@@ -82,6 +83,8 @@ class ModpackService:
                 except Exception as exc:
                     failed += 1
                     logger.error("整合包文件失败 %s：%s", target.name, exc)
+                if progress:
+                    progress(ok + failed, total_files)
         finally:
             if owns:
                 await downloader.close()

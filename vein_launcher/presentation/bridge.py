@@ -158,6 +158,7 @@ class ApiBridge(QObject):
             "accounts.select": self._accounts_select,
             "mods.search": self._mods_search,
             "mods.featured": self._mods_featured,
+            "mods.versions": self._mods_versions,
             "mods.install": self._mods_install,
             "java.detect": self._java_detect,
             "java.ensure": self._java_ensure,
@@ -504,7 +505,30 @@ class ApiBridge(QObject):
         )
         return [self._ctx.modrinth.summary(hit) for hit in hits]
 
-    async def _mods_install(self, slug: str, instance: str, project_type: str, loader: str) -> dict:
+    async def _mods_versions(self, slug: str, mc_version: str = "", loader: str = "") -> list:
+        versions = await self._ctx.modrinth.versions(
+            str(slug), game_version=str(mc_version) or None, loader=str(loader) or None
+        )
+        rows = []
+        for item in versions:
+            file = self._ctx.modrinth.file_of(item)
+            if not file:
+                continue
+            rows.append(
+                {
+                    "id": item.get("id", ""),
+                    "name": item.get("name", ""),
+                    "version_number": item.get("version_number", ""),
+                    "game_versions": item.get("game_versions", []),
+                    "loaders": item.get("loaders", []),
+                    "date": item.get("date_published", ""),
+                    "downloads": item.get("downloads", 0),
+                    "file": file,
+                }
+            )
+        return rows
+
+    async def _mods_install(self, slug: str, instance: str, project_type: str, loader: str, version_id: str = "") -> dict:
         import re as _re
 
         instance_id = str(instance)
@@ -525,6 +549,9 @@ class ApiBridge(QObject):
                 break
         effective_loader = instance_loader or str(loader) or None
         versions = await self._ctx.modrinth.versions(str(slug), loader=effective_loader)
+        if version_id:
+            picked = next((v for v in versions if str(v.get("id")) == str(version_id)), None)
+            versions = [picked] if picked else []
         if not versions:
             raise RuntimeError("没有可下载的文件")
         file = self._ctx.modrinth.file_of(versions[0])
@@ -537,10 +564,29 @@ class ApiBridge(QObject):
 
             workdir = Path(tempfile.mkdtemp(prefix="vein_pack_"))
             archive = workdir / file["name"]
+            task_id = f"pack-{slug}"
+            self._downloads[task_id] = {
+                "id": task_id, "name": str(slug), "done": 0, "total": 0, "active": True, "error": None,
+            }
             try:
-                await self._ctx.modrinth_download(file["url"], archive, file.get("sha1"))
-                return await self._ctx.modpacks.install(archive, str(instance))
+                await self._ctx.modrinth_download(
+                    file["url"], archive, file.get("sha1"),
+                    progress=lambda done, total: self._progress(task_id, done, total),
+                )
+                return await self._ctx.modpacks.install(
+                    archive,
+                    str(instance),
+                    progress=lambda done, total: self._progress(task_id, done, total),
+                )
+            except Exception as exc:
+                entry = self._downloads.get(task_id)
+                if entry:
+                    entry.update(active=False, error=str(exc))
+                raise
             finally:
+                entry = self._downloads.get(task_id)
+                if entry and entry.get("error") is None:
+                    entry.update(active=False)
                 shutil.rmtree(workdir, ignore_errors=True)
 
         target_dir = self._ctx.instance_sub_dir(str(instance), str(project_type))

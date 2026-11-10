@@ -344,7 +344,14 @@ export function DownloadMonitor() {
     : 0;
 
   return (
-    <div className={`monitor ${running.length ? 'busy' : ''}`} title="Download monitor">
+    <div
+      className={`monitor ${running.length ? 'busy' : ''}`}
+      title="Download monitor"
+      role="button"
+      tabIndex={0}
+      onClick={() => { window.location.hash = '#/downloads'; }}
+      onKeyDown={(e) => { if (e.key === 'Enter') window.location.hash = '#/downloads'; }}
+    >
       <div className="monitor-mini">
         <div
           className="monitor-ring"

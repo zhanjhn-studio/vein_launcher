@@ -6,7 +6,9 @@ import {
   MlcPage,
   MultiplayerPage,
   PluginsPage,
+
 } from './pages';
+import { DownloadsPage } from './downloadsPage';
 import { LaunchPage } from './launchPage';
 import { DownloadPage } from './downloadPage';
 import { SettingsPage } from './settingsPage';
@@ -48,7 +50,7 @@ interface AnnouncementPayload {
   update: { version?: string; url?: string; notes?: string };
 }
 
-const KNOWN_PAGES = new Set([...NAV.map((n) => n.key), 'instance']);
+const KNOWN_PAGES = new Set([...NAV.map((n) => n.key), 'instance', 'downloads']);
 
 function pageFromHash(): string {
   const raw = window.location.hash.replace(/^#\/?/, '').trim();
@@ -339,6 +341,7 @@ export function App() {
             <DownloadPage installed={installed} onInstalled={refreshInstalled} notify={notify} />
           )}
           {page === 'plugins' && <PluginsPage notify={notify} />}
+          {page === 'downloads' && <DownloadsPage />}
           {page === 'mlc' && <MlcPage installed={installed} selected={selected} notify={notify} />}
           {page === 'multiplayer' && <MultiplayerPage />}
           {page === 'settings' && <SettingsPage notify={notify} />}

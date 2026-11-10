@@ -67,7 +67,11 @@ MOCK = r"""
       case 'update.latest': return { available: false, current: '0.1.0' };
       case 'ui.prefs': return { compactMode: false, idleSeconds: 60, wallpaper: null };
       case 'i18n.get': return { lang: 'en_US' };
-      case 'downloads.list': return [];
+      case 'downloads.list': return [
+        { id: 'pack-bmc2', name: 'Better MC [FABRIC] - BMC2', done: 32000000, total: 78000000, active: true, error: null },
+        { id: 'mod-sodium', name: 'sodium', done: 2400000, total: 2400000, active: false, error: null },
+        { id: 'node-install', name: 'Node.js', done: 0, total: 0, active: false, error: 'network timeout' }
+      ];
       case 'mlc.state': return { connected: false, pid: null };
       case 'game.running': return { games: [
         { pid: 8420, version_id: '1.20.1', source: 'launcher', started_at: 0, uptime: 1290, memory_mb: 1487, title: 'Minecraft', game_dir: '' },
@@ -106,6 +110,11 @@ MOCK = r"""
         examples: [], capabilities: []
       };
       case 'plugins.logs': return [];
+      case 'mods.versions': return [
+        { id: 'v1', version_number: '1.2.3', name: 'BMC2 1.2.3', game_versions: ['1.20.1'], loaders: ['fabric'], date: '2026-11-01T00:00:00Z', file: { name: 'bmc2-1.2.3.mrpack', size: 1200000 } },
+        { id: 'v2', version_number: '1.2.2', name: 'BMC2 1.2.2', game_versions: ['1.20.1'], loaders: ['fabric'], date: '2026-10-20T00:00:00Z', file: { name: 'bmc2-1.2.2.mrpack', size: 1180000 } },
+        { id: 'v3', version_number: '1.2.1', name: 'BMC2 1.2.1', game_versions: ['1.20.1'], loaders: ['fabric'], date: '2026-10-10T00:00:00Z', file: { name: 'bmc2-1.2.1.mrpack', size: 1170000 } }
+      ];
       case 'mods.featured': return [
         { slug: 'sodium', title: 'Sodium', description: 'Modern rendering engine', icon: 'icons/crafting_table.png',
           downloads: 1234567, author: 'jellysquid', type: 'mod', url: '' },

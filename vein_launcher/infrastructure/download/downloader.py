@@ -147,6 +147,61 @@ class Downloader:
 
             raise DownloadError(f"下载失败：{last_error}", url=url)
 
+    async def _transfer_segmented(self, url: str, dest: Path, sha1: Optional[str],
+                                  progress: Optional[ProgressCallback], size: int,
+                                  parts: int = 4, resume_from: int = 0) -> None:
+        """多连接 Range 下载：失败由调用方回退单线程。"""
+        import shutil
+
+        part_dir = dest.with_name(dest.name + ".parts")
+        shutil.rmtree(part_dir, ignore_errors=True)
+        part_dir.mkdir(parents=True, exist_ok=True)
+        chunk = max(1, size // parts)
+        ranges = []
+        for index in range(parts):
+            start = index * chunk
+            end = size - 1 if index == parts - 1 else min(size - 1, start + chunk - 1)
+            ranges.append((index, start, end))
+
+        session = await self.session()
+        written = [0] * parts
+        lock = asyncio.Lock()
+
+        async def fetch(index: int, start: int, end: int) -> None:
+            path = part_dir / f"{index:03d}.bin"
+            headers = {"Range": f"bytes={start}-{end}"}
+            async with session.get(url, headers=headers) as response:
+                if response.status != 206:
+                    raise RuntimeError("server does not support range requests")
+                with path.open("wb") as fh:
+                    async for piece in response.content.iter_chunked(CHUNK_SIZE):
+                        fh.write(piece)
+                        written[index] += len(piece)
+                        if progress:
+                            async with lock:
+                                progress(resume_from + sum(written), size)
+
+        await asyncio.gather(*(fetch(i, s, e) for i, s, e in ranges))
+
+        hasher = hashlib.sha1()
+        with dest.with_name(dest.name + ".part").open("wb") as out:
+            for index, _start, _end in ranges:
+                with (part_dir / f"{index:03d}.bin").open("rb") as fh:
+                    while True:
+                        block = fh.read(1024 * 1024)
+                        if not block:
+                            break
+                        out.write(block)
+                        hasher.update(block)
+        shutil.rmtree(part_dir, ignore_errors=True)
+
+        actual = hasher.hexdigest()
+        if sha1 and actual.lower() != sha1.lower():
+            dest.with_name(dest.name + ".part").unlink(missing_ok=True)
+            raise SHA1MismatchError("SHA-1 校验失败", expected=sha1, actual=actual,
+                                    file_path=str(dest))
+        os.replace(dest.with_name(dest.name + ".part"), dest)
+
     async def _transfer(self, url: str, dest: Path, sha1: Optional[str],
                         size: Optional[int], progress: Optional[ProgressCallback]) -> None:
         ensure_dir(dest.parent)
@@ -172,7 +227,17 @@ class Downloader:
                 resume_from = 0
                 part.unlink(missing_ok=True)
 
-            total = resume_from + int(response.headers.get("Content-Length", 0) or 0)
+            content_length = int(response.headers.get("Content-Length", 0) or 0)
+            total = resume_from + content_length
+            # 大文件且服务端支持 Range 时，4 连接并行下载；失败自动回退单线程
+            if content_length >= 8 * 1024 * 1024 and not insecure:
+                try:
+                    await self._transfer_segmented(
+                        url, dest, sha1, progress, content_length, parts=4, resume_from=0
+                    )
+                    return
+                except Exception as exc:
+                    logger.debug("多线程下载失败，回退单线程：%s", exc)
             hasher = hashlib.sha1()
             if resume_from:
                 await asyncio.to_thread(self._hash_prefix, part, hasher)
