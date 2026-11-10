@@ -75,16 +75,27 @@ class ModpackService:
         owns = self._downloader is None
         ok = failed = 0
         total_files = max(1, len(tasks))
-        try:
-            for url, target, sha1 in tasks:
+        gate = asyncio.Semaphore(4)
+        import threading
+
+        lock = threading.Lock()
+
+        async def fetch(url: str, target: Path, sha1) -> None:
+            nonlocal ok, failed
+            async with gate:
                 try:
                     await downloader.download(url, target, sha1=sha1)
-                    ok += 1
+                    with lock:
+                        ok += 1
                 except Exception as exc:
-                    failed += 1
+                    with lock:
+                        failed += 1
                     logger.error("整合包文件失败 %s：%s", target.name, exc)
                 if progress:
                     progress(ok + failed, total_files)
+
+        try:
+            await asyncio.gather(*(fetch(url, target, sha1) for url, target, sha1 in tasks))
         finally:
             if owns:
                 await downloader.close()

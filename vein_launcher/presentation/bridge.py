@@ -714,7 +714,9 @@ class ApiBridge(QObject):
         return self._ctx.plugins.install_example(str(name))
 
     async def _downloads_list(self) -> list:
-        return list(self._downloads.values())
+        # 只保留最近 20 条，避免长期使用后列表无限增长
+        items = list(self._downloads.values())
+        return items[-20:]
 
     async def _i18n_get(self) -> dict:
         from vein_launcher.common.i18n.translator import translator

@@ -166,11 +166,12 @@ class Downloader:
         session = await self.session()
         written = [0] * parts
         lock = asyncio.Lock()
+        timeout = aiohttp.ClientTimeout(total=120, sock_read=45)
 
         async def fetch(index: int, start: int, end: int) -> None:
             path = part_dir / f"{index:03d}.bin"
             headers = {"Range": f"bytes={start}-{end}"}
-            async with session.get(url, headers=headers) as response:
+            async with session.get(url, headers=headers, timeout=timeout) as response:
                 if response.status != 206:
                     raise RuntimeError("server does not support range requests")
                 with path.open("wb") as fh:
@@ -181,7 +182,14 @@ class Downloader:
                             async with lock:
                                 progress(resume_from + sum(written), size)
 
-        await asyncio.gather(*(fetch(i, s, e) for i, s, e in ranges))
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*(fetch(i, s, e) for i, s, e in ranges)), timeout=180
+            )
+        except Exception:
+            shutil.rmtree(part_dir, ignore_errors=True)
+            dest.with_name(dest.name + ".part").unlink(missing_ok=True)
+            raise
 
         hasher = hashlib.sha1()
         with dest.with_name(dest.name + ".part").open("wb") as out:
@@ -206,6 +214,10 @@ class Downloader:
                         size: Optional[int], progress: Optional[ProgressCallback]) -> None:
         ensure_dir(dest.parent)
         part = dest.with_name(dest.name + ".part")
+        # 上一轮多线程中断留下的分段目录：重下前清掉，避免占空间/误用
+        import shutil as _shutil
+
+        _shutil.rmtree(dest.with_name(dest.name + ".parts"), ignore_errors=True)
         try:
             resume_from = part.stat().st_size if part.exists() else 0
         except FileNotFoundError:
@@ -230,7 +242,7 @@ class Downloader:
             content_length = int(response.headers.get("Content-Length", 0) or 0)
             total = resume_from + content_length
             # 大文件且服务端支持 Range 时，4 连接并行下载；失败自动回退单线程
-            if content_length >= 8 * 1024 * 1024 and not insecure:
+            if content_length >= 32 * 1024 * 1024 and not insecure:
                 try:
                     await self._transfer_segmented(
                         url, dest, sha1, progress, content_length, parts=4, resume_from=0
