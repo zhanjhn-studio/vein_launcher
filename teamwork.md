@@ -24,7 +24,7 @@
 | 定位 | Minecraft Java 版启动器，Windows 10/11 x64，便携免安装 |
 | 仓库 | github.com/zhanjhn-studio/vein_launcher（public，MIT） |
 | 版本 | **0.5.0**（`vein_launcher/presentation/context.py` 的 `VERSION`；包内 `__version__ = 0.5.0`） |
-| 当前 HEAD | `ccaa82c`（refactor(i18n): 汉化改用上游 i18nDom 词典，保留自定义主题色） |
+| 当前 HEAD | `ccb17bf`（feat(ui): 首次启动语言选择 + DPI 感知修复 + 引导页汉化） |
 | 发布 | tag `v0.1.0`（`5e66188`，**落后 main**）；资产 `VeinLauncher-0.1.0-win64.zip`（249,873,131 B）+ `latest.json` |
 | 技术栈 | Python 3.13 · PySide6 6.12 + QWebEngine · React 19 + TypeScript（esbuild）· Layui 仅控件结构 · Node 18+（插件宿主）· aiohttp · pydantic v2 · PyInstaller onedir |
 | 规模 | Python 70 个文件 ≈9,469 行 · 前端 17 个文件 5,017 行 · RPC 66 个方法（20 组）· 测试 51 项 |
@@ -723,3 +723,19 @@ window.__veinResult(12, true, {ok: 1})
 - **2026-11-10 · fix/console-windows + downloads-delete** — 减少子进程 console 闪窗：
   新增 `common/utils/console.py`（CREATE_NO_WINDOW + STARTF_USESHOWWINDOW），应用到插件宿主 node、Java 检测、游戏启动、加载器安装、
   Forge/OptiFine 安装、更新安装器、资源管理器打开、Node 版本查询等全部 spawn 点；新增 `downloads.remove` RPC 与下载页删除按钮（进行中显示 × 移除、完成显示 × 删除）、一键清空已完成。
+- **2026-11-10 · onboarding/lang** — 首次启动向导加第 1 步「语言」：两张大卡片
+  （简体中文 / English），点选即时生效；步骤 5 → 6 步 ·
+  `onboarding.tsx`、`styles.css`、`i18n.ts`、`i18nDom.ts`
+- **2026-11-10 · fix/i18n-default** — 修「全新安装整页英文」：`Translator` 只认
+  `config/language.json`，没有该文件时退回 `DEFAULT_LANG(en_US)`，无视
+  `config.json` 的 `ui.language`；改为回落 `settings.ui.language`，
+  并在 `i18n.set` 时把语言同步写回 `config.json` · `translator.py`、`bridge.py` ·
+  实测全新数据目录下向导各步标题全中文
+- **2026-11-10 · i18n/zh** — 补约 50 条词条（引导页正文/按钮/步骤名、通用项）；
+  上游已自行修掉「React 复用节点导致旧原文查词典」的串词问题，本次不再重复
+- **2026-11-10 · fix/checkbox** — 修首次启动勾选框压住协议文字：
+  layui `.layui-form-checkbox>i` 的 `position:absolute` 未被覆盖 · `styles.css`
+- **2026-11-10 · fix/dpi** — 修启动时全屏窗口闪动 + 界面放大 1.5 倍：进程 DPI 不感知，
+  150% 下由 DWM 位图放大且切换缩放上下文；`main.py` 在导入 PySide6 前
+  `SetProcessDpiAwarenessContext(-4)`，窗口尺寸按可用屏幕收敛 ·
+  实测 awareness 0→2、dpi 96→144、窗口 1805×993 适配 1920×1080
