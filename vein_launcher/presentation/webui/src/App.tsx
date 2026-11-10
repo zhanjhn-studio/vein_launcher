@@ -329,6 +329,7 @@ export function App() {
         <div className="main-body">
           {page === 'launch' && (
             <LaunchPage
+              onRefresh={refreshInstalled}
               installed={installed}
               accounts={accounts}
               selected={selected}

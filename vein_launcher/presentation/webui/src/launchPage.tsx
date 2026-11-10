@@ -32,6 +32,7 @@ export function LaunchPage({
   onSelect,
   onManage,
   onNavigate,
+  onRefresh,
   notify,
   announcements = [],
 }: {
@@ -197,7 +198,18 @@ export function LaunchPage({
 
           {installed.length === 0 ? (
             <div className="card">
-              <div className="empty">Nothing installed yet. Install one from Download.</div>
+              <div className="empty">
+                Nothing installed yet. Install one from Download.
+                {onRefresh && (
+                  <button
+                    className="btn sm"
+                    style={{ marginLeft: 10 }}
+                    onClick={() => onRefresh().catch(() => {})}
+                  >
+                    刷新列表
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="version-cards">
