@@ -409,6 +409,7 @@ class ApiBridge(QObject):
                     )
                     source = str(version_id)
 
+                self._run_js("window.__veinInstalled && window.__veinInstalled()")
                 if custom_name:
                     target = await self._ctx.versions.copy_instance(source, str(custom_name))
                     result = {**result, "version_id": target, "custom": True}
@@ -495,7 +496,9 @@ class ApiBridge(QObject):
         return self._ctx.accounts.add_offline(str(username))
 
     async def _accounts_select(self, account_id: str) -> dict:
-        return {"ok": self._ctx.accounts.select(str(account_id))}
+        ok = self._ctx.accounts.select(str(account_id))
+        self._run_js("window.__veinAccountsChanged && window.__veinAccountsChanged()")
+        return {"ok": ok}
 
     async def _mods_search(self, query: str, project_type: str, mc_version: str, loader: str) -> list:
         hits = await self._ctx.modrinth.search(

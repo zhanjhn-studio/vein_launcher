@@ -36,6 +36,8 @@ export function initBridge(): Promise<void> {
       (window as any).__veinNotify = (title: string, message: string) =>
         fire('vein:notify', { title, message });
       (window as any).__veinNavigate = (page: string) => fire('vein:navigate', String(page));
+      (window as any).__veinInstalled = () => fire('vein:installed', null);
+      (window as any).__veinAccountsChanged = () => fire('vein:accountsChanged', null);
       (window as any).__veinGameExited = (exitCode: number) =>
         fire('vein:gameExited', { exitCode: Number(exitCode) || 0 });
       (window as any).__veinHotkey = (slot: number, text: string, title: string, mode?: string) =>

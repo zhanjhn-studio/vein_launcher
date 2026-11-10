@@ -160,6 +160,23 @@ export function App() {
     setSelected((prev) => (prev && list.some((v) => v.id === prev) ? prev : list[0]?.id ?? ''));
   }, []);
 
+  useEffect(() => {
+    const onInstalled = () => {
+      refreshInstalled().catch(() => {});
+    };
+    const onAccounts = () => {
+      rpc<AccountInfo[]>('accounts.list')
+        .then(setAccounts)
+        .catch(() => {});
+    };
+    window.addEventListener('vein:installed', onInstalled);
+    window.addEventListener('vein:accountsChanged', onAccounts);
+    return () => {
+      window.removeEventListener('vein:installed', onInstalled);
+      window.removeEventListener('vein:accountsChanged', onAccounts);
+    };
+  }, [refreshInstalled]);
+
   const refreshAccounts = useCallback(async () => {
     const list = await rpc<AccountInfo[]>('accounts.list');
     setAccounts(list);

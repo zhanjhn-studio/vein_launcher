@@ -248,7 +248,31 @@ export function LaunchPage({
               </div>
               <div className="kv">
                 <span>Accounts</span>
-                <b>{account ? account.username : 'Not signed in (offline)'}</b>
+                <b>
+                  {accounts.length === 0 ? (
+                    'Not signed in (offline)'
+                  ) : (
+                    <select
+                      value={account?.id || ''}
+                      onChange={async (e) => {
+                        const id = e.target.value;
+                        if (!id) return;
+                        try {
+                          await rpc('accounts.select', [id]);
+                          window.dispatchEvent(new CustomEvent('vein:accountsChanged'));
+                        } catch (err) {
+                          notify(`切换账户失败：${(err as Error).message}`);
+                        }
+                      }}
+                    >
+                      {accounts.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.username} · {a.type === 'microsoft' ? 'Microsoft' : a.type === 'littleskin' ? 'LittleSkin' : 'Offline'}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </b>
               </div>
               <div className="launch-actions">
                 <button className="launch-btn" onClick={launch} disabled={busy || !selected}>
