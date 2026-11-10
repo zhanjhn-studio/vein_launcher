@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ctypes
 import faulthandler
 import json
 import logging
