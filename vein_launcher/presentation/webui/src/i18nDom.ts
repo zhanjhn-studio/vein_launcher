@@ -49,6 +49,58 @@ const ZH: Record<string, string> = {
   'Use default': '使用默认',
   'Version': '版本',
   'Yes': '是',
+  // ---------- 首次引导 / 通用补充 ----------
+  'Choose your language': '选择界面语言',
+  'Continue': '继续',
+  'Skip setup': '跳过设置',
+  'Enter launcher': '进入启动器',
+  'Welcome to Vein Launcher': '欢迎使用 Vein Launcher',
+  'First run': '首次启动',
+  'What you can do': '能做什么',
+  'Your account': '你的账号',
+  'Privacy': '隐私',
+  'Ready': '就绪',
+  'A quick tour': '快速上手',
+  'Launch, install, manage': '启动、安装、管理',
+  'Offline · Microsoft · LittleSkin': '离线 · 微软 · LittleSkin',
+  'What stays on your PC': '哪些数据留在本机',
+  'Start playing': '开始游戏',
+  'A Minecraft launcher that keeps out of your way: one click to play, everything else one page away. Let\'s set it up for you in four short steps.': '一个不挡路的 Minecraft 启动器：一键开玩，其它功能都只隔一页。用几步把它配置好。',
+  'Pick how you sign in — offline, Microsoft or LittleSkin': '选择登录方式 —— 离线、微软 或 LittleSkin',
+  'Choose where your game files live': '选择游戏文件存放位置',
+  'Review what the launcher stores on your PC': '看看启动器在你电脑上存了什么',
+  'What\'s inside': '功能一览',
+  'Everything in one window': '所有功能都在一个窗口里',
+  'Launch in one click': '一键启动',
+  'Every installed version shows up as a card. Pick one, press Launch, done.': '每个已安装版本都是一张卡片，选一张按启动就行。',
+  'Install anything': '想装什么装什么',
+  'Vanilla, Fabric, Forge, Quilt, NeoForge, mods, modpacks, shaders and datapacks.': '原版、Fabric、Forge、Quilt、NeoForge，以及模组、整合包、光影、数据包。',
+  'Worlds & Java handled': '世界与 Java 都替你处理好',
+  'Reads your worlds without opening the game and fetches a matching Java runtime.': '不用开游戏就能读存档，并自动配好对应版本的 Java。',
+  'Skins from LittleSkin': 'LittleSkin 皮肤',
+  'Sign in to littleskin.cn to use its skins and its online servers.': '登录 littleskin.cn 就能用它的皮肤和联机服务器。',
+  'Step 3': '第 3 步',
+  'Choose your account': '选择账号',
+  'You can add more accounts later in Settings → Accounts.': '之后可以在「设置 → 账号」里再加。',
+  'Just a name': '只要一个名字',
+  'Official account': '官方正版账号',
+  'Skin site account': '皮肤站账号',
+  'Play singleplayer and LAN without an account.': '不需要账号就能玩单人游戏和局域网联机。',
+  'Before we start': '开始之前',
+  'Your data stays on your PC': '数据只保存在你自己的电脑上',
+  'Stored locally': '本地保存',
+  'Accounts and access tokens, launcher settings, logs, downloaded game files — all inside your VeinLauncher folder.': '账号与访问令牌、启动器设置、日志、下载的游戏文件 —— 全部都在你的 VeinLauncher 文件夹里。',
+  'Sent over the network': '会联网发送',
+  'Version and asset lists from Mojang / BMCLAPI, mod metadata from Modrinth, sign-in traffic to Microsoft or littleskin.cn. Nothing else.': '从 Mojang / BMCLAPI 拉版本与资源列表、从 Modrinth 拉模组信息、登录时与微软或 littleskin.cn 通信。除此之外没有别的。',
+  'Not collected': '不收集',
+  'No telemetry, no analytics, no advertising identifiers.': '没有遥测、没有统计、没有广告标识。',
+  'I understand and agree to the terms and privacy policy of Vein Launcher.': '我已阅读并同意 Vein Launcher 的条款与隐私政策。',
+  'All done': '全部完成',
+  'You\'re ready to play': '可以开始玩了',
+  'No account yet — you can add one anytime in Settings → Accounts. Install a game version from the Download page and press Launch.': '还没有账号 —— 随时可以在「设置 → 账号」里添加。先去「下载」页装一个游戏版本，再按启动。',
+  'Download → Vanilla & Loaders to install 1.20.1': '「下载 → 原版与加载器」安装 1.20.1',
+  'Launch page → pick the card → Launch': '启动页 → 选一张版本卡 → 启动',
+  'Settings → Java, game folder, theme and accounts': '设置 → Java、游戏目录、主题与账号',
   // ---------- 补充：启动页 / 皮肤 / 插件 / 设置 ----------
   'All': '全部',
   'Not signed in': '未登录',
@@ -496,7 +548,9 @@ function stopSweep(): void {
 
 export function applyLangOverlay(root: HTMLElement | null, next?: Lang): void {
   if (!root) return;
-  if (next) lang = next;
+  // 没有显式指定语言时跟随当前设置：首次启动向导在 .app 挂载前就会调用本函数，
+  // 若沿用模块初值 'en'，整页会停在英文。
+  lang = next ?? (currentLang() === 'zh' ? 'zh' : 'en');
   walk(root);
 
   if (lang === 'zh') {

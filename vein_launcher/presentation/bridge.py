@@ -742,10 +742,19 @@ class ApiBridge(QObject):
         return {"lang": translator.current_lang, "languages": translator.languages}
 
     async def _i18n_set(self, lang: str) -> dict:
+        from vein_launcher.common.config.settings import settings_manager
         from vein_launcher.common.i18n.translator import translator
 
         ok = translator.set_language(str(lang))
         translator.save_choice()
+        # 同步写回 config.json，避免 language.json 与 ui.language 各说各话
+        try:
+            ui = settings_manager.get().ui
+            if getattr(ui, "language", "") != translator.current_lang:
+                ui.language = translator.current_lang
+                settings_manager.save()
+        except Exception:  # noqa: BLE001
+            pass
         return {"ok": ok, "lang": translator.current_lang}
 
     async def _pick_directory(self, title: str = "Select folder") -> dict:

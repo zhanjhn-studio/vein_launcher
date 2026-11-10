@@ -10,6 +10,32 @@ import sys
 import time
 from pathlib import Path
 
+def _enable_dpi_awareness() -> None:
+    """必须在导入 PySide6 / 创建任何窗口之前调用。
+
+    否则进程会被 Windows 当作 DPI 不感知：150% 缩放下由 DWM 位图放大（界面变大 1.5 倍、
+    右侧被裁），且该窗口出现时要切换桌面缩放上下文，桌面所有窗口会闪一下。
+    """
+    if sys.platform != "win32":
+        return
+    try:  # PER_MONITOR_AWARE_V2 = -4（Win10 1703+）
+        if ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)):
+            return
+    except (AttributeError, OSError):
+        pass
+    try:  # 8.1+
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+        return
+    except (AttributeError, OSError):
+        pass
+    try:  # Vista+
+        ctypes.windll.user32.SetProcessDPIAware()
+    except (AttributeError, OSError):
+        pass
+
+
+_enable_dpi_awareness()
+
 from PySide6.QtCore import QPoint, Qt, QTimer, QUrl
 from PySide6.QtGui import QColor, QIcon
 from PySide6.QtWebChannel import QWebChannel
@@ -190,8 +216,15 @@ class MainWindow(QMainWindow):
         self._hotkey_timer = QTimer(self)
         self._hotkey_timer.timeout.connect(self._drain_hotkey_results)
         self._hotkey_timer.start(120)
-        self.resize(1280, 820)
-        self.setMinimumSize(1080, 680)
+        # 窗口尺寸不能超过可用屏幕（否则底部/右侧会被裁掉，150% 缩放下尤其明显）
+        screen = QApplication.primaryScreen()
+        avail = screen.availableGeometry() if screen else None
+        width, height = 1280, 820
+        if avail is not None:
+            width = min(width, max(960, int(avail.width() * 0.94)))
+            height = min(height, max(600, int(avail.height() * 0.92)))
+        self.resize(width, height)
+        self.setMinimumSize(min(1080, width), min(640, height))
 
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.view = QWebEngineView(self)
