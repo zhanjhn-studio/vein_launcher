@@ -4,6 +4,27 @@ import type { AccountInfo, RunningGameInfo, VersionInfo } from './types';
 import { LogPanel } from './ui';
 import { usePrefs } from './prefs';
 
+/** 版本卡片图标：与下载页加载器选择保持一致 */
+function loaderName(id: string): string {
+  const s = id.toLowerCase();
+  if (s.includes('neoforge')) return 'NeoForge';
+  if (s.includes('forge')) return 'Forge';
+  if (s.includes('fabric')) return 'Fabric';
+  if (s.includes('quilt')) return 'Quilt';
+  if (s.includes('optifine')) return 'OptiFine';
+  return 'Vanilla';
+}
+
+function loaderIcon(id: string): string {
+  const s = id.toLowerCase();
+  if (s.includes('neoforge')) return 'golden_apple.png';
+  if (s.includes('forge')) return 'anvil.png';
+  if (s.includes('fabric')) return 'loom.png';
+  if (s.includes('quilt')) return 'string.png';
+  if (s.includes('optifine')) return 'emerald.png';
+  return 'grass_block.png';
+}
+
 export function LaunchPage({
   installed,
   accounts,
@@ -195,10 +216,12 @@ export function LaunchPage({
                     }
                   }}
                 >
-                  <span className="mark">{version.id.split('.').slice(0, 2).join('.')}</span>
+                  <span className="mark">
+                    <img src={`icons/${loaderIcon(version.id)}`} alt="" />
+                  </span>
                   <span className="meta">
                     <span className="name">{version.id}</span>
-                    <span className="tag">{version.type || 'release'}</span>
+                    <span className="tag">{loaderName(version.id)} · {version.type || 'release'}</span>
                   </span>
                   {onManage && (
                     <button
