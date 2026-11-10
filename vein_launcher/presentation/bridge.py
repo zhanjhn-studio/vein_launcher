@@ -222,6 +222,8 @@ class ApiBridge(QObject):
             "plugins.logs": self._plugins_logs,
             "plugins.uiAction": self._plugins_ui_action,
             "plugins.installExample": self._plugins_install_example,
+            "plugins.nodeStatus": self._plugins_node_status,
+            "plugins.installNode": self._plugins_install_node,
             "logs.openDir": self._open_log_dir,
         }
 
@@ -503,7 +505,26 @@ class ApiBridge(QObject):
         return [self._ctx.modrinth.summary(hit) for hit in hits]
 
     async def _mods_install(self, slug: str, instance: str, project_type: str, loader: str) -> dict:
-        versions = await self._ctx.modrinth.versions(str(slug), loader=str(loader) or None)
+        import re as _re
+
+        instance_id = str(instance)
+        has_loader = any(k in instance_id.lower() for k in ("fabric", "forge", "quilt", "neoforge"))
+        if str(project_type) == "mod" and not has_loader:
+            mc_version = _re.sub(r"^(fabric|forge|quilt|neoforge)-", "", instance_id, flags=_re.I)
+            return {
+                "needsLoader": True,
+                "instance": instance_id,
+                "mcVersion": mc_version,
+                "suggestedLoader": "fabric",
+            }
+
+        instance_loader = ""
+        for key in ("fabric", "quilt", "neoforge", "forge"):
+            if key in instance_id.lower():
+                instance_loader = key
+                break
+        effective_loader = instance_loader or str(loader) or None
+        versions = await self._ctx.modrinth.versions(str(slug), loader=effective_loader)
         if not versions:
             raise RuntimeError("没有可下载的文件")
         file = self._ctx.modrinth.file_of(versions[0])
@@ -589,6 +610,23 @@ class ApiBridge(QObject):
         return await asyncio.to_thread(game_registry.kill, int(pid))
 
     # ------------------------------------------------------------------
+    async def _plugins_node_status(self) -> dict:
+        return self._ctx.plugins.node_status()
+
+    async def _plugins_install_node(self) -> dict:
+        self._downloads["node-install"] = {
+            "id": "node-install", "name": "Node.js", "done": 0, "total": 0, "active": True, "error": None,
+        }
+        try:
+            result = await self._ctx.plugins.install_node(
+                progress=lambda done, total: self._progress("node-install", done, total)
+            )
+        finally:
+            entry = self._downloads.get("node-install")
+            if entry:
+                entry.update(active=False)
+        return result
+
     async def _plugins_state(self) -> dict:
         return self._ctx.plugins.state()
 

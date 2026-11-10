@@ -62,6 +62,9 @@ class PluginHost:
     def node_path(self) -> Optional[str]:
         return self._node
 
+    def set_node(self, path: Optional[str]) -> None:
+        self._node = path or shutil.which("node")
+
     def recent_logs(self, limit: int = 50) -> List[str]:
         return self._logs[-limit:]
 

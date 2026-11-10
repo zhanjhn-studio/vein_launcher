@@ -393,6 +393,7 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState('');
   const [pendingGrant, setPendingGrant] = useState<string>('');
+  const [nodeBusy, setNodeBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -441,8 +442,35 @@ export function PluginsPage({ notify }: { notify: (text: string) => void }) {
     }
   };
 
+  const installNode = async () => {
+    setNodeBusy(true);
+    try {
+      const res = await rpc<{ path: string; status: { version?: string } }>('plugins.installNode');
+      notify(`Node.js 已安装：${res.status?.version || res.path}`);
+      await refresh();
+    } catch (err) {
+      notify(`Node.js 安装失败：${(err as Error).message}`);
+    } finally {
+      setNodeBusy(false);
+    }
+  };
+
   return (
     <>
+      {!state.host.node && (
+        <div className="node-banner">
+          <div className="node-banner-text">
+            <b>Node.js 未安装，插件功能不可用</b>
+            <p>
+              插件宿主需要 Node.js 18+。点右侧一键安装：会从 nodejs.org 下载官方 LTS
+              并解压到 VeinLauncher/runtime/node，不需要管理员权限，也不会改系统环境变量。
+            </p>
+          </div>
+          <button className="btn primary" onClick={installNode} disabled={nodeBusy}>
+            {nodeBusy ? '正在安装 Node.js…' : '一键安装 Node.js'}
+          </button>
+        </div>
+      )}
       <ThreePane
         left={
           <CategoryList

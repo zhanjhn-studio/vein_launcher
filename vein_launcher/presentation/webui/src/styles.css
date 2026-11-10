@@ -1873,3 +1873,16 @@ img[src$="chest.png"] {
   animation: none !important;
   transition: none !important;
 }
+
+
+/* 0.5.1 插件页：Node.js 安装提示 */
+.node-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  margin: 14px 22px 0; padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: var(--radius); background: var(--accent-faint);
+}
+.node-banner-text b { display: block; margin-bottom: 4px; }
+.node-banner-text p { margin: 0; color: var(--text-2); font-size: 12.5px; line-height: 1.6; max-width: 720px; }
+.node-banner .btn { flex: none; }
+@media (max-width: 760px) { .node-banner { flex-direction: column; align-items: flex-start; } }

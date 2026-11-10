@@ -95,6 +95,17 @@ MOCK = r"""
         { id: '1.21.1', type: 'release', release_time: '2025-01-01' },
         { id: '1.20.1', type: 'release', release_time: '2023-06-12' }
       ];
+      case 'plugins.state': return {
+        host: { running: false, pid: null, node: null },
+        root: 'C:/VeinLauncher/plugin',
+        plugins: [
+          { name: 'vein-plugin-status-panel', displayName: 'Status panel', version: '0.1.0',
+            description: 'Versions, instances, running games and MLC state', enabled: true,
+            loaded: false, permissions: ['game.state', 'versions.read', 'mlc.state', 'ui.lua'] },
+        ],
+        examples: [], capabilities: []
+      };
+      case 'plugins.logs': return [];
       case 'mods.featured': return [
         { slug: 'sodium', title: 'Sodium', description: 'Modern rendering engine', icon: 'icons/crafting_table.png',
           downloads: 1234567, author: 'jellysquid', type: 'mod', url: '' },

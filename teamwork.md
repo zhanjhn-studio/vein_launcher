@@ -705,3 +705,10 @@ window.__veinResult(12, true, {ok: 1})
   插件 API 5 个完整示例（最小插件、状态面板、MLC 事件、发送指令、配置）、UI 3 个（按钮/表格徽章/Lua）、
   示例页 3 个完整插件（status-panel / game-log / lua-ui，含 package.json 与 index.js）、清单/权限/调试示例；
   MLC 协议 3 种客户端（Python/PowerShell/Node）、事件订阅 3 例（前端/进世界去抖/死亡记录）、agent 生成与注入验证、完整交互与限制。
+
+- **2026-11-10 · feat/node-mods** — 主程序：Node.js 检测与一键安装、原版实例装模组守卫、并安装任务：
+  插件页检测不到 Node 时显示安装横幅（不再灰屏），一键下载官方 LTS 解压到 `VeinLauncher/runtime/node` 并写入 `config/runtime.json`，
+  无需管理员权限；新增 RPC `plugins.nodeStatus` / `plugins.installNode`，宿主支持 `set_node`。
+  `mods.install` 增加加载器守卫：原版实例返回 `needsLoader`，前端确认后自动创建 `fabric-<mc>` 实例并重装模组；
+  模组搜索/安装按实例自动识别加载器；Modrinth 加载失败不再静默。
+  下载页允许并发安装模组任务（每条任务独立状态），进度仍由多任务监视器汇总；51 项测试通过

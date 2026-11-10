@@ -36,13 +36,132 @@ class PluginService:
         self._launcher = launcher
         self._loader = loader or PluginLoader()
         self._registry = CapabilityRegistry(allowed_roots=[self._loader.root])
-        self._host = PluginHost(self._registry)
+        self._host = PluginHost(self._registry, node=self._resolve_node())
         self._plugins: Dict[str, InstalledPlugin] = {}
         self._installed_event_bridge = False
         self._state_file = ensure_dir(self._loader.root.parent) / "plugins_state.json"
         self._enabled: Dict[str, bool] = self._load_state()
 
         self._register_capabilities()
+
+
+    # ------------------------------------------------------------------ Node.js
+    def _runtime_root(self) -> Path:
+        return self._loader.root.parent
+
+    def _node_candidates(self) -> list:
+        candidates = [self._runtime_root() / "runtime" / "node" / "node.exe"]
+        marker = self._runtime_root() / "config" / "runtime.json"
+        try:
+            import json as _json
+
+            if marker.is_file():
+                saved = _json.loads(marker.read_text(encoding="utf-8")).get("node", "")
+                if saved:
+                    candidates.insert(0, Path(saved))
+        except Exception:
+            pass
+        return candidates
+
+    def _resolve_node(self):
+        import shutil
+
+        for candidate in self._node_candidates():
+            if candidate and Path(candidate).is_file():
+                return str(candidate)
+        return shutil.which("node")
+
+    def node_status(self) -> dict:
+        path = self._host.node_path
+        version = ""
+        if path:
+            try:
+                import subprocess
+
+                version = subprocess.run(
+                    [path, "-v"], capture_output=True, text=True, timeout=5
+                ).stdout.strip()
+            except Exception:
+                version = ""
+        return {
+            "available": bool(path),
+            "path": path or "",
+            "version": version,
+            "portable": bool(path and str(self._runtime_root() / "runtime" / "node") in path),
+        }
+
+    async def install_node(self, progress=None) -> dict:
+        """下载 Node.js LTS（win-x64 zip）并解压到 runtime/node。"""
+        import asyncio
+        import io
+        import json
+        import os
+        import zipfile
+
+        import requests
+
+        def emit(done: int, total: int) -> None:
+            if progress:
+                progress(done, total)
+
+        def download() -> dict:
+            target_dir = self._runtime_root() / "runtime" / "node"
+            target_dir.mkdir(parents=True, exist_ok=True)
+            if (target_dir / "node.exe").is_file():
+                return {"path": str(target_dir / "node.exe"), "cached": True}
+
+            index = requests.get(
+                "https://nodejs.org/dist/latest-v20.x/SHASUMS256.txt", timeout=20
+            )
+            index.raise_for_status()
+            name = ""
+            for line in index.text.splitlines():
+                if "win-x64.zip" in line:
+                    name = line.split()[-1]
+                    break
+            if not name:
+                raise RuntimeError("无法解析 Node.js 下载文件名")
+
+            url = f"https://nodejs.org/dist/latest-v20.x/{name}"
+            data = io.BytesIO()
+            with requests.get(url, stream=True, timeout=60) as resp:
+                resp.raise_for_status()
+                total = int(resp.headers.get("Content-Length", "0") or 0)
+                done = 0
+                for chunk in resp.iter_content(256 * 1024):
+                    if not chunk:
+                        continue
+                    data.write(chunk)
+                    done += len(chunk)
+                    emit(done, total)
+
+            with zipfile.ZipFile(io.BytesIO(data.getvalue())) as zf:
+                zf.extractall(target_dir)
+            inner = next(target_dir.glob("node-v*-win-x64"))
+            for item in inner.iterdir():
+                os.replace(item, target_dir / item.name)
+            inner.rmdir()
+
+            marker = self._runtime_root() / "config" / "runtime.json"
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            payload = {}
+            if marker.is_file():
+                try:
+                    payload = json.loads(marker.read_text(encoding="utf-8"))
+                except Exception:
+                    payload = {}
+            payload["node"] = str(target_dir / "node.exe")
+            marker.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+            return {"path": str(target_dir / "node.exe"), "cached": False}
+
+        result = await asyncio.to_thread(download)
+        self._host.set_node(result["path"])
+        try:
+            await self._host.start()
+        except Exception:
+            pass
+        logger.info("Node.js 已就绪：%s", result["path"])
+        return {**result, "status": self.node_status()}
 
     # ------------------------------------------------------------------
     @property

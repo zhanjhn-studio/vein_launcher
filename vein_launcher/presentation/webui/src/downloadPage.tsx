@@ -51,6 +51,7 @@ export function DownloadPage({
   const [targetInstance, setTargetInstance] = useState('');
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [installing, setInstalling] = useState('');
+  const [modTasks, setModTasks] = useState<{ id: string; title: string; state: string }[]>([]);
   const [optiLog, setOptiLog] = useState('');
 
   useEffect(() => {
@@ -64,6 +65,13 @@ export function DownloadPage({
   useEffect(() => {
     if (installed.length && !targetInstance) setTargetInstance(installed[0].id);
   }, [installed, targetInstance]);
+
+  // 选中实例后自动识别加载器，模组搜索/安装都按它过滤
+  useEffect(() => {
+    const id = (targetInstance || '').toLowerCase();
+    const detected = ['fabric', 'quilt', 'neoforge', 'forge'].find((k) => id.includes(k)) || '';
+    setLoader(detected);
+  }, [targetInstance]);
 
   const percent = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
   const projectType = CATEGORIES.find((c) => c.key === category)?.project;
@@ -99,7 +107,7 @@ export function DownloadPage({
       const project = CATEGORIES.find((c) => c.key === key)?.project || 'mod';
       rpc<ModItem[]>('mods.featured', [project, mcVersion, loader])
         .then(setItems)
-        .catch(() => {});
+        .catch((err) => notify(`加载项目列表失败（Modrinth 不可达或被限流）：${(err as Error).message}`));
     }
   };
 
@@ -148,18 +156,39 @@ export function DownloadPage({
       notify('Install a game version first');
       return;
     }
-    setBusy('install');
+    const taskId = `${item.slug}-${Date.now()}`;
+    setModTasks((prev) => [...prev, { id: taskId, title: item.title, state: 'running' }]);
     setInstalling(item.title);
-    setProgress({ done: 0, total: 1 });
     try {
-      await rpc('mods.install', [item.slug, instance, projectType || 'mod', loader]);
-      notify(`${item.title} installed to ${instance}`);
+      const res = await rpc<{ needsLoader?: boolean; mcVersion?: string; justInstalled?: boolean }>(
+        'mods.install',
+        [item.slug, instance, projectType || 'mod', loader]
+      );
+      if (res?.needsLoader) {
+        const mc = res.mcVersion || instance;
+        const ok = window.confirm(
+          `实例 ${instance} 是原版，没有模组加载器，模组不会被加载。\n\n是否创建 Fabric ${mc} 实例，并把 ${item.title} 装进去？`
+        );
+        if (!ok) {
+          notify('已取消：原版实例无法加载模组');
+          return;
+        }
+        const created = await rpc<{ version_id?: string }>('versions.install', [mc, 'fabric', '', '']);
+        const target = created?.version_id || `fabric-${mc}`;
+        await rpc('mods.install', [item.slug, target, projectType || 'mod', 'fabric']);
+        notify(`已创建 ${target} 并安装 ${item.title}`);
+        await onInstalled();
+        setTargetInstance(target);
+      } else {
+        notify(`${item.title} installed to ${instance}`);
+      }
       await onInstalled();
       setDetail(null);
+      setModTasks((prev) => prev.map((x) => (x.id === taskId ? { ...x, state: 'done' } : x)));
     } catch (err) {
       notify(`Install failed: ${(err as Error).message}`);
+      setModTasks((prev) => prev.map((x) => (x.id === taskId ? { ...x, state: 'error' } : x)));
     } finally {
-      setBusy('');
       setInstalling('');
       setProgress(null);
     }
