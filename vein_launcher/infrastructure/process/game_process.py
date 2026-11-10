@@ -10,6 +10,7 @@ from typing import List, Optional
 from vein_launcher.common.events.event_bus import event_bus
 from vein_launcher.common.events.events import EventNames
 from vein_launcher.common.exceptions import GameLaunchError
+from vein_launcher.common.utils.console import hidden_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ class GameProcess:
                 cwd=str(cwd),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
+                **hidden_kwargs(),
             )
         except OSError as exc:
             raise GameLaunchError(f"进程创建失败：{exc}") from exc

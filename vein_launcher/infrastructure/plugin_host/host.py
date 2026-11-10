@@ -84,6 +84,7 @@ class PluginHost:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             limit=MAX_LINE,
+            **hidden_kwargs(),
         )
         self._reader = asyncio.create_task(self._read_stdout())
         self._errors = asyncio.create_task(self._read_stderr())

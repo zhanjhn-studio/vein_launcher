@@ -213,7 +213,9 @@ class UpdateService:
             if sys.platform == "win32":
                 os.startfile(str(target))  # noqa: S606 - 用户主动点击更新
             else:
-                subprocess.Popen([str(target)], close_fds=True)
+                from vein_launcher.common.utils.console import hidden_popen_kwargs
+
+                subprocess.Popen([str(target)], close_fds=True, **hidden_popen_kwargs())
             return {"started": True, "kind": "installer", "path": str(target)}
 
         if target.suffix.lower() == ".zip":

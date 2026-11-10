@@ -11,6 +11,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
+from vein_launcher.common.utils.console import hidden_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +159,7 @@ class JavaDetector:
                 str(exe), "-version",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
+                **hidden_kwargs(),
             )
             out, _ = await asyncio.wait_for(proc.communicate(), timeout=10)
         except (OSError, asyncio.TimeoutError):

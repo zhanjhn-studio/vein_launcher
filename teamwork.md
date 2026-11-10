@@ -719,3 +719,7 @@ window.__veinResult(12, true, {ok: 1})
   3) 新增 RPC `mods.versions` + `mods.install(version_id)`，详情页可列出该整合包/模组的所有版本并挑选安装；
   4) 新增 `#/downloads` 下载总览页（任务名/进度条/百分比/进行中/已完成/失败），左下角监视器点击直达；
   5) 安装按钮改为按任务状态启用，允许并发；Modrinth 列表加载失败不再静默。
+
+- **2026-11-10 · fix/console-windows + downloads-delete** — 减少子进程 console 闪窗：
+  新增 `common/utils/console.py`（CREATE_NO_WINDOW + STARTF_USESHOWWINDOW），应用到插件宿主 node、Java 检测、游戏启动、加载器安装、
+  Forge/OptiFine 安装、更新安装器、资源管理器打开、Node 版本查询等全部 spawn 点；新增 `downloads.remove` RPC 与下载页删除按钮（进行中显示 × 移除、完成显示 × 删除）、一键清空已完成。

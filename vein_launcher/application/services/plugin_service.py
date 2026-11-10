@@ -78,8 +78,10 @@ class PluginService:
             try:
                 import subprocess
 
+                from vein_launcher.common.utils.console import hidden_kwargs
+
                 version = subprocess.run(
-                    [path, "-v"], capture_output=True, text=True, timeout=5
+                    [path, "-v"], capture_output=True, text=True, timeout=5, **hidden_kwargs()
                 ).stdout.strip()
             except Exception:
                 version = ""

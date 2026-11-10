@@ -20,6 +20,7 @@ from vein_launcher.common.exceptions import VeinError
 from vein_launcher.common.utils.path_utils import ensure_dir, get_version_dir
 from vein_launcher.infrastructure.network.http_client import HttpClient, HttpClientError
 from vein_launcher.infrastructure.process.java_detector import JavaDetector
+from vein_launcher.common.utils.console import hidden_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +129,7 @@ class LoaderService:
             cwd=str(work),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
+            **hidden_kwargs(),
         )
         out, _ = await proc.communicate()
         log = out.decode("utf-8", errors="replace")

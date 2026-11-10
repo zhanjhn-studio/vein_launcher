@@ -22,6 +22,7 @@ from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
 from vein_launcher.common.events.event_bus import event_bus
 from vein_launcher.common.events.events import EventNames
+from vein_launcher.common.utils.console import hidden_kwargs, hidden_popen_kwargs
 from vein_launcher.presentation.context import AppContext
 
 logger = logging.getLogger(__name__)
@@ -164,6 +165,7 @@ class ApiBridge(QObject):
             "java.ensure": self._java_ensure,
             "java.resolve": self._java_resolve,
             "downloads.list": self._downloads_list,
+            "downloads.remove": self._downloads_remove,
             "mlc.worlds": self._mlc_worlds,
             "app.openDataDir": self._open_data_dir,
             "i18n.get": self._i18n_get,
@@ -370,7 +372,7 @@ class ApiBridge(QObject):
         from vein_launcher.common.utils.path_utils import get_version_dir
 
         path = str(get_version_dir(str(instance)))
-        subprocess.Popen(["explorer", path])
+        subprocess.Popen(["explorer", path], **hidden_popen_kwargs())
         return {"path": path}
 
     async def _versions_install(
@@ -713,6 +715,10 @@ class ApiBridge(QObject):
     async def _plugins_install_example(self, name: str) -> dict:
         return self._ctx.plugins.install_example(str(name))
 
+    async def _downloads_remove(self, task_id: str) -> dict:
+        removed = self._downloads.pop(str(task_id), None)
+        return {"removed": bool(removed), "id": str(task_id)}
+
     async def _downloads_list(self) -> list:
         # 只保留最近 20 条，避免长期使用后列表无限增长
         items = list(self._downloads.values())
@@ -771,6 +777,7 @@ class ApiBridge(QObject):
             cwd=str(get_minecraft_dir()),
             stdout=_asyncio.subprocess.DEVNULL,
             stderr=_asyncio.subprocess.PIPE,
+            **hidden_kwargs(),
         )
         _, err = await proc.communicate()
         logger.info("OptiFine installer exit=%s", proc.returncode)
@@ -1399,7 +1406,7 @@ class ApiBridge(QObject):
         from vein_launcher.common.logging.logger import log_dir
 
         path = log_dir()
-        subprocess.Popen(["explorer", str(path)])
+        subprocess.Popen(["explorer", str(path)], **hidden_popen_kwargs())
         return {"path": str(path)}
 
     # ------------------------------------------------------------------

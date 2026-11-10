@@ -12,6 +12,26 @@ interface DownloadTask {
 
 export function DownloadsPage() {
   const [tasks, setTasks] = useState<DownloadTask[]>([]);
+  const [removing, setRemoving] = useState('');
+
+  const removeTask = async (id: string) => {
+    setRemoving(id);
+    try {
+      await rpc('downloads.remove', [id]);
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+    } catch {
+      /* 忽略 */
+    } finally {
+      setRemoving('');
+    }
+  };
+
+  const clearDone = async () => {
+    for (const task of tasks.filter((t) => !t.active)) {
+      await rpc('downloads.remove', [task.id]).catch(() => {});
+    }
+    setTasks((prev) => prev.filter((t) => t.active));
+  };
 
   useEffect(() => {
     let alive = true;
@@ -39,6 +59,11 @@ export function DownloadsPage() {
       <div className="page-head">
         <h1>下载</h1>
         <span className="muted">{active.length} 进行中 · {done.length} 已完成</span>
+        {done.length > 0 && (
+          <button className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={clearDone}>
+            清空已完成
+          </button>
+        )}
       </div>
 
       <div className="dl-list">
@@ -57,6 +82,15 @@ export function DownloadsPage() {
                 <i style={{ width: `${Math.max(pct, task.active ? 2 : 0)}%` }} />
               </div>
               <span className="dl-pct">{pct}%</span>
+              <button
+                className="btn sm ghost dl-del"
+                aria-label="删除任务"
+                title={task.active ? '从列表移除（下载继续）' : '删除记录'}
+                onClick={() => removeTask(task.id)}
+                disabled={removing === task.id}
+              >
+                ×
+              </button>
             </div>
           );
         })}
