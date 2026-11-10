@@ -545,9 +545,26 @@ class ApiBridge(QObject):
 
         target_dir = self._ctx.instance_sub_dir(str(instance), str(project_type))
         target_dir.mkdir(parents=True, exist_ok=True)
-        await self._ctx.modrinth_download(
-            file["url"], target_dir / file["name"], file.get("sha1")
-        )
+        task_id = f"mod-{slug}"
+        self._downloads[task_id] = {
+            "id": task_id,
+            "name": str(slug),
+            "done": 0,
+            "total": 0,
+            "active": True,
+            "error": None,
+        }
+        try:
+            await self._ctx.modrinth_download(
+                file["url"],
+                target_dir / file["name"],
+                file.get("sha1"),
+                progress=lambda done, total: self._progress(task_id, done, total),
+            )
+        finally:
+            entry = self._downloads.get(task_id)
+            if entry:
+                entry.update(active=False)
         return {"installed": 1, "path": str(target_dir / file["name"])}
 
     async def _java_detect(self, refresh: bool = False) -> list:

@@ -84,9 +84,9 @@ class AppContext:
         return get_version_dir(instance_id) / SUBDIRS.get(project_type, "mods")
 
     @staticmethod
-    async def modrinth_download(url: str, dest: Path, sha1: Optional[str]) -> None:
+    async def modrinth_download(url: str, dest: Path, sha1: Optional[str], progress=None) -> None:
         async with Downloader() as downloader:
-            await downloader.download(url, dest, sha1=sha1 or None)
+            await downloader.download(url, dest, sha1=sha1 or None, progress=progress)
 
     # ------------------------------------------------------------------
     async def startup(self) -> None:
