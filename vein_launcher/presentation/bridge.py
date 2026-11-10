@@ -392,7 +392,12 @@ class ApiBridge(QObject):
             async with self._install_lock:
                 if loader:
                     result = await self._ctx.loaders.install(
-                        str(loader), str(version_id), str(loader_version) or None
+                        str(loader),
+                        str(version_id),
+                        str(loader_version) or None,
+                        progress=lambda phase, done, total: self._progress(
+                            task_id, done, total
+                        ),
                     )
                     source = result.get("version_id", f"{loader}-{version_id}")
                 else:
@@ -408,13 +413,17 @@ class ApiBridge(QObject):
                     target = await self._ctx.versions.copy_instance(source, str(custom_name))
                     result = {**result, "version_id": target, "custom": True}
                 return result
-        except Exception as exc:
+        except BaseException as exc:
             entry = self._downloads.get(task_id)
             if entry:
-                entry.update(active=False, error=str(exc))
+                message = "已取消" if isinstance(exc, asyncio.CancelledError) else str(exc)
+                entry.update(active=False, error=message)
             raise
         finally:
             entry = self._downloads.get(task_id)
+            if entry and entry.get("error") is None:
+                entry["done"] = max(int(entry.get("done") or 0), int(entry.get("total") or 1))
+                entry["total"] = entry["done"]
             if entry and entry.get("error") is None:
                 entry["active"] = False
 

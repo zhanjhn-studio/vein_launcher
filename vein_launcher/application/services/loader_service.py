@@ -53,14 +53,14 @@ class LoaderService:
 
     # ------------------------------------------------------------------
     async def install(
-        self, loader: str, mc_version: str, loader_version: Optional[str] = None
+        self, loader: str, mc_version: str, loader_version: Optional[str] = None, progress=None
     ) -> Dict[str, Any]:
         loader = loader.lower()
         if loader not in LOADERS:
             raise VeinError(f"不支持的加载器：{loader}")
 
         # 先确保原版本体已安装
-        await self._versions.install(mc_version)
+        await self._versions.install(mc_version, progress=progress)
 
         if loader in ("fabric", "quilt"):
             return await self._install_meta_loader(loader, mc_version, loader_version)

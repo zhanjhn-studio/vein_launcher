@@ -148,11 +148,19 @@ export function DownloadPage({
       return;
     }
     setBusy('install');
-    setInstalling(`${chosenVersion}${loader ? ` + ${loader}` : ''}`);
+    const label = `${chosenVersion}${loader ? ` + ${loader}` : ''}`;
+    setInstalling(label);
     setProgress({ done: 0, total: 1 });
+    notify(`开始下载 ${label}，进度见左下角下载`);
     try {
-      await rpc('versions.install', [chosenVersion, loader, '', custom.trim()]);
+      const result = await rpc<{ version_id?: string }>('versions.install', [
+        chosenVersion,
+        loader,
+        '',
+        custom.trim(),
+      ]);
       await onInstalled();
+      notify(`${result?.version_id || label} 安装完成，已加入版本列表`);
     } catch (err) {
       notify(`Install failed: ${(err as Error).message}`);
     } finally {
@@ -185,6 +193,7 @@ export function DownloadPage({
     const taskId = `${item.slug}-${Date.now()}`;
     setModTasks((prev) => [...prev, { id: taskId, title: item.title, state: 'running' }]);
     setInstalling(item.title);
+    notify(`开始下载 ${item.title}`);
     try {
       const res = await rpc<{ needsLoader?: boolean; mcVersion?: string; justInstalled?: boolean }>(
         'mods.install',
