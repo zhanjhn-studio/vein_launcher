@@ -175,6 +175,10 @@ class ApiBridge(QObject):
             "account.start": self._account_start,
             "account.poll": self._account_poll,
             "account.logout": self._account_logout,
+            "rooms.list": self._rooms_list,
+            "rooms.create": self._rooms_create,
+            "rooms.join": self._rooms_join,
+            "rooms.close": self._rooms_close,
             "mlc.worlds": self._mlc_worlds,
             "app.openDataDir": self._open_data_dir,
             "i18n.get": self._i18n_get,
@@ -185,6 +189,7 @@ class ApiBridge(QObject):
             "mc2.refresh": self._mc2_worlds,
             "mc2.scan": self._mc2_scan,
             "app.openUrl": self._open_url,
+            "app.localIp": self._local_ip_info,
             "app.pickDirectory": self._pick_directory,
             "app.pickFile": self._pick_file,
             "optifine.install": self._optifine_install,
@@ -837,6 +842,53 @@ class ApiBridge(QObject):
 
     async def _plugins_install_example(self, name: str) -> dict:
         return self._ctx.plugins.install_example(str(name))
+
+    # ------------------------------------------------------------------ 联机房间
+    def _rooms_session(self) -> str:
+        return str(self._account_load().get("session") or "")
+
+    async def _rooms_list(self) -> list:
+        from vein_launcher.infrastructure.network.account_client import AccountClient
+
+        return await AccountClient().rooms()
+
+    async def _rooms_create(self, name: str, version: str, host: str, password: str = "",
+                            public: bool = True, max_players: int = 8) -> dict:
+        session = self._rooms_session()
+        if not session:
+            raise RuntimeError("请先登录 ZHANJHN 账号")
+        from vein_launcher.infrastructure.network.account_client import AccountClient
+
+        return await AccountClient().create_room(session, str(name), str(version), str(host),
+                                                 str(password or ""), bool(public), int(max_players))
+
+    async def _rooms_join(self, room_no: str, password: str = "") -> dict:
+        session = self._rooms_session()
+        if not session:
+            raise RuntimeError("请先登录 ZHANJHN 账号")
+        from vein_launcher.infrastructure.network.account_client import AccountClient
+
+        return await AccountClient().join_room(session, str(room_no), str(password or ""))
+
+    async def _rooms_close(self, room_no: str) -> dict:
+        session = self._rooms_session()
+        if not session:
+            raise RuntimeError("请先登录 ZHANJHN 账号")
+        from vein_launcher.infrastructure.network.account_client import AccountClient
+
+        return await AccountClient().close_room(session, str(room_no))
+
+    def _local_ip(self) -> str:
+        import socket
+
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except Exception:
+            return "127.0.0.1"
 
     # ------------------------------------------------------------------ 账户
     def _account_path(self):
@@ -1573,29 +1625,46 @@ class ApiBridge(QObject):
     async def _mc2_worlds(self, instance: str = "") -> list:
         return self._ctx.mc2.list_worlds(str(instance) or None)
 
+    async def _local_ip_info(self) -> dict:
+        return {"ip": self._local_ip()}
+
     async def _open_url(self, url: str) -> dict:
-        """用系统默认浏览器打开链接（Qt WebEngine 不处理 window.open）。"""
+        """多级兜底打开系统浏览器（Qt WebEngine 不处理 window.open）。"""
         text = str(url).strip()
         if not text.startswith(("http://", "https://")):
             raise ValueError("仅允许 http(s) 链接")
-        opened = False
-        error = ""
+        errors = []
+        # 1) Windows Shell
+        try:
+            import os
+
+            os.startfile(text)  # type: ignore[attr-defined]
+            logger.info("打开外部链接（Shell）：%s", text.split("?")[0])
+            return {"ok": True, "via": "shell"}
+        except Exception as exc:
+            errors.append(f"shell: {exc}")
+        # 2) Qt（主线程）
         try:
             from PySide6.QtCore import QTimer, QUrl
             from PySide6.QtGui import QDesktopServices
 
             QTimer.singleShot(0, lambda: QDesktopServices.openUrl(QUrl(text)))
-            opened = True
+            logger.info("打开外部链接（Qt）：%s", text.split("?")[0])
+            return {"ok": True, "via": "qt"}
         except Exception as exc:
-            error = str(exc)
-        if not opened:
+            errors.append(f"qt: {exc}")
+        # 3) webbrowser
+        try:
             import webbrowser
 
-            opened = webbrowser.open(text)
-        logger.info("打开外部链接：%s（ok=%s）", text.split("?")[0], opened)
-        if not opened:
-            raise RuntimeError(error or "无法打开浏览器")
-        return {"ok": True}
+            if webbrowser.open(text):
+                logger.info("打开外部链接（webbrowser）：%s", text.split("?")[0])
+                return {"ok": True, "via": "webbrowser"}
+            errors.append("webbrowser: returned false")
+        except Exception as exc:
+            errors.append(f"webbrowser: {exc}")
+        logger.error("无法打开链接：%s；%s", text.split("?")[0], "; ".join(errors))
+        raise RuntimeError("无法打开浏览器，请手动复制链接")
 
     async def _mlc_worlds(self, version_id: str = "") -> dict:
         return self._ctx.mlc.world_info(str(version_id))

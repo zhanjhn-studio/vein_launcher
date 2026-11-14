@@ -69,6 +69,23 @@ class AccountClient:
                                    params={"device_key": device_key}, session=session)
         return list(data.get("items") or [])
 
+    async def rooms(self) -> List[Dict[str, Any]]:
+        data = await self._request("GET", "/api/rooms")
+        return list(data.get("items") or [])
+
+    async def create_room(self, session: str, name: str, version: str, host: str,
+                          password: str = "", public: bool = True, max_players: int = 8) -> Dict[str, Any]:
+        return await self._request("POST", "/api/rooms", session=session, json={
+            "name": name, "version": version, "host": host,
+            "password": password, "public": public, "max_players": max_players,
+        })
+
+    async def join_room(self, session: str, room_no: str, password: str = "") -> Dict[str, Any]:
+        return await self._request("POST", f"/api/rooms/{room_no}/join", session=session, json={"password": password})
+
+    async def close_room(self, session: str, room_no: str) -> Dict[str, Any]:
+        return await self._request("POST", f"/api/rooms/{room_no}/close", session=session, json={})
+
     async def result(self, command_id: int, ok: bool, result: dict, session: str) -> Dict[str, Any]:
         return await self._request("POST", "/api/client/result",
                                    json={"id": command_id, "ok": ok, "result": result},

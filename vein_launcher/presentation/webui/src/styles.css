@@ -2092,3 +2092,23 @@ img[src$="chest.png"] {
 .ac-item span { display: block; font-size: 11px; color: var(--text-3); }
 .ac-item b { font-size: 13px; }
 .ac-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* 联机房间 */
+.rm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 900px) { .rm-grid { grid-template-columns: 1fr; } }
+.rm-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px;
+  display: flex; flex-direction: column; gap: 10px; }
+.rm-card h2 { margin: 0; font-size: 16px; }
+.rm-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--text-3); flex: 1; }
+.rm-field input, .rm-field select { height: 36px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px;
+  background: var(--surface-2); color: var(--text); font-size: 13px; }
+.rm-row { display: flex; gap: 10px; }
+.rm-check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-2); }
+.rm-host { font-size: 12px; color: var(--text-3); }
+.rm-host code { font-family: var(--mono); color: var(--accent); }
+.rm-mine { border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.rm-code { font-family: var(--mono); font-size: 18px; letter-spacing: 2px; color: var(--accent); }
+.rm-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow: auto; }
+.rm-item { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.rm-item > div { min-width: 0; flex: 1; }
+.rm-item b { font-size: 13px; }

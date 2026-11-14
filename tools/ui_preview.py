@@ -99,6 +99,10 @@ MOCK = r"""
         { id: '1.21.1', type: 'release', release_time: '2025-01-01' },
         { id: '1.20.1', type: 'release', release_time: '2023-06-12' }
       ];
+      case 'app.localIp': return { ip: '192.168.1.42' };
+      case 'rooms.list': return [
+        { room_no: '342192', name: '生存服', version: '1.20.1', host: '192.168.1.42:25565', players: 2, max_players: 8, created_at: '2026-11-14T15:00:00' }
+      ];
       case 'forum.tags': return [
         { name: '公告', count: 1 }, { name: '教程', count: 0 }, { name: '求助', count: 0 },
         { name: '插件', count: 0 }, { name: 'MLC', count: 0 }, { name: '闲聊', count: 1 }, { name: '展示', count: 0 }

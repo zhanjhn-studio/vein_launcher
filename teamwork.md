@@ -784,3 +784,8 @@ window.__veinResult(12, true, {ok: 1})
   `public.js` 与 `/api/announcements`（PHP 读取 announcement.json，Cache-Control 60s）；内容含统一账号、0.5.1、MLC 三条；
   启动器公告源顺序改为 api.zhanjhn.cn/public.js → /api/announcements → 旧的 GitHub Pages 兜底；
   验证：两端 200，启动日志显示「公告已更新：3 条（源 https://api.zhanjhn.cn/public.js）」。
+
+- **2026-11-14 · feat/rooms** — 一键联机房间（局域网直连方案 C）：
+  zhanjhnaccount 新增 rooms 表；账号 API 增加 `GET/POST /api/rooms`、`/rooms/{no}`、`/join`、`/close`（公开/私密、可选密码、人数上限、2 小时过期、房间号 6 位）；
+  启动器新增联机页（版本/端口/人数/密码/公开开关、一键开房、房间号展示与复制、加入房间、公开列表）；
+  bridge 增加 rooms.list/create/join/close 与 app.localIp；关闭旧 MultiplayerPage 占位避免重复渲染。

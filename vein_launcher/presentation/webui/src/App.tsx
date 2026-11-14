@@ -15,6 +15,7 @@ import { SettingsPage } from './settingsPage';
 import { SkinsPage } from './skinsPage';
 import { ForumPage } from './forumPage';
 import { AccountPage } from './accountPage';
+import { RoomsPage } from './roomsPage';
 import { InstancePage } from './instancePage';
 import { ToolsPage } from './toolsPage';
 import { DownloadMonitor, Toast } from './ui';
@@ -372,13 +373,13 @@ export function App() {
           {page === 'skins' && <SkinsPage notify={notify} />}
           {page === 'forum' && <ForumPage notify={notify} />}
           {page === 'account' && <AccountPage notify={notify} />}
+          {page === 'multiplayer' && <RoomsPage notify={notify} />}
           {page === 'download' && (
             <DownloadPage installed={installed} onInstalled={refreshInstalled} notify={notify} />
           )}
           {page === 'plugins' && <PluginsPage notify={notify} />}
           {page === 'downloads' && <DownloadsPage />}
           {page === 'mlc' && <MlcPage installed={installed} selected={selected} notify={notify} />}
-          {page === 'multiplayer' && <MultiplayerPage />}
           {page === 'settings' && <SettingsPage notify={notify} />}
           {page === 'tools' && <ToolsPage notify={notify} />}
         </div>
