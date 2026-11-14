@@ -5,6 +5,7 @@ interface AccountUser {
   id: number;
   username: string;
   email?: string;
+  avatar?: string;
   status: string;
   group: { key: string; name: string; can_post: boolean; is_admin: boolean };
 }
@@ -100,7 +101,7 @@ export function AccountPage({ notify }: { notify: (text: string) => void }) {
       ) : (
         <div className="ac-card">
           <div className="ac-hero">
-            <div className="fp-avatar" style={{ width: 56, height: 56, fontSize: 22 }}>{user.username.slice(0, 1).toUpperCase()}</div>
+            <div className="fp-avatar" style={{ width: 56, height: 56, fontSize: 22 }}>{user.avatar ? <img src={user.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : user.username.slice(0, 1).toUpperCase()}</div>
             <div>
               <b>{user.username}</b>
               <p>

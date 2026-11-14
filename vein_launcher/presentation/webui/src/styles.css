@@ -2291,3 +2291,5 @@ img[src$="chest.png"] {
 
 /* 简洁模式下侧栏由悬浮球替代 */
 .side.wheel-hidden { display: none !important; }
+
+.head-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }

@@ -30,6 +30,7 @@ interface AccountUser {
   id: number;
   username: string;
   status: string;
+  avatar?: string;
   group: { name: string; key: string; can_post: boolean };
 }
 
@@ -269,7 +270,7 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
         <div className="fp-actions">
           {account ? (
             <div className="fp-user">
-              <span className="fp-avatar sm">{initials(account.user.username)}</span>
+              <span className="fp-avatar sm">{account.user.avatar ? <img src={account.user.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : initials(account.user.username)}</span>
               <div>
                 <b>{account.user.username}</b>
                 <span className="fp-group">{account.user.group.name}</span>

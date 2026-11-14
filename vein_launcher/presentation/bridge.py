@@ -987,6 +987,13 @@ class ApiBridge(QObject):
         except OSError:
             pass
 
+    def _account_user(self, user: dict) -> dict:
+        avatar = str(user.get("avatar") or "")
+        if avatar.startswith("/"):
+            user = dict(user)
+            user["avatar"] = "https://account.zhanjhn.cn" + avatar
+        return user
+
     async def _account_status(self) -> dict:
         data = self._account_load()
         session = str(data.get("session") or "")
@@ -996,7 +1003,7 @@ class ApiBridge(QObject):
 
         try:
             result = await AccountClient().me(session)
-            user = result.get("user") or {}
+            user = self._account_user(result.get("user") or {})
             return {"loggedIn": True, "user": user, "session": session}
         except AccountError:
             return {"loggedIn": False, "expired": True}
@@ -1024,7 +1031,7 @@ class ApiBridge(QObject):
             return {"status": "error", "message": str(exc)}
         if result.get("status") == "verified":
             session = result.get("session") or ""
-            user = result.get("user") or {}
+            user = self._account_user(result.get("user") or {})
             self._account_save({"session": session, "user": user})
             self._pending_token = ""
             return {"status": "verified", "user": user}

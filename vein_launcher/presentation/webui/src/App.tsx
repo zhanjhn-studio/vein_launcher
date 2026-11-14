@@ -150,7 +150,7 @@ export function App() {
   const [dismissed, setDismissed] = useState(false);
   const [theme, setTheme] = useState<Theme>('dark');
   const [booted, setBooted] = useState(false);
-  const [me, setMe] = useState<{ username: string; group?: { name: string } } | null>(null);
+  const [me, setMe] = useState<{ username: string; avatar?: string; group?: { name: string } } | null>(null);
   const [firstRun, setFirstRun] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [version, setVersion] = useState('0.1.0');
@@ -165,6 +165,17 @@ export function App() {
     const list = await rpc<VersionInfo[]>('versions.info');
     setInstalled(list);
     setSelected((prev) => (prev && list.some((v) => v.id === prev) ? prev : list[0]?.id ?? ''));
+  }, []);
+
+  useEffect(() => {
+    const loadMe = () => {
+      rpc<{ loggedIn: boolean; user?: { username: string; avatar?: string; group?: { name: string } } }>('account.status', [])
+        .then((res) => setMe(res?.loggedIn && res.user ? res.user : null))
+        .catch(() => setMe(null));
+    };
+    loadMe();
+    window.addEventListener('vein:accountChanged', loadMe);
+    return () => window.removeEventListener('vein:accountChanged', loadMe);
   }, []);
 
   useEffect(() => {
@@ -319,7 +330,11 @@ export function App() {
           <button className={`head-account ${me ? 'on' : ''}`} onClick={() => setPage('account')} title="我的账号">
             {me ? (
               <>
-                <span className="head-avatar">{me.username.slice(0, 1).toUpperCase()}</span>
+                <span className="head-avatar">
+                  {me.avatar
+                    ? <img src={me.avatar} alt="" />
+                    : me.username.slice(0, 1).toUpperCase()}
+                </span>
                 <span className="head-name">{me.username}</span>
               </>
             ) : (

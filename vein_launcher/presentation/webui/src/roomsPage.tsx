@@ -13,6 +13,7 @@ interface Room {
 
 interface AccountUser {
   username: string;
+  avatar?: string;
   group: { name: string; can_post: boolean };
 }
 
@@ -187,7 +188,7 @@ export function RoomsPage({ notify }: { notify: (text: string) => void }) {
         </div>
         <div className="fp-actions">
           {account ? (
-            <span className="fp-user"><span className="fp-avatar sm">{account.user.username.slice(0, 1).toUpperCase()}</span><b>{account.user.username}</b></span>
+            <span className="fp-user"><span className="fp-avatar sm">{account.user.avatar ? <img src={account.user.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : account.user.username.slice(0, 1).toUpperCase()}</span><b>{account.user.username}</b></span>
           ) : (
             <button className="btn" onClick={startLogin}>登录 ZHANJHN</button>
           )}
