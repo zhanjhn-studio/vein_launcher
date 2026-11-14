@@ -9,7 +9,6 @@ interface ForumPost {
   likes: number;
   tags: string[];
   created_at: string;
-  hot_score?: number;
 }
 
 interface ForumDetail {
@@ -27,12 +26,20 @@ interface ForumTag {
   count: number;
 }
 
+interface AccountUser {
+  id: number;
+  username: string;
+  status: string;
+  group: { name: string; key: string; can_post: boolean };
+}
+
 interface Feed {
   items: ForumPost[];
-  page: number;
   total: number;
   has_more: boolean;
 }
+
+const AUTH_URL = 'https://account.zhanjhn.cn/';
 
 function relTime(iso: string): string {
   const t = new Date(iso).getTime();
@@ -45,26 +52,31 @@ function relTime(iso: string): string {
   return new Date(t).toLocaleDateString();
 }
 
+function initials(name: string): string {
+  return (name || '?').trim().slice(0, 1).toUpperCase();
+}
+
 export function ForumPage({ notify }: { notify: (text: string) => void }) {
   const [sort, setSort] = useState<'hot' | 'new'>('hot');
   const [tag, setTag] = useState('');
   const [tags, setTags] = useState<ForumTag[]>([]);
   const [items, setItems] = useState<ForumPost[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<ForumDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [compose, setCompose] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [pickTag, setPickTag] = useState('');
   const [sending, setSending] = useState(false);
-  const [account, setAccount] = useState<{ user?: any } | null>(null);
+  const [account, setAccount] = useState<{ user: AccountUser } | null>(null);
   const [login, setLogin] = useState<{ token: string; url: string; status: string } | null>(null);
 
   const loadTags = useCallback(async () => {
     try {
       setTags(await rpc<ForumTag[]>('forum.tags', []));
     } catch {
-      /* 标签失败不阻塞列表 */
+      /* 标签失败不阻塞 */
     }
   }, []);
 
@@ -81,26 +93,38 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
     }
   }, [sort, tag, notify]);
 
-  useEffect(() => {
-    rpc<{ loggedIn: boolean; user?: any }>('account.status', [])
-      .then((res) => setAccount(res?.loggedIn ? { user: res.user } : null))
-      .catch(() => {});
+  const refreshAccount = useCallback(async () => {
+    try {
+      const res = await rpc<{ loggedIn: boolean; user?: AccountUser }>('account.status', []);
+      setAccount(res?.loggedIn && res.user ? { user: res.user } : null);
+    } catch {
+      setAccount(null);
+    }
   }, []);
+
+  useEffect(() => {
+    loadTags();
+    refreshAccount();
+  }, [loadTags, refreshAccount]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   useEffect(() => {
     if (!login || login.status !== 'pending') return;
     const timer = window.setInterval(async () => {
       try {
-        const res = await rpc<{ status: string; user?: any; message?: string }>('account.poll', []);
-        if (res.status === 'verified') {
+        const res = await rpc<{ status: string; user?: AccountUser }>('account.poll', []);
+        if (res.status === 'verified' && res.user) {
           setAccount({ user: res.user });
           setLogin(null);
-          notify(`已登录：${res.user?.username ?? ''}`);
-        } else if (res.status === 'expired' || res.status === 'error' || res.status === 'consumed') {
-          setLogin({ ...login, status: res.status === 'expired' ? 'expired' : 'error' });
+          notify(`已登录：${res.user.username}（${res.user.group.name}）`);
+        } else if (['expired', 'consumed', 'error'].includes(res.status)) {
+          setLogin((prev) => (prev ? { ...prev, status: res.status } : prev));
         }
       } catch {
-        /* 轮询失败忽略，下一轮再试 */
+        /* 忽略单次轮询失败 */
       }
     }, 2500);
     return () => window.clearInterval(timer);
@@ -110,8 +134,7 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
     try {
       const res = await rpc<{ token: string; url: string }>('account.start', []);
       setLogin({ token: res.token, url: res.url, status: 'pending' });
-      // 自动打开统一认证授权页（token 已带在链接里）
-      window.open(res.url, '_blank');
+      await rpc('app.openUrl', [res.url]).catch(() => {});
     } catch (err) {
       notify(`登录初始化失败：${(err as Error).message}`);
     }
@@ -120,26 +143,35 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
   const logout = async () => {
     await rpc('account.logout', []).catch(() => {});
     setAccount(null);
+    setDetail(null);
+    setCompose(false);
     notify('已退出账号');
   };
 
-  useEffect(() => {
-    loadTags();
-  }, [loadTags]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
   const openPost = async (id: number) => {
+    setDetailLoading(true);
+    setDetail(null);
     try {
       setDetail(await rpc<ForumDetail>('forum.detail', [id]));
     } catch (err) {
       notify(`帖子打开失败：${(err as Error).message}`);
+    } finally {
+      setDetailLoading(false);
     }
   };
 
-  const send = async () => {
+  const likePost = async (id: number) => {
+    try {
+      const res = await rpc<{ likes: number; liked: boolean }>('forum.like', [id]);
+      setItems((prev) => prev.map((p) => (p.id === id ? { ...p, likes: res.likes } : p)));
+      setDetail((prev) => (prev && prev.id === id ? { ...prev, likes: res.likes } : prev));
+      if (res.liked) notify('已点赞');
+    } catch (err) {
+      notify(`点赞失败：${(err as Error).message}`);
+    }
+  };
+
+  const publish = async () => {
     if (!account) {
       startLogin();
       return;
@@ -169,85 +201,83 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
     }
   };
 
-  const like = async () => {
-    if (!detail) return;
-    try {
-      const res = await rpc<{ likes: number; liked: boolean }>('forum.like', [detail.id]);
-      setDetail({ ...detail, likes: res.likes });
-      setItems((prev) => prev.map((p) => (p.id === detail.id ? { ...p, likes: res.likes } : p)));
-    } catch (err) {
-      notify(`点赞失败：${(err as Error).message}`);
-    }
-  };
-
   const tagOptions = useMemo(() => tags.map((t) => t.name), [tags]);
+
+  if (detailLoading) {
+    return (
+      <div className="page fp-page">
+        <div className="fp-loading"><span className="fp-spinner" /> 正在加载帖子…</div>
+      </div>
+    );
+  }
 
   if (detail) {
     return (
-      <div className="page forum-page">
-        <div className="page-head">
+      <div className="page fp-page">
+        <button className="btn sm ghost fp-back" onClick={() => setDetail(null)}>← 返回广场</button>
+        <article className="fp-detail">
+          <div className="fp-detail-head">
+            <span className="fp-avatar">{initials(detail.author_name)}</span>
+            <div>
+              <div className="fp-author">{detail.author_name}</div>
+              <div className="fp-time">{relTime(detail.created_at)}</div>
+            </div>
+            <div className="fp-detail-tags">
+              {detail.tags.map((t) => <span className="fp-tag" key={t}>{t}</span>)}
+            </div>
+          </div>
           <h1>{detail.title}</h1>
-          <span className="muted">
-            {detail.author_name} · {relTime(detail.created_at)}
-          </span>
-        </div>
-        <div className="forum-detail">
-          <div className="forum-detail-tags">
-            {detail.tags.map((t) => (
-              <span className="forum-tag" key={t}>{t}</span>
-            ))}
+          <div className="fp-content">{detail.content}</div>
+          <div className="fp-detail-foot">
+            <button className={`fp-like big ${detail.likes > 0 ? 'on' : ''}`} onClick={() => likePost(detail.id)}>
+              <span className="fp-heart">♥</span> {detail.likes} 赞
+            </button>
+            <button className="btn sm" onClick={() => setDetail(null)}>返回</button>
           </div>
-          <div className="forum-content">{detail.content}</div>
-          <div className="forum-actions">
-            <button className="btn primary" onClick={like}>赞 {detail.likes}</button>
-            <button className="btn" onClick={() => setDetail(null)}>返回列表</button>
-          </div>
-        </div>
+        </article>
       </div>
     );
   }
 
   return (
-    <div className="page forum-page">
-      <div className="page-head">
-        <h1>广场</h1>
-        <span className="muted">{items.length} 条 · 来自 api.zhanjhn.cn</span>
-        {account ? (
-          <span className="forum-account">
-            {account.user?.username}
-            <span className="forum-tag">{account.user?.group?.name || 'member'}</span>
-            <button className="btn sm ghost" onClick={logout}>退出</button>
-          </span>
-        ) : (
-          <button className="btn sm" style={{ marginLeft: 'auto' }} onClick={startLogin}>登录</button>
-        )}
-        <button
-          className="btn primary"
-          onClick={() => {
-            if (!account) {
-              startLogin();
-              return;
-            }
-            setCompose((v) => !v);
-          }}
-        >
-          发帖
-        </button>
-      </div>
-
-      {compose && (
-        <div className="forum-compose">
-          <div className="forum-compose-row">
-            <div className="muted">
-              以 <b>{account?.user?.username}</b> 身份发布
-              <span className="forum-tag" style={{ marginLeft: 6 }}>{account?.user?.group?.name || 'member'}</span>
+    <div className="page fp-page">
+      <header className="fp-hero">
+        <div>
+          <h1>广场</h1>
+          <p>发教程、求助、插件与作品；登录后即可发言。</p>
+        </div>
+        <div className="fp-actions">
+          {account ? (
+            <div className="fp-user">
+              <span className="fp-avatar sm">{initials(account.user.username)}</span>
+              <div>
+                <b>{account.user.username}</b>
+                <span className="fp-group">{account.user.group.name}</span>
+              </div>
+              <button className="btn sm ghost" onClick={logout}>退出</button>
             </div>
-            <select value={pickTag} onChange={(e) => setPickTag(e.target.value)}>
-              <option value="">不选标签</option>
-              {tagOptions.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+          ) : (
+            <button className="btn" onClick={startLogin}>登录</button>
+          )}
+          <button className="btn primary" onClick={() => (account ? setCompose((v) => !v) : startLogin())}>
+            发帖
+          </button>
+        </div>
+      </header>
+
+      {!account && (
+        <div className="fp-banner">
+          <b>登录后发帖</b>
+          <span>使用 ZHANJHN 统一账号，绑定后可直接在这里发帖、点赞。</span>
+          <button className="btn sm" onClick={startLogin}>登录 / 注册</button>
+        </div>
+      )}
+
+      {account && compose && (
+        <div className="fp-compose">
+          <div className="fp-compose-head">
+            <b>发布新帖</b>
+            <button className="btn sm ghost" onClick={() => setCompose(false)}>取消</button>
           </div>
           <input
             className="input"
@@ -257,72 +287,100 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
             onChange={(e) => setTitle(e.target.value)}
           />
           <textarea
-            className="input forum-textarea"
+            className="input fp-textarea"
             placeholder="正文，支持纯文本 / Markdown 源"
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
-          <div className="forum-compose-actions">
-            <button className="btn primary" disabled={sending} onClick={send}>
+          <div className="fp-compose-foot">
+            <select value={pickTag} onChange={(e) => setPickTag(e.target.value)}>
+              <option value="">不选标签</option>
+              {tagOptions.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <span className="muted">以 {account.user.username} 身份发布</span>
+            <button className="btn primary" disabled={sending} onClick={publish}>
               {sending ? '发布中…' : '发布'}
             </button>
-            <button className="btn" onClick={() => setCompose(false)}>取消</button>
           </div>
         </div>
       )}
 
-      <div className="forum-toolbar">
-        <button className={`btn sm ${sort === 'hot' ? 'primary' : ''}`} onClick={() => setSort('hot')}>热门</button>
-        <button className={`btn sm ${sort === 'new' ? 'primary' : ''}`} onClick={() => setSort('new')}>最新</button>
-        <div className="forum-tags">
-          <button className={`forum-chip ${tag === '' ? 'on' : ''}`} onClick={() => setTag('')}>全部</button>
+      <div className="fp-toolbar">
+        <div className="fp-seg">
+          <button className={sort === 'hot' ? 'on' : ''} onClick={() => setSort('hot')}>热门</button>
+          <button className={sort === 'new' ? 'on' : ''} onClick={() => setSort('new')}>最新</button>
+        </div>
+        <div className="fp-chips">
+          <button className={`fp-chip ${tag === '' ? 'on' : ''}`} onClick={() => setTag('')}>全部</button>
           {tags.map((t) => (
             <button
               key={t.name}
-              className={`forum-chip ${tag === t.name ? 'on' : ''}`}
+              className={`fp-chip ${tag === t.name ? 'on' : ''}`}
               onClick={() => setTag(tag === t.name ? '' : t.name)}
             >
-              {t.name} <span>{t.count}</span>
+              {t.name}<i>{t.count}</i>
             </button>
           ))}
         </div>
+        <button className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={load}>刷新</button>
       </div>
 
-      {login && (
-        <div className="forum-login">
-          <b>登录账号</b>
-          <p>在 account.zhanjhn.cn 登录或注册后，把下面的 token 填入「绑定启动器」。</p>
-          <code className="forum-token">{login.token}</code>
-          <div className="forum-login-actions">
-            <button className="btn sm" onClick={() => navigator.clipboard?.writeText(login.token)}>复制</button>
-            <button className="btn sm" onClick={() => window.open(login.url, '_blank')}>打开登录页</button>
-            <button className="btn sm ghost" onClick={() => setLogin(null)}>取消</button>
-          </div>
-          <span className="muted">
-            {login.status === 'pending' ? '等待绑定…（10 分钟内有效）'
-              : login.status === 'expired' ? 'token 已过期，请重新登录'
-              : '验证失败，请重试'}
-          </span>
+      {loading ? (
+        <div className="fp-loading"><span className="fp-spinner" /> 加载中…</div>
+      ) : items.length === 0 ? (
+        <div className="fp-empty">
+          <b>这里还很安静</b>
+          <span>{account ? '点右上角「发帖」写第一条。' : '登录后发第一条帖子。'}</span>
+          <button className="btn primary" onClick={() => (account ? setCompose(true) : startLogin())}>去发帖</button>
+        </div>
+      ) : (
+        <div className="fp-list">
+          {items.map((p) => (
+            <article className="fp-post" key={p.id} onClick={() => openPost(p.id)}>
+              <button
+                className={`fp-like ${p.likes > 0 ? 'on' : ''}`}
+                onClick={(e) => { e.stopPropagation(); likePost(p.id); }}
+                title="点赞"
+              >
+                <span className="fp-heart">♥</span>
+                <b>{p.likes}</b>
+              </button>
+              <div className="fp-body">
+                <h3>{p.title}</h3>
+                <p>{p.excerpt}</p>
+                <div className="fp-meta">
+                  <span className="fp-avatar sm">{initials(p.author_name)}</span>
+                  <span>{p.author_name}</span>
+                  <span className="fp-dot">·</span>
+                  <span>{relTime(p.created_at)}</span>
+                  <span className="fp-mini-tags">
+                    {p.tags.map((t) => <span className="fp-tag" key={t}>{t}</span>)}
+                  </span>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
       )}
 
-      <div className="forum-list">
-        {loading && <div className="empty">加载中…</div>}
-        {!loading && items.length === 0 && <div className="empty">还没有帖子，点右上角「发帖」写第一条。</div>}
-        {items.map((p) => (
-          <button className="forum-item" key={p.id} onClick={() => openPost(p.id)}>
-            <span className="forum-likes"><b>{p.likes}</b>赞</span>
-            <span className="forum-item-body">
-              <b>{p.title}</b>
-              <span className="forum-excerpt">{p.excerpt}</span>
-              <span className="forum-meta">
-                {p.tags.map((t) => <span className="forum-tag" key={t}>{t}</span>)}
-                {p.author_name} · {relTime(p.created_at)}
-              </span>
-            </span>
-          </button>
-        ))}
-      </div>
+      {login && (
+        <div className="fp-modal" onClick={(e) => { if (e.target === e.currentTarget) setLogin(null); }}>
+          <div className="fp-modal-card">
+            <h2>{login.status === 'pending' ? '登录 / 注册' : '授权失败'}</h2>
+            <p className="muted">浏览器已打开统一认证页面；登录后点「同意并授权」。若没打开，点下面按钮。</p>
+            <code className="fp-token">{login.token}</code>
+            <div className="fp-modal-actions">
+              <button className="btn sm" onClick={() => navigator.clipboard?.writeText(login.token)}>复制 token</button>
+              <button className="btn sm primary" onClick={() => rpc('app.openUrl', [login.url]).catch(() => {})}>打开授权页</button>
+              <button className="btn sm ghost" onClick={() => setLogin(null)}>取消</button>
+            </div>
+            <div className="fp-modal-status">
+              {login.status === 'pending' && <><span className="fp-spinner small" /> 等待授权…（10 分钟内有效）</>}
+              {login.status !== 'pending' && <span className="fp-error">token 已过期或被使用，请重新点「登录」</span>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

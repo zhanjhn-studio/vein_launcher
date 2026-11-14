@@ -764,3 +764,8 @@ window.__veinResult(12, true, {ok: 1})
   account.zhanjhn.cn 改为「ZHANJHN 统一登录」卡片（深色纹理背景 + 立方体加载动画 + 白卡表单）；
   启动器登录自动打开 `/?token=…`，登录后显示「授权 Vein Launcher」确认页（同意/拒绝），同意即绑定并回启动器轮询；
   旧手动 token 输入保留为备用；验证：start→bind→poll verified（session 正常）、页面 title 正确。
+
+- **2026-11-14 · feat/forum-v2** — 启动器广场大改：
+  新布局（渐变标题、账号胶囊、登录横幅、分段热门/最新、标签 chips、帖子卡、爱心点赞、详情页、发帖面板、登录授权弹层、spinner/空状态）；
+  修复「点了没反应」：登录改用 `app.openUrl` RPC（webbrowser）而不是 WebView 的 window.open；
+  发帖身份取账号、点赞独立点击（stopPropagation）、详情/返回/刷新均可点。
