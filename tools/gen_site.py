@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1] / "veinwebsite-don'tupdategithub"
 GH = "https://github.com/zhanjhn-studio/vein_launcher"
 ISSUES = f"{GH}/issues"
 DISCUSS = f"{GH}/discussions"
-ZIP = "https://github.com/zhanjhn-studio/vein_launcher/releases/download/v0.5.1/VeinLauncher-0.5.1-win64.zip"
+ZIP = "https://vl.zhanjhn.cn/downloads/VeinLauncher-0.5.1-win64.zip"
 
 VERSION = "0.5.1"
 

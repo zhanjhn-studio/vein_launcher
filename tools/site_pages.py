@@ -1,6 +1,6 @@
 """根页面内容（v7）：关于/下载/社区/路线图/安全/贡献/展示墙/许可/FAQ/文档入口。"""
 
-ZIP = "https://github.com/zhanjhn-studio/vein_launcher/releases/download/v0.5.1/VeinLauncher-0.5.1-win64.zip"
+ZIP = "https://vl.zhanjhn.cn/downloads/VeinLauncher-0.5.1-win64.zip"
 REL = "https://github.com/zhanjhn-studio/vein_launcher/releases/tag/v0.5.1"
 GH = "https://github.com/zhanjhn-studio/vein_launcher"
 ISSUES = f"{GH}/issues"
@@ -16,7 +16,7 @@ DOWNLOAD_ZH = f"""
     <h2>Vein Launcher 0.5.0</h2>
     <p>界面自定义（圆角 / 缩放 / 动效）、默认浅色 + 橙色主题；含 0.5.0 的 MLC 与插件能力。</p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <a class="btn primary lg" href="{ZIP}">下载 zip（199 MB）</a>
+      <a class="btn primary lg" href="{ZIP}">下载 zip（232 MB）</a>
       <a class="btn lg" href="{REL}" target="_blank" rel="noopener">Release 说明</a>
       <a class="btn ghost lg" href="../changelog.html">更新日志</a>
     </div>
@@ -25,7 +25,7 @@ DOWNLOAD_ZH = f"""
 </div>
 <div class="meta-grid">
   <div><b>Windows 10 / 11 x64</b><span>支持平台</span></div>
-  <div><b>199 MB</b><span>压缩包大小</span></div>
+  <div><b>232 MB</b><span>压缩包大小</span></div>
   <div><b>2026-11-09</b><span>更新时间</span></div>
   <div><b>v0.5.1</b><span>当前版本</span></div>
 </div>
@@ -53,7 +53,7 @@ DOWNLOAD_EN = f"""
     <h2>Vein Launcher 0.5.0</h2>
     <p>UI customization (radius / zoom / motion), light default with orange accent; includes 0.5.0 MLC and plugin work.</p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <a class="btn primary lg" href="{ZIP}">Download zip (199 MB)</a>
+      <a class="btn primary lg" href="{ZIP}">Download zip (232 MB)</a>
       <a class="btn lg" href="{REL}" target="_blank" rel="noopener">Release notes</a>
       <a class="btn ghost lg" href="../changelog.html">Changelog</a>
     </div>
@@ -62,7 +62,7 @@ DOWNLOAD_EN = f"""
 </div>
 <div class="meta-grid">
   <div><b>Windows 10 / 11 x64</b><span>Platform</span></div>
-  <div><b>199 MB</b><span>Archive size</span></div>
+  <div><b>232 MB</b><span>Archive size</span></div>
   <div><b>2026-11-09</b><span>Updated</span></div>
   <div><b>v0.5.1</b><span>Version</span></div>
 </div>
