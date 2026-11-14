@@ -1,0 +1,31 @@
+{
+  "version": "0.5.1",
+  "min_version": "0.5.0",
+  "announcements": [
+    {
+      "id": "2026-11-14-account",
+      "level": "light",
+      "title": "ZHANJHN 统一账号已接入",
+      "content": "启动器右上角可直接登录 ZHANJHN 账号，授权后可在广场发帖、查看远程仪表盘。",
+      "url": "https://account.zhanjhn.cn/?account=veinlauncher"
+    },
+    {
+      "id": "2026-11-09-051",
+      "level": "light",
+      "title": "Vein Launcher 0.5.1 已发布",
+      "content": "默认浅色 + 橙色主题，新增界面自定义（圆角 / 缩放 / 动效开关），启动器截图与图标全部重制。",
+      "url": "https://github.com/zhanjhn-studio/vein_launcher/releases/tag/v0.5.1"
+    },
+    {
+      "id": "2026-11-09-mlc",
+      "level": "light",
+      "title": "MLC 与指令速查",
+      "content": "原版实例可用指令速查、全局热键与 MLC 控制层；插件可通过 mlc.* 能力读取状态、订阅进世界事件。"
+    }
+  ],
+  "update": {
+    "version": "0.5.1",
+    "url": "https://github.com/zhanjhn-studio/vein_launcher/releases/tag/v0.5.1",
+    "notes": "浅色 + 橙色主题、界面自定义、图片重制；ZHANJHN 统一账号"
+  }
+}

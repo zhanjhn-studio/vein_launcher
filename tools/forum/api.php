@@ -132,6 +132,17 @@ if ($method === 'GET' && (($segments[0] ?? '') === 'health' || $segments === [])
     ]);
 }
 
+// GET /api/announcements
+if ($method === 'GET' && ($segments[0] ?? '') === 'announcements' && count($segments) === 1) {
+    $file = __DIR__ . '/announcement.json';
+    if (!is_file($file)) {
+        fail('announcement not configured', 503, 'unavailable');
+    }
+    header('Cache-Control: public, max-age=60');
+    readfile($file);
+    exit;
+}
+
 // GET /api/tags
 if ($method === 'GET' && ($segments[0] ?? '') === 'tags' && count($segments) === 1) {
     $rows = $pdo->query(

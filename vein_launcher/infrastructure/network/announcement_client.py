@@ -27,6 +27,8 @@ from vein_launcher.infrastructure.network.http_client import HttpClient
 logger = logging.getLogger(__name__)
 
 SOURCES = (
+    "https://api.zhanjhn.cn/public.js",
+    "https://api.zhanjhn.cn/api/announcements",
     "https://zhanjhn.github.io/vl/public.js",
     "https://zhanjhn.github.io/public.js",
     "https://zhanjhn.github.io/announcement.json",
