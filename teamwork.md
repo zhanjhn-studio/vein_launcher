@@ -774,3 +774,8 @@ window.__veinResult(12, true, {ok: 1})
   顶部右侧账号胶囊（头像+昵称/登录），导航新增「我的」页（账号信息、权限组、登录/退出、打开账号中心与 /veinlauncher 仪表盘、关联新项目）；
   登录不再局限广场；ZHANJHN 统一账号文案与 logo 接入 account.zhanjhn.cn；授权页改为「是否将 ZHANJHN 账号关联到 Vein Launcher」；
   `app.openUrl` 改用 QDesktopServices（系统默认浏览器），修复 WebView 打不开标签页；token 自动附带到论坛/账号/远程请求。
+
+- **2026-11-14 · feat/project-pages** — 统一认证按项目拆页：
+  p2 登录页改为 `/?account=<project>&token=<token>`，登录后自动跳 `/<project>/?token=…`；
+  `/veinlauncher/` 改为关联页（左 ZHANJHN logo · 连接线 · 右 Vein logo，同意关联后显示已关联 + 设备列表）；
+  新增 `/example1/` 项目接入示例页；nginx 增加 example1 路由；启动器登录 URL 改为 `?account=veinlauncher&token=…`。
