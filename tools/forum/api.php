@@ -203,7 +203,7 @@ if ($method === 'POST' && ($segments[0] ?? '') === 'tags' && count($segments) ==
 }
 
 // POST /api/{project}/posts
-if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && count($segments) === 1) {
+if ($method === 'POST' && ($segments[0] ?? '') === 'feed' && count($segments) === 1) {
     throttle($pdo, 'post', 20, 60);
     $data = body();
     $limit = min(50, max(1, (int)($data['limit'] ?? 20)));

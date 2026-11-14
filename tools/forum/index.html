@@ -217,7 +217,7 @@ async function load() {
   try {
     const q = new URLSearchParams({ sort: state.sort, page: String(state.page), limit: '20' });
     if (state.tag) q.set('tag', state.tag);
-    const data = await api('/posts', { sort: state.sort, page: state.page, limit: 20, tag: state.tag });
+    const data = await api('/feed', { sort: state.sort, page: state.page, limit: 20, tag: state.tag });
     if (!data.items.length) {
       $('list').innerHTML = '<div class="empty">还没有帖子，点「发帖」写第一条。</div>';
       return;

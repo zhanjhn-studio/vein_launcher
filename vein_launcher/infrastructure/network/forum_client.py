@@ -44,14 +44,17 @@ class ForumClient:
         params: Optional[Dict[str, Any]] = None,
         json: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
+        session: str = "",
     ) -> Any:
         url = f"{self._base}{path}"
         hdrs = {"Accept": "application/json", "X-User": USER_KEY}
+        if session:
+            hdrs["Authorization"] = f"Bearer {session}"
         if headers:
             hdrs.update(headers)
         try:
-            async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
-                async with session.request(method, url, params=params, json=json, headers=hdrs) as resp:
+            async with aiohttp.ClientSession(timeout=TIMEOUT) as http:
+                async with http.request(method, url, params=params, json=json, headers=hdrs) as resp:
                     try:
                         data = await resp.json(content_type=None)
                     except Exception:
@@ -72,7 +75,7 @@ class ForumClient:
         params: Dict[str, Any] = {"sort": sort, "page": max(1, int(page)), "limit": min(50, max(1, limit))}
         if tag:
             params["tag"] = tag
-        return await self._request("POST", "/api/veinlauncher/posts", json=params)
+        return await self._request("POST", "/api/veinlauncher/feed", json=params)
 
     async def tags(self) -> List[Dict[str, Any]]:
         data = await self._request("POST", "/api/veinlauncher/tags", json={})
