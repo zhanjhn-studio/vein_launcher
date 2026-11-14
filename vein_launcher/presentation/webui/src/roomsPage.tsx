@@ -25,6 +25,7 @@ export function RoomsPage({ notify }: { notify: (text: string) => void }) {
   const [version, setVersion] = useState('');
   const [port, setPort] = useState('25565');
   const [publicRoom, setPublicRoom] = useState(true);
+  const [postToForum, setPostToForum] = useState(true);
   const [password, setPassword] = useState('');
   const [maxPlayers, setMaxPlayers] = useState('8');
   const [hostIp, setHostIp] = useState('');
@@ -113,6 +114,19 @@ export function RoomsPage({ notify }: { notify: (text: string) => void }) {
       ]);
       setMyRoom({ room_no: res.room_no, host: res.host });
       notify(`房间已创建：${res.room_no}`);
+      if (postToForum) {
+        try {
+          await rpc('forum.post', [
+            `[联机] ${account.user.username} 的房间`,
+            `房间号：${res.room_no}\n版本：${version || '任意'}\n地址：${res.host}\n公开：${publicRoom ? '是' : '否'}\n\n在启动器「联机」页输入房间号加入。`,
+            ['闲聊'],
+            '',
+          ]);
+          notify('已同步发到广场');
+        } catch (err) {
+          notify(`房间已建，但发帖失败：${(err as Error).message}`);
+        }
+      }
       await loadRooms();
     } catch (err) {
       notify(`创建失败：${(err as Error).message}`);
@@ -188,6 +202,7 @@ export function RoomsPage({ notify }: { notify: (text: string) => void }) {
           </div>
           <label className="rm-field">房间密码（可选）<input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="不填则公开" /></label>
           <label className="rm-check"><input type="checkbox" checked={publicRoom} onChange={(e) => setPublicRoom(e.target.checked)} /> 公开房间（出现在列表）</label>
+          <label className="rm-check"><input type="checkbox" checked={postToForum} onChange={(e) => setPostToForum(e.target.checked)} /> 同步发到广场（房间号会公开）</label>
           <div className="rm-host">地址：<code>{host}</code></div>
           <button className="btn primary" disabled={busy === 'create' || !account} onClick={create}>
             {busy === 'create' ? '创建中…' : '创建房间'}
