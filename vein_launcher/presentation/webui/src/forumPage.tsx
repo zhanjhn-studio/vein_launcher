@@ -235,6 +235,24 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
               <span className="fp-heart">♥</span> {detail.likes} 赞
             </button>
             <button className="btn sm" onClick={() => setDetail(null)}>返回</button>
+            {account && (account.user.group.key === 'admin' || account.user.username === detail.author_name) && (
+              <button
+                className="btn sm danger"
+                onClick={async () => {
+                  if (!window.confirm('确认删除这条帖子？')) return;
+                  try {
+                    await rpc('forum.delete', [detail.id]);
+                    setDetail(null);
+                    await load();
+                    notify('帖子已删除');
+                  } catch (err) {
+                    notify(`删除失败：${(err as Error).message}`);
+                  }
+                }}
+              >
+                删除
+              </button>
+            )}
           </div>
         </article>
       </div>

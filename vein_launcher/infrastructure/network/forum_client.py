@@ -94,6 +94,9 @@ class ForumClient:
             headers=headers,
         )
 
+    async def delete_post(self, post_id: int, session: str = "") -> Dict[str, Any]:
+        return await self._request("POST", f"/api/posts/{int(post_id)}/delete", json={}, session=session)
+
     async def like(self, post_id: int) -> Dict[str, Any]:
         return await self._request("POST", f"/api/posts/{int(post_id)}/like", json={})
 

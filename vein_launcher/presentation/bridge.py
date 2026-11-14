@@ -171,6 +171,7 @@ class ApiBridge(QObject):
             "forum.detail": self._forum_detail,
             "forum.post": self._forum_post,
             "forum.like": self._forum_like,
+            "forum.delete": self._forum_delete,
             "account.status": self._account_status,
             "account.start": self._account_start,
             "account.poll": self._account_poll,
@@ -889,6 +890,9 @@ class ApiBridge(QObject):
         return self._ctx.plugins.install_example(str(name))
 
     # ------------------------------------------------------------------ 联机房间
+    def _account_session(self) -> str:
+        return str(self._account_load().get("session") or "")
+
     def _rooms_session(self) -> str:
         return str(self._account_load().get("session") or "")
 
@@ -1043,6 +1047,11 @@ class ApiBridge(QObject):
         tag_list = [str(x) for x in (tags or [])][:5]
         session = str(self._account_load().get("session") or "")
         return await self._forum().create(str(title), str(content), tag_list, name, session)
+
+    async def _forum_delete(self, post_id: int) -> dict:
+        from vein_launcher.infrastructure.network.forum_client import ForumClient
+
+        return await ForumClient().delete_post(int(post_id), self._account_session())
 
     async def _forum_like(self, post_id: int) -> dict:
         return await self._forum().like(int(post_id))

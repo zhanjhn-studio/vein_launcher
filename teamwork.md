@@ -792,3 +792,6 @@ window.__veinResult(12, true, {ok: 1})
 - **2026-11-14 · feat/remote-control-v2** — 远程控制扩展：
   新增 game.status / game.stop / game.command / logs.tail / versions.delete / mods.enable|disable|delete；账号 API 白名单与 `/client/results` 结果查询；项目页远程面板加游戏状态、停止、日志、发送指令、删除版本（二次确认）。
   联机页创建房间可同步发到广场（房间号/版本/地址，不含凭证）；P0 打开网页三级兜底已实测；管理端清空测试数据。
+
+- **2026-11-14 · feat/preset-admin** — 预设管理员 zhanjhn（`$2y$10$` 哈希写入 users，admin 组），已验证登录/发帖/删除；
+  新增帖子删除接口（管理员或作者，`POST /api/posts/{id}/delete`）、ForumClient.delete_post、forum.delete RPC、详情页删除按钮（二次确认）。

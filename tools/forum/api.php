@@ -341,4 +341,29 @@ if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && isset($segments[1]
     respond(['liked' => $liked, 'likes' => (int)$stmt->fetchColumn()]);
 }
 
+// POST /api/posts/{id}/delete
+if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && isset($segments[1]) && ctype_digit((string)$segments[1]) && ($segments[2] ?? '') === 'delete') {
+    $postId = (int)$segments[1];
+    $session = bearer_token();
+    $accountUser = account_introspect($accountUrl, (string)($cfg['service_key'] ?? ''), $session, (string)($cfg['account_host'] ?? ''));
+    if (!$accountUser) {
+        fail('请先登录（启动器 → 广场 → 登录）', 401, 'unauthorized');
+    }
+    $stmt = $pdo->prepare('SELECT author_name FROM posts WHERE id = ?');
+    $stmt->execute([$postId]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        fail('post not found', 404, 'not_found');
+    }
+    $isAdmin = !empty($accountUser['group']['is_admin']);
+    $isAuthor = (string)$row['author_name'] === (string)($accountUser['username'] ?? '');
+    if (!$isAdmin && !$isAuthor) {
+        fail('没有权限删除这条帖子', 403, 'forbidden');
+    }
+    $pdo->prepare('DELETE FROM likes WHERE post_id = ?')->execute([$postId]);
+    $pdo->prepare('DELETE FROM post_tags WHERE post_id = ?')->execute([$postId]);
+    $pdo->prepare('DELETE FROM posts WHERE id = ?')->execute([$postId]);
+    respond(['ok' => true, 'deleted' => $postId]);
+}
+
 fail('not found', 404, 'not_found');
