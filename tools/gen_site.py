@@ -163,7 +163,7 @@ def header(lang: str, path: str, order: list[str], docs_page: bool) -> str:
     navb = nav_base_for(lang, path)
     logical = path[3:] if path.startswith("en/") else path
     labels = (
-        [("index.html", "首页"), ("docs.html", "文档"), ("download.html", "下载"), ("community.html", "社区"), ("https://api.zhanjhn.cn/", "广场")]
+        [("index.html", "首页"), ("docs.html", "文档"), ("download.html", "下载"), ("community.html", "社区"), ("https://account.zhanjhn.cn/", "ZHANJHN 统一登录")]
         if lang == "zh" else
         [("index.html", "Home"), ("docs.html", "Docs"), ("download.html", "Download"), ("community.html", "Community"), ("https://api.zhanjhn.cn/", "Forum")]
     )
