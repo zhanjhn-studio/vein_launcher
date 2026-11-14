@@ -806,3 +806,6 @@ window.__veinResult(12, true, {ok: 1})
   账号 API 加 IP 限流（登录 10/5min、注册 10/h、设备 start/bind、房间 join、远程指令）；论坛 API 加发帖/点赞/删帖限流；
   CORS 改为白名单（vl/account），API 增加 nosniff / DENY / no-referrer / Permissions-Policy；PHP 关闭 display_errors；
 + 删除 api 站泄露的 index.html 备份；启动器远程指令校验日志文件名、版本号，阻断路径穿越。
+
+- **2026-11-14 · feat/account-theme-zh** — 默认主题改为 Account 深色纹理（深色斜纹 + 方块纹理 + 玻璃卡片），主题选择新增 Account（默认）；
+  默认中文，首次安装欢迎引导全部中文化（欢迎/功能/账号/隐私/完成），Splash 中文化。

@@ -9,11 +9,9 @@ export function Splash({ firstRun }: { firstRun: boolean }) {
         <img src="logo.png" alt="" />
         <span>VEIN</span>
       </div>
-      <h1>Welcome to Vein Launcher</h1>
+      <h1>欢迎使用 Vein Launcher</h1>
       <p className="muted">
-        {firstRun
-          ? "First time here? We're getting everything ready for you."
-          : 'Starting up, one moment…'}
+        {firstRun ? '第一次使用？正在为你准备运行环境。' : '正在启动，请稍候…'}
       </p>
       <div className="splash-bar">
         <i />
@@ -25,34 +23,18 @@ export function Splash({ firstRun }: { firstRun: boolean }) {
 type Method = 'offline' | 'microsoft' | 'littleskin';
 
 const STEPS = [
-  { key: 'welcome', title: 'Welcome', sub: 'A quick tour' },
-  { key: 'features', title: 'What you can do', sub: 'Launch, install, manage' },
-  { key: 'account', title: 'Your account', sub: 'Offline · Microsoft · LittleSkin' },
-  { key: 'privacy', title: 'Privacy', sub: 'What stays on your PC' },
-  { key: 'ready', title: 'Ready', sub: 'Start playing' },
+  { key: 'welcome', title: '欢迎', sub: '快速了解' },
+  { key: 'features', title: '能做什么', sub: '启动、安装、管理' },
+  { key: 'account', title: '账号', sub: '离线 · 微软 · LittleSkin' },
+  { key: 'privacy', title: '隐私', sub: '哪些数据留在本机' },
+  { key: 'ready', title: '完成', sub: '开始游戏' },
 ];
 
 const FEATURES = [
-  {
-    title: 'Launch in one click',
-    body: 'Every installed version shows up as a card. Pick one, press Launch, done.',
-    icon: 'grass_block.png',
-  },
-  {
-    title: 'Install anything',
-    body: 'Vanilla, Fabric, Forge, Quilt, NeoForge, mods, modpacks, shaders and datapacks.',
-    icon: 'crafting_table.png',
-  },
-  {
-    title: 'Worlds & Java handled',
-    body: 'Reads your worlds without opening the game and fetches a matching Java runtime.',
-    icon: 'chest.png',
-  },
-  {
-    title: 'Skins from LittleSkin',
-    body: 'Sign in to littleskin.cn to use its skins and its online servers.',
-    icon: 'writable_book.png',
-  },
+  { title: '一键启动', body: '已安装的版本会显示为卡片，选中后点启动即可。', icon: 'grass_block.png' },
+  { title: '什么都能装', body: '原版、Fabric、Forge、Quilt、NeoForge、模组、整合包、光影与数据包。', icon: 'crafting_table.png' },
+  { title: '存档与 Java', body: '不启动游戏也能读取存档，并自动匹配 Java 运行环境。', icon: 'chest.png' },
+  { title: 'LittleSkin 皮肤', body: '登录 littleskin.cn 后可使用其皮肤与在线服务器。', icon: 'writable_book.png' },
 ];
 
 export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone: () => void }) {
@@ -70,16 +52,13 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
   const last = STEPS.length - 1;
   const stepKey = STEPS[step].key;
 
-  const canNext = useMemo(() => {
-    if (stepKey === 'privacy') return consent;
-    return true;
-  }, [consent, stepKey]);
+  const canNext = useMemo(() => (stepKey === 'privacy' ? consent : true), [consent, stepKey]);
 
   const complete = async (accepted: boolean) => {
     try {
       await rpc('onboarding.complete', [accepted]);
     } catch {
-      /* 写标记失败不阻塞进入启动器 */
+      /* 写入失败不阻断进入启动器 */
     }
     onDone();
   };
@@ -93,7 +72,6 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
     try {
       const account = await rpc<{ username: string }>('accounts.add', [name.trim()]);
       setAccountLabel(account.username);
-      setMessage('');
       next();
     } catch (err) {
       setMessage((err as Error).message);
@@ -106,12 +84,10 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
     setBusy(true);
     setMessage('');
     try {
-      const info = await rpc<{ device_code: string; user_code: string; verification_uri: string }>(
-        'accounts.msStart'
-      );
+      const info = await rpc<{ device_code: string; user_code: string; verification_uri: string }>('accounts.msStart');
       setDevice({ code: info.user_code, uri: info.verification_uri, deviceCode: info.device_code });
       await rpc('app.openUrl', [info.verification_uri]);
-      setMessage(`Enter code ${info.user_code} on the page that just opened.`);
+      setMessage(`请在刚打开的页面输入代码：${info.user_code}`);
     } catch (err) {
       setMessage((err as Error).message);
     } finally {
@@ -122,7 +98,7 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
   const completeMicrosoft = async () => {
     if (!device) return;
     setBusy(true);
-    setMessage('Waiting for Microsoft to confirm…');
+    setMessage('等待微软确认…');
     try {
       const account = await rpc<{ username: string }>('accounts.msLogin', [device.deviceCode]);
       setAccountLabel(account.username);
@@ -139,11 +115,7 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
     setBusy(true);
     setMessage('');
     try {
-      const account = await rpc<{ username: string }>('accounts.littleSkin', [
-        '',
-        lsEmail.trim(),
-        lsPassword,
-      ]);
+      const account = await rpc<{ username: string }>('accounts.littleSkin', ['', lsEmail.trim(), lsPassword]);
       setLsPassword('');
       setAccountLabel(account.username);
       next();
@@ -159,16 +131,15 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
       case 'welcome':
         return (
           <div className="setup-page">
-            <span className="setup-kicker">First run</span>
-            <h1>Welcome to Vein Launcher</h1>
+            <span className="setup-kicker">首次使用</span>
+            <h1>欢迎使用 Vein Launcher</h1>
             <p className="setup-lead">
-              A Minecraft launcher that keeps out of your way: one click to play, everything
-              else one page away. Let&apos;s set it up for you in four short steps.
+              一个不挡路的 Minecraft 启动器：一键开玩，其他功能都在一页之内。用四个小步骤完成初始化。
             </p>
             <ul className="setup-points">
-              <li>Pick how you sign in — offline, Microsoft or LittleSkin</li>
-              <li>Choose where your game files live</li>
-              <li>Review what the launcher stores on your PC</li>
+              <li>选择登录方式：离线、微软或 LittleSkin</li>
+              <li>确认游戏文件存放位置</li>
+              <li>了解启动器会在本机保存哪些数据</li>
             </ul>
           </div>
         );
@@ -176,8 +147,8 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
       case 'features':
         return (
           <div className="setup-page">
-            <span className="setup-kicker">What&apos;s inside</span>
-            <h1>Everything in one window</h1>
+            <span className="setup-kicker">功能一览</span>
+            <h1>一个窗口搞定一切</h1>
             <div className="feature-grid">
               {FEATURES.map((f) => (
                 <div className="feature-card" key={f.title}>
@@ -193,57 +164,36 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
       case 'account':
         return (
           <div className="setup-page">
-            <span className="setup-kicker">Step 3</span>
-            <h1>Choose your account</h1>
-            <p className="setup-lead">
-              You can add more accounts later in Settings → Accounts.
-            </p>
+            <span className="setup-kicker">第 3 步</span>
+            <h1>选择账号</h1>
+            <p className="setup-lead">之后可以在「设置 → 账号」里继续添加。</p>
             <div className="account-setup">
               <aside className="account-rail">
-                <button
-                  className={`account-option ${method === 'offline' ? 'active' : ''}`}
-                  onClick={() => setMethod('offline')}
-                >
-                  <b>Offline</b>
-                  <span>Just a name</span>
+                <button className={`account-option ${method === 'offline' ? 'active' : ''}`} onClick={() => setMethod('offline')}>
+                  <b>离线</b><span>只需一个名字</span>
                 </button>
-                <button
-                  className={`account-option ${method === 'microsoft' ? 'active' : ''}`}
-                  onClick={() => setMethod('microsoft')}
-                >
-                  <b>Microsoft</b>
-                  <span>Official account</span>
+                <button className={`account-option ${method === 'microsoft' ? 'active' : ''}`} onClick={() => setMethod('microsoft')}>
+                  <b>微软</b><span>正版账号</span>
                 </button>
-                <button
-                  className={`account-option ${method === 'littleskin' ? 'active' : ''}`}
-                  onClick={() => setMethod('littleskin')}
-                >
-                  <b>LittleSkin</b>
-                  <span>Skin site account</span>
+                <button className={`account-option ${method === 'littleskin' ? 'active' : ''}`} onClick={() => setMethod('littleskin')}>
+                  <b>LittleSkin</b><span>皮肤站账号</span>
                 </button>
               </aside>
 
               <div className="account-form">
                 {method === 'offline' && (
                   <>
-                    <p className="muted">
-                      Play singleplayer and LAN without an account. The name is only used
-                      locally.
-                    </p>
+                    <p className="muted">无需账号即可玩单人与局域网，名字只保存在本机。</p>
                     <div className="row-actions">
                       <input
                         className="input"
-                        placeholder="Offline name (3–16 characters)"
+                        placeholder="离线用户名（3–16 个字符）"
                         value={name}
                         maxLength={16}
                         onChange={(e) => setName(e.target.value)}
                       />
-                      <button
-                        className="btn primary"
-                        disabled={busy || name.trim().length < 3}
-                        onClick={addOffline}
-                      >
-                        {busy ? 'Creating…' : 'Use this name'}
+                      <button className="btn primary" disabled={busy || name.trim().length < 3} onClick={addOffline}>
+                        {busy ? '创建中…' : '使用这个名字'}
                       </button>
                     </div>
                   </>
@@ -251,19 +201,16 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
 
                 {method === 'microsoft' && (
                   <>
-                    <p className="muted">
-                      Microsoft opens its own page with a short code — your password never
-                      touches Vein Launcher.
-                    </p>
+                    <p className="muted">微软会在自己的页面显示一个短代码，密码不会经过启动器。</p>
                     {!device ? (
                       <button className="btn primary" disabled={busy} onClick={startMicrosoft}>
-                        {busy ? 'Requesting code…' : 'Sign in with Microsoft'}
+                        {busy ? '请求代码中…' : '使用微软登录'}
                       </button>
                     ) : (
                       <div className="row-actions">
                         <code className="device-code">{device.code}</code>
                         <button className="btn primary" disabled={busy} onClick={completeMicrosoft}>
-                          {busy ? 'Waiting…' : 'I entered the code'}
+                          {busy ? '等待中…' : '我已经输入代码'}
                         </button>
                       </div>
                     )}
@@ -272,38 +219,19 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
 
                 {method === 'littleskin' && (
                   <>
-                    <p className="muted">
-                      Use your littleskin.cn email and password. Only the access token is stored.
-                    </p>
+                    <p className="muted">使用 littleskin.cn 的邮箱和密码，仅保存访问令牌。</p>
                     <div className="row-actions">
-                      <input
-                        className="input"
-                        placeholder="Email"
-                        value={lsEmail}
-                        onChange={(e) => setLsEmail(e.target.value)}
-                      />
-                      <input
-                        className="input"
-                        type="password"
-                        placeholder="Password"
-                        value={lsPassword}
-                        onChange={(e) => setLsPassword(e.target.value)}
-                      />
-                      <button
-                        className="btn primary"
-                        disabled={busy || !lsEmail.trim() || !lsPassword}
-                        onClick={signInLittleSkin}
-                      >
-                        {busy ? 'Signing in…' : 'Sign in'}
+                      <input className="input" placeholder="邮箱" value={lsEmail} onChange={(e) => setLsEmail(e.target.value)} />
+                      <input className="input" type="password" placeholder="密码" value={lsPassword} onChange={(e) => setLsPassword(e.target.value)} />
+                      <button className="btn primary" disabled={busy || !lsEmail.trim() || !lsPassword} onClick={signInLittleSkin}>
+                        {busy ? '登录中…' : '登录'}
                       </button>
                     </div>
                   </>
                 )}
 
                 {message && <p className="setup-msg">{message}</p>}
-                {accountLabel && (
-                  <p className="setup-ok">Signed in as {accountLabel}</p>
-                )}
+                {accountLabel && <p className="setup-ok">已登录：{accountLabel}</p>}
               </div>
             </div>
           </div>
@@ -312,34 +240,15 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
       case 'privacy':
         return (
           <div className="setup-page">
-            <span className="setup-kicker">Before we start</span>
-            <h1>Your data stays on your PC</h1>
+            <span className="setup-kicker">开始之前</span>
+            <h1>你的数据留在本机</h1>
             <div className="privacy-list">
-              <div>
-                <b>Stored locally</b>
-                <span>
-                  Accounts and access tokens, launcher settings, logs, downloaded game files —
-                  all inside your VeinLauncher folder.
-                </span>
-              </div>
-              <div>
-                <b>Sent over the network</b>
-                <span>
-                  Version and asset lists from Mojang / BMCLAPI, mod metadata from Modrinth,
-                  sign-in traffic to Microsoft or littleskin.cn. Nothing else.
-                </span>
-              </div>
-              <div>
-                <b>Not collected</b>
-                <span>No telemetry, no analytics, no advertising identifiers.</span>
-              </div>
+              <div><b>本地保存</b><span>账号与访问令牌、启动器设置、日志、下载的游戏文件，都在 VeinLauncher 文件夹内。</span></div>
+              <div><b>联网获取</b><span>Mojang / BMCLAPI 的版本与资源列表、Modrinth 的模组信息、微软或 littleskin.cn 的登录请求。除此之外不发送其他内容。</span></div>
+              <div><b>不会收集</b><span>没有遥测、没有统计、没有广告标识。</span></div>
             </div>
             <div className="consent">
-              <LayuiCheckbox
-                checked={consent}
-                onChange={setConsent}
-                label="I understand and agree to the terms and privacy policy of Vein Launcher."
-              />
+              <LayuiCheckbox checked={consent} onChange={setConsent} label="我已了解并同意 Vein Launcher 的使用条款与隐私政策。" />
             </div>
           </div>
         );
@@ -347,18 +256,16 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
       default:
         return (
           <div className="setup-page">
-            <span className="setup-kicker">All done</span>
-            <h1>You&apos;re ready to play</h1>
+            <span className="setup-kicker">全部完成</span>
+            <h1>可以开始游戏了</h1>
             <p className="setup-lead">
-              {accountLabel
-                ? `Signed in as ${accountLabel}. `
-                : 'No account yet — you can add one anytime in Settings → Accounts. '}
-              Install a game version from the Download page and press Launch.
+              {accountLabel ? `已登录：${accountLabel}。` : '还没有账号，之后可在「设置 → 账号」添加。'}
+              去下载页安装一个版本，然后点启动。
             </p>
             <ul className="setup-points">
-              <li>Download → Vanilla &amp; Loaders to install 1.20.1</li>
-              <li>Launch page → pick the card → Launch</li>
-              <li>Settings → Java, game folder, theme and accounts</li>
+              <li>下载 → 原版与加载器，安装 1.20.1</li>
+              <li>启动页 → 选卡片 → 启动</li>
+              <li>设置 → Java、游戏目录、主题与账号</li>
             </ul>
           </div>
         );
@@ -368,50 +275,31 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
   return (
     <div className="setup">
       <aside className="setup-rail">
-        <div className="setup-brand">
-          <img src="logo.png" alt="" />
-          <span>VEIN</span>
-        </div>
+        <div className="setup-brand"><img src="logo.png" alt="" /><span>VEIN</span></div>
         <ol className="setup-steps">
           {STEPS.map((s, index) => (
-            <li
-              key={s.key}
-              className={`setup-step ${index === step ? 'active' : ''} ${index < step ? 'done' : ''}`}
-            >
+            <li key={s.key} className={`setup-step ${index === step ? 'active' : ''} ${index < step ? 'done' : ''}`}>
               <i>{index < step ? '✓' : index + 1}</i>
-              <div>
-                <b>{s.title}</b>
-                <span>{s.sub}</span>
-              </div>
+              <div><b>{s.title}</b><span>{s.sub}</span></div>
             </li>
           ))}
         </ol>
         <div className="setup-rail-foot">
-          <span>Vein Launcher 0.0.3</span>
-          <button className="link-btn" onClick={() => complete(false)}>
-            Skip setup
-          </button>
+          <span>Vein Launcher 0.5.1</span>
+          <button className="link-btn" onClick={() => complete(false)}>跳过引导</button>
         </div>
       </aside>
 
       <section className="setup-main">
         <div className="setup-content">{renderStep()}</div>
         <footer className="setup-actions">
-          <button className="btn" onClick={back} disabled={step === 0 || busy}>
-            Back
-          </button>
+          <button className="btn" onClick={back} disabled={step === 0 || busy}>上一步</button>
           <div className="spacer" />
-          <span className="setup-count">
-            {step + 1} / {STEPS.length}
-          </span>
+          <span className="setup-count">{step + 1} / {STEPS.length}</span>
           {step < last ? (
-            <button className="btn primary" onClick={next} disabled={!canNext || busy}>
-              Continue
-            </button>
+            <button className="btn primary" onClick={next} disabled={!canNext || busy}>继续</button>
           ) : (
-            <button className="btn primary" onClick={() => complete(consent)}>
-              Enter launcher
-            </button>
+            <button className="btn primary" onClick={() => complete(consent)}>进入启动器</button>
           )}
         </footer>
       </section>

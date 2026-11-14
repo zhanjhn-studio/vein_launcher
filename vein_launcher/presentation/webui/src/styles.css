@@ -2112,3 +2112,52 @@ img[src$="chest.png"] {
 .rm-item { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
 .rm-item > div { min-width: 0; flex: 1; }
 .rm-item b { font-size: 13px; }
+
+
+/* ===== Account 深色纹理主题（默认） ===== */
+[data-skin='account'] body,
+[data-skin='account'] .app {
+  background:
+    repeating-linear-gradient(135deg, #232526 0px, #232526 60px, #23252699 70px, #414345 130px)
+    fixed !important;
+}
+[data-skin='account'] body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .22;
+  background-image:
+    linear-gradient(30deg, transparent 48%, #f7c59f 49%, #f7c59f 50%, transparent 51%),
+    linear-gradient(150deg, transparent 48%, #f7c59f 49%, #f7c59f 50%, transparent 51%);
+  background-size: 180px 180px;
+  mask-image: radial-gradient(circle at 30% 20%, #000 0, transparent 70%);
+}
+[data-skin='account'] .main { background: transparent; }
+[data-skin='account'] .main-head {
+  background: rgba(24, 28, 33, .72);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  color: #e9eef7;
+  backdrop-filter: blur(8px);
+}
+[data-skin='account'] .main-head h1 { color: #e9eef7; }
+[data-skin='account'] .main-head .sub { color: #9aa5b5; }
+[data-skin='account'] .card,
+[data-skin='account'] .version-card,
+[data-skin='account'] .fp-post,
+[data-skin='account'] .rm-card,
+[data-skin='account'] .ac-card {
+  border-color: rgba(255,255,255,.10);
+  box-shadow: 0 14px 36px rgba(0,0,0,.28);
+}
+[data-skin='account'] .side {
+  background: rgba(20, 24, 29, .82);
+  border-right: 1px solid rgba(255,255,255,.06);
+}
+[data-skin='account'] .banner {
+  background: rgba(24,28,33,.78);
+  border-color: rgba(255,255,255,.10);
+  color: #e9eef7;
+}

@@ -271,6 +271,7 @@ export function SettingsPage({ notify }: { notify: (text: string) => void }) {
                     applyTheme(next);
                   }}
                 >
+                  <option value="account">Account（默认）</option>
                   <option value="dark">Dark</option>
                   <option value="light">Light</option>
                   <option value="clear">Clear</option>

@@ -44,7 +44,7 @@ class NetworkConfig(BaseModel):
 
 class UIConfig(BaseModel):
     """界面配置"""
-    theme: str = "dark"         # dark / light
+    theme: str = "account"         # dark / light
     language: str = "zh_CN"     # zh_CN / en_US
     window_width: int = 1200
     window_height: int = 800
