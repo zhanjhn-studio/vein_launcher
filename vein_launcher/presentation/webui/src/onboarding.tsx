@@ -1,8 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { rpc } from './bridge';
 import { LayuiCheckbox } from './ui';
-import { currentLang, setLang, type Lang } from './i18n';
-import { applyLangOverlay } from './i18nDom';
 
 export function Splash({ firstRun }: { firstRun: boolean }) {
   return (
@@ -27,18 +25,11 @@ export function Splash({ firstRun }: { firstRun: boolean }) {
 type Method = 'offline' | 'microsoft' | 'littleskin';
 
 const STEPS = [
-  { key: 'language', title: 'Language', sub: '界面语言 · Interface language' },
   { key: 'welcome', title: 'Welcome', sub: 'A quick tour' },
   { key: 'features', title: 'What you can do', sub: 'Launch, install, manage' },
   { key: 'account', title: 'Your account', sub: 'Offline · Microsoft · LittleSkin' },
   { key: 'privacy', title: 'Privacy', sub: 'What stays on your PC' },
   { key: 'ready', title: 'Ready', sub: 'Start playing' },
-];
-
-/** 首次启动的语言选项；改完立即生效（不必等到进入启动器） */
-const LANGUAGES: { key: Lang; label: string; native: string; desc: string }[] = [
-  { key: 'zh', label: '简体中文', native: '简体中文', desc: '界面、公告与提示都用中文显示' },
-  { key: 'en', label: 'English', native: 'English', desc: 'Interface, notices and hints in English' },
 ];
 
 const FEATURES = [
@@ -75,37 +66,9 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
   const [lsPassword, setLsPassword] = useState('');
   const [consent, setConsent] = useState(false);
   const [accountLabel, setAccountLabel] = useState('');
-  const [lang, setLangState] = useState<Lang>(currentLang());
-
-  const pickLang = (next: Lang) => {
-    setLangState(next);
-    setLang(next); // 立刻切换：i18n.set 会写配置，界面同步刷新
-  };
 
   const last = STEPS.length - 1;
   const stepKey = STEPS[step].key;
-
-  // 引导页每次换步后重跑一次翻译层：i18nDom 只在挂载/切语言时扫一遍，
-  // React 重新渲染出来的英文节点会漏掉（首屏默认中文时尤其明显）。
-  useEffect(() => {
-    const timer = window.setTimeout(() => applyLangOverlay(document.body, lang), 60);
-    return () => window.clearTimeout(timer);
-  }, [stepKey, lang]);
-
-  // 首次启动时后端可能还没把配置读进来，translator 会是默认的 en_US。
-  // 这里挂载后再问一次，拿到真实语言就纠正过来（同时写回配置）。
-  useEffect(() => {
-    rpc<{ lang: string }>('i18n.get')
-      .then((res) => {
-        const next: Lang = String(res?.lang || '').toLowerCase().startsWith('en') ? 'en' : 'zh';
-        if (next !== lang) {
-          setLangState(next);
-          setLang(next);
-        }
-      })
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const canNext = useMemo(() => {
     if (stepKey === 'privacy') return consent;
@@ -193,30 +156,6 @@ export function Onboarding({ onDone }: { notify?: (text: string) => void; onDone
 
   const renderStep = () => {
     switch (stepKey) {
-      case 'language':
-        return (
-          <div className="setup-page">
-            <span className="setup-kicker">Language · 语言</span>
-            <h1>Choose your language</h1>
-            <p className="setup-lead">
-              选择界面语言 · Pick the language for the launcher. 之后可在「设置 → 外观」里随时更改。
-            </p>
-            <div className="lang-grid">
-              {LANGUAGES.map((item) => (
-                <button
-                  key={item.key}
-                  className={`lang-card ${lang === item.key ? 'active' : ''}`}
-                  onClick={() => pickLang(item.key)}
-                >
-                  <b>{item.native}</b>
-                  <span>{item.desc}</span>
-                  {lang === item.key && <i className="lang-check">✓</i>}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-
       case 'welcome':
         return (
           <div className="setup-page">

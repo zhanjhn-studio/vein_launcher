@@ -778,7 +778,6 @@ window.__veinResult(12, true, {ok: 1})
 - **2026-11-14 · feat/project-pages** — 统一认证按项目拆页：
   p2 登录页改为 `/?account=<project>&token=<token>`，登录后自动跳 `/<project>/?token=…`；
   `/veinlauncher/` 改为关联页（左 ZHANJHN logo · 连接线 · 右 Vein logo，同意关联后显示已关联 + 设备列表）；
-  新增 `/example1/` 项目接入示例页；nginx 增加 example1 路由；启动器登录 URL 改为 `?account=veinlauncher&token=…`。
 
 - **2026-11-14 · feat/announcements-api** — 公告迁到 api.zhanjhn.cn：
   `public.js` 与 `/api/announcements`（PHP 读取 announcement.json，Cache-Control 60s）；内容含统一账号、0.5.1、MLC 三条；
@@ -789,3 +788,7 @@ window.__veinResult(12, true, {ok: 1})
   zhanjhnaccount 新增 rooms 表；账号 API 增加 `GET/POST /api/rooms`、`/rooms/{no}`、`/join`、`/close`（公开/私密、可选密码、人数上限、2 小时过期、房间号 6 位）；
   启动器新增联机页（版本/端口/人数/密码/公开开关、一键开房、房间号展示与复制、加入房间、公开列表）；
   bridge 增加 rooms.list/create/join/close 与 app.localIp；关闭旧 MultiplayerPage 占位避免重复渲染。
+
+- **2026-11-14 · feat/remote-control-v2** — 远程控制扩展：
+  新增 game.status / game.stop / game.command / logs.tail / versions.delete / mods.enable|disable|delete；账号 API 白名单与 `/client/results` 结果查询；项目页远程面板加游戏状态、停止、日志、发送指令、删除版本（二次确认）。
+  联机页创建房间可同步发到广场（房间号/版本/地址，不含凭证）；P0 打开网页三级兜底已实测；管理端清空测试数据。

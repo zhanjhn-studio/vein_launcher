@@ -306,7 +306,6 @@ class ApiBridge(QObject):
     async def _remote_tick(self) -> None:
         data = self._account_load()
         session = str(data.get("session") or "")
-        logger.info("remote tick: session=%s", bool(session))
         if not session:
             return
         from vein_launcher.infrastructure.network.account_client import AccountClient
@@ -346,6 +345,52 @@ class ApiBridge(QObject):
             username = next((a.username for a in accounts if getattr(a, "selected", False)), None)
             username = username or (accounts[0].username if accounts else "Player")
             return await self._launch(version, username)
+        if action == "game.stop":
+            pid = int(payload.get("pid") or 0)
+            from vein_launcher.application.services.game_registry import game_registry
+
+            games = await asyncio.to_thread(game_registry.list)
+            results = []
+            for game in games if not pid else [g for g in games if int(g.get("pid", 0)) == pid]:
+                results.append(await asyncio.to_thread(game_registry.kill, int(game.get("pid", 0))))
+            return {"stopped": len(results), "games": len(games)}
+        if action == "game.command":
+            return await self._game_command(str(payload.get("command") or ""), int(payload.get("pid") or 0))
+        if action == "game.status":
+            return await self._game_running()
+        if action == "logs.tail":
+            name = str(payload.get("file") or "")
+            logs_dir = self._ctx.data_dir / "logs"
+            candidates = sorted(logs_dir.glob(name or "*.log"), key=lambda f: f.stat().st_mtime, reverse=True) if logs_dir.is_dir() else []
+            if not candidates:
+                return {"lines": [], "file": ""}
+            target = candidates[0]
+            lines = target.read_text(encoding="utf-8", errors="replace").splitlines()[-120:]
+            return {"file": target.name, "lines": lines}
+        if action in ("mods.enable", "mods.disable", "mods.delete"):
+            version = str(payload.get("version") or "")
+            name = str(payload.get("name") or "")
+            if not version or not name or "/" in name or "\\" in name:
+                raise ValueError("version/name required")
+            mod_dir = self._ctx.instance_sub_dir(version, "mod")
+            target = mod_dir / name
+            if action == "mods.delete":
+                target.unlink(missing_ok=True)
+                target.with_name(target.name + ".disabled").unlink(missing_ok=True)
+                return {"deleted": name}
+            if target.exists():
+                if action == "mods.disable":
+                    target.rename(target.with_name(target.name + ".disabled"))
+                return {"ok": True, "name": name, "enabled": action == "mods.enable"}
+            disabled = target.with_name(target.name + ".disabled")
+            if disabled.exists():
+                if action == "mods.enable":
+                    disabled.rename(target)
+                return {"ok": True, "name": name, "enabled": action == "mods.enable"}
+            raise ValueError("mod not found")
+        if action == "versions.delete":
+            version = str(payload.get("version") or "")
+            return {"deleted": self._ctx.versions.delete(version)}
         if action == "open.page":
             self.navigate(str(payload.get("page") or "launch"))
             return {"ok": True}

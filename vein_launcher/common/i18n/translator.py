@@ -44,18 +44,7 @@ class Translator:
             lang = data.get("lang")
             if lang in self._languages:
                 self._current_lang = lang
-                return
         except (OSError, json.JSONDecodeError):
-            pass
-        # 没有 language.json（全新安装）时回落到 config.json 的 ui.language，
-        # 否则会无视配置直接显示英文。
-        try:
-            from vein_launcher.common.config.settings import settings_manager
-
-            fallback = str(getattr(settings_manager.get().ui, "language", "") or "")
-            if fallback in self._languages:
-                self._current_lang = fallback
-        except Exception:  # noqa: BLE001 - 读配置失败不应影响启动
             pass
 
     def save_choice(self) -> None:
