@@ -2161,3 +2161,133 @@ img[src$="chest.png"] {
   border-color: rgba(255,255,255,.10);
   color: #e9eef7;
 }
+.side.wheel-hidden { display: none !important; }
+
+/* ================= 悬浮球轮盘（本地特性） ================= */
+.wheel-ball {
+  position: fixed; z-index: 93;
+  width: 52px; height: 52px; padding: 0;
+  transform: translate(-50%, -50%);
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 50%;
+  background: rgba(34, 40, 52, .92);
+  color: #e6e9f0;
+  cursor: grab;
+  touch-action: none;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .08);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: left .18s cubic-bezier(.2,.8,.3,1), top .18s cubic-bezier(.2,.8,.3,1),
+    transform .14s ease, box-shadow .14s ease, background .14s ease;
+}
+.wheel-ball:hover { transform: translate(-50%, -50%) scale(1.08); background: rgba(48, 58, 78, .96); }
+.wheel-ball:active { cursor: grabbing; }
+.wheel-ball.dragging {
+  transition: none;
+  cursor: grabbing;
+  transform: translate(-50%, -50%) scale(.96);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
+}
+.wheel-ball.open {
+  background: var(--accent);
+  border-color: rgba(255, 255, 255, .5);
+}
+.wheel-ball img { width: 26px; height: 26px; image-rendering: pixelated; pointer-events: none; }
+.wheel-ball:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+
+/* 按住（长按）模式：球保持高亮，轮盘不显示背景遮罩 */
+.wheel-ball.holding {
+  transform: translate(-50%, -50%) scale(.92);
+  background: var(--accent);
+  box-shadow: 0 0 0 6px var(--accent-soft), 0 8px 22px rgba(0, 0, 0, .45);
+}
+.pie.holding .pie-sector.is-hover .pie-slice {
+  fill: rgba(126, 178, 255, .98);
+  stroke: rgba(255, 255, 255, .55);
+}
+.pie.holding { animation-duration: .2s; }
+
+/* ---------------- 轮盘：整圆饼图（扇形悬停绽放） ---------------- */
+.wheel-core-idle {
+  position: fixed; left: 0; top: 50%; z-index: 90;
+  transform: translateY(-50%);
+  width: 40px; height: 56px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line-2); border-right: 0;
+  border-radius: 0 18px 18px 0;
+  background: var(--surface-2); cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .32);
+  transition: background .16s ease, width .16s ease;
+}
+.wheel-core-idle:hover { background: var(--surface-3); width: 44px; }
+.wheel-core-idle img { width: 22px; height: 22px; image-rendering: pixelated; }
+.wheel-core-idle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.wheel-dismiss { position: fixed; inset: 0; z-index: 88; }
+
+.pie {
+  position: fixed; z-index: 92;
+  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, .45));
+}
+
+.pie-svg { width: 100%; height: 100%; overflow: visible; }
+
+.pie-sector { cursor: pointer; }
+.pie-slice {
+  fill: rgba(32, 37, 47, .94);
+  stroke: rgba(255, 255, 255, .10);
+  stroke-width: 1;
+  transition: fill .14s ease;
+}
+.pie-sector:hover .pie-slice { fill: rgba(48, 58, 78, .98); }
+.pie-sector.is-active .pie-slice { fill: rgba(58, 84, 138, .96); }
+.pie-sector.is-hover .pie-slice {
+  fill: rgba(111, 151, 240, .96);
+  stroke: rgba(255, 255, 255, .35);
+}
+.pie-icon { opacity: .95; }
+.pie-label {
+  font: 600 12.5px "HarmonyOS Sans SC", system-ui, sans-serif;
+  fill: #e6e9f0; dominant-baseline: middle;
+}
+.pie-sector.is-hover .pie-label { fill: #0d1424; }
+.pie-hit { fill: transparent; pointer-events: none; }
+
+/* ---------------- 指南针球 ---------------- */
+.wheel-ball { width: 56px; height: 56px; }
+.compass { width: 46px; height: 46px; display: block; pointer-events: none; }
+.compass-face { fill: rgba(18, 24, 34, .55); stroke: rgba(255, 255, 255, .22); stroke-width: 1.4; }
+.compass-dial { fill: rgba(255, 255, 255, .04); stroke: rgba(255, 255, 255, .12); stroke-width: 1; }
+.compass-tick { stroke: rgba(255, 255, 255, .45); stroke-width: 1.8; stroke-linecap: round; }
+.needle-north { fill: #ef5b5b; }
+.needle-south { fill: #dfe6f2; opacity: .85; }
+.compass-pin { fill: #0d1424; stroke: rgba(255, 255, 255, .5); stroke-width: 1; }
+.compass-needle { transition: transform .28s cubic-bezier(.3, .9, .3, 1.2); }
+
+.wheel-ball.open .compass-face { fill: rgba(255, 255, 255, .18); }
+.wheel-ball.holding .compass-needle { transition: none; }
+
+/* ---------------- 平面展开：只做淡入，避免闪动 ---------------- */
+.pie {
+  transform-origin: 50% 50%;
+  animation: pie-fade-in .2s ease-out both;
+}
+@keyframes pie-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.pie-svg { transform: none; }
+
+/* 扇区：固定顺序、只过渡 transform，避免重排/重启动画造成闪动 */
+.pie-sector {
+  cursor: pointer;
+  transition: transform .18s cubic-bezier(.2, .8, .3, 1);
+  will-change: transform;
+}
+.pie-sector.is-hover .pie-slice { filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .32)); }
+.pie-slice { transition: fill .16s ease, stroke .16s ease; }
+
+/* 简洁模式下侧栏由悬浮球替代 */
+.side.wheel-hidden { display: none !important; }

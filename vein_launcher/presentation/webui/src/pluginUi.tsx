@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { rpc } from './bridge';
 
-interface UiNode {
+export interface UiNode {
   type: string;
   props?: Record<string, any>;
   children?: UiNode[];
 }
 
-const SHADOW_STYLE = `
+export const SHADOW_STYLE = `
   :host { all: initial; }
   .vp-panel {
     font: 13px/1.6 "HarmonyOS Sans SC", system-ui, sans-serif;
@@ -34,7 +34,21 @@ const SHADOW_STYLE = `
   .vp-table { width: 100%; border-collapse: collapse; font-size: 12px; color: #e6e9f0; }
   .vp-table th, .vp-table td { border-bottom: 1px solid #2b313d; padding: 5px 6px; text-align: left; }
   .vp-table th { color: #a4aec0; font-weight: 600; }
-  .vp-image { max-width: 100%; border-radius: 8px; }
+  .vp-image { max-width: 100%; border-radius: 8px; background: #262c37; }
+  .vp-image-failed { opacity: .25; }
+  .vp-row-card {
+    background: #262c37; border: 1px solid #2b313d; border-radius: 10px;
+    padding: 10px 12px; margin: 8px 0; flex-wrap: nowrap; align-items: center;
+  }
+  .vp-row-card .vp-text { flex: 1 1 auto; min-width: 0; }
+  .vp-thumb { flex: none; image-rendering: auto; }
+  .vp-row-column { flex-direction: column; align-items: stretch; }
+  .vp-row-column .vp-image { align-self: center; }
+  .vp-row-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr));
+    gap: 12px; align-items: stretch; margin: 10px 0;
+  }
+  .vp-row-grid > .vp-row-card { margin: 0; }
   .vp-close {
     position: absolute; top: 8px; right: 8px; z-index: 3;
     width: 22px; height: 22px; line-height: 20px; text-align: center;
@@ -43,6 +57,19 @@ const SHADOW_STYLE = `
   }
   .vp-close:hover { background: #c0504d; border-color: #c0504d; color: #fff; }
 `;
+
+/**
+ * 最后一次收到的插件 UI 树。
+ * 插件常在启动时（宿主组件还没挂载）就调用 ui.render，事件没人接就丢了；
+ * 这里缓存下来，组件挂载后回放，避免「激活了但看不到面板」。
+ */
+let lastPayload: { pluginId: string; tree: UiNode } | null = null;
+
+/**
+ * 这些插件的界面由自己的侧栏页面内嵌渲染（PluginPage），
+ * 不再弹右下角浮窗，避免同一面板出现两次。
+ */
+export const PAGE_BOUND_PLUGINS = new Set<string>(['skin-library']);
 
 export function PluginUiHost() {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -65,13 +92,17 @@ export function PluginUiHost() {
     shell.appendChild(container);
     shadowRef.current = shadow;
     containerRef.current = container;
+    if (lastPayload) setCurrent(lastPayload);
   }, []);
 
   useEffect(() => {
     const handler = (event: Event) => {
       const detail = (event as CustomEvent).detail as { pluginId?: string; tree?: UiNode };
       if (detail?.tree && detail.tree.type) {
-        setCurrent({ pluginId: String(detail.pluginId || 'plugin'), tree: detail.tree });
+        const id = String(detail.pluginId || 'plugin');
+        if (PAGE_BOUND_PLUGINS.has(id)) return; // 由页面内嵌渲染
+        lastPayload = { pluginId: id, tree: detail.tree };
+        setCurrent(lastPayload);
       }
     };
     const clear = () => setCurrent(null);
@@ -117,7 +148,7 @@ export function PluginUiHost() {
   return <div ref={hostRef} />;
 }
 
-function renderNode(node: UiNode, pluginId: string): HTMLElement | null {
+export function renderNode(node: UiNode, pluginId: string): HTMLElement | null {
   const props = node.props || {};
   const children = (node.children || [])
     .map((child) => renderNode(child, pluginId))
@@ -140,7 +171,14 @@ function renderNode(node: UiNode, pluginId: string): HTMLElement | null {
     }
     case 'row': {
       const el = document.createElement('div');
-      el.className = 'vp-row';
+      const cls = ['vp-row'];
+      if (props.card) cls.push('vp-row-card');
+      if (props.column) cls.push('vp-row-column');
+      if (props.grid) cls.push('vp-row-grid');
+      el.className = cls.join(' ');
+      if (props.gap != null) el.style.gap = `${Number(props.gap)}px`;
+      if (props.align) el.style.alignItems = String(props.align);
+      if (props.width != null) el.style.width = `${Number(props.width)}px`;
       children.forEach((child) => el.appendChild(child));
       return el;
     }
@@ -185,6 +223,15 @@ function renderNode(node: UiNode, pluginId: string): HTMLElement | null {
       const img = document.createElement('img');
       img.className = 'vp-image';
       img.src = src;
+      img.loading = 'lazy';
+      img.alt = text(props.alt);
+      if (props.width != null) img.style.width = `${Number(props.width)}px`;
+      if (props.height != null) img.style.height = `${Number(props.height)}px`;
+      if (props.radius != null) img.style.borderRadius = `${Number(props.radius)}px`;
+      if (props.fit) img.style.objectFit = String(props.fit);
+      img.addEventListener('error', () => {
+        img.classList.add('vp-image-failed');
+      });
       return img;
     }
     case 'table': {

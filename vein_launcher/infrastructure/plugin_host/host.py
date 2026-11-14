@@ -15,6 +15,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from vein_launcher.common.utils.console import hidden_kwargs
 from vein_launcher.infrastructure.plugin_host.capabilities import (
     CapabilityRegistry,
     PluginPermissionError,
@@ -268,7 +269,9 @@ class PluginHost:
         if method == "plugin.log":
             text = f"[{params.get('pluginId','?')}] {params.get('message','')}"
             self._logs.append(text)
-            logger.debug(text)
+            # 插件自己的日志按 INFO 落盘：用户默认级别就能看到，便于排障
+            level = str(params.get("level") or "info").lower()
+            logger.log(logging.WARNING if level in ("warn", "warning") else logging.INFO, text)
         elif method == "plugin.error":
             text = f"[{params.get('pluginId','?')}] ERROR {params.get('error','')}"
             self._logs.append(text)

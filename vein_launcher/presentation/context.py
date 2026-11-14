@@ -76,7 +76,9 @@ class AppContext:
         # MLC 控制层 + 插件宿主（核心特色）
         self.mlc = MlcService(self.launcher)
         self.mlc.install_bridge()
-        self.plugins = PluginService(self.mlc, self.launcher)
+        self.plugins = PluginService(
+            self.mlc, self.launcher, skins=self.skins, accounts=self.accounts
+        )
 
     # ------------------------------------------------------------------
     @staticmethod

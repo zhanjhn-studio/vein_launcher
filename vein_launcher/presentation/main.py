@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ctypes
 import faulthandler
 import json
 import logging
@@ -9,6 +10,32 @@ import os
 import sys
 import time
 from pathlib import Path
+
+def _enable_dpi_awareness() -> None:
+    """必须在导入 PySide6 / 创建任何窗口之前调用。
+
+    否则进程会被 Windows 当作 DPI 不感知：150% 缩放下由 DWM 位图放大（界面变大 1.5 倍、
+    右侧被裁），且该窗口出现时要切换桌面缩放上下文，桌面所有窗口会闪一下。
+    """
+    if sys.platform != "win32":
+        return
+    try:  # PER_MONITOR_AWARE_V2 = -4（Win10 1703+）
+        if ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)):
+            return
+    except (AttributeError, OSError):
+        pass
+    try:  # 8.1+
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+        return
+    except (AttributeError, OSError):
+        pass
+    try:  # Vista+
+        ctypes.windll.user32.SetProcessDPIAware()
+    except (AttributeError, OSError):
+        pass
+
+
+_enable_dpi_awareness()
 
 from PySide6.QtCore import QPoint, Qt, QTimer, QUrl
 from PySide6.QtGui import QColor, QIcon

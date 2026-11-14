@@ -12,6 +12,7 @@ import { DownloadsPage } from './downloadsPage';
 import { LaunchPage } from './launchPage';
 import { DownloadPage } from './downloadPage';
 import { SettingsPage } from './settingsPage';
+import { RadialMenu } from './radialMenu';
 import { SkinsPage } from './skinsPage';
 import { ForumPage } from './forumPage';
 import { AccountPage } from './accountPage';
@@ -263,17 +264,19 @@ export function App() {
         <WallpaperLayer wallpaper={prefs.wallpaper} />
       )}
       {prefs.compactMode && (
-        <button
-          type="button"
-          className={`side-handle ${sideOpen ? 'open' : ''}`}
-          aria-label={sideOpen ? 'Hide sidebar' : 'Show sidebar'}
-          title={sideOpen ? 'Hide sidebar' : 'Show sidebar'}
-          onClick={() => setSideOpen((v) => !v)}
-        >
-          <i className={`chev ${sideOpen ? 'left' : 'right'}`} />
-        </button>
+        <RadialMenu
+          items={NAV.map((n) => ({ key: n.key, label: t(n.label), iconImg: n.iconImg }))}
+          page={page}
+          onPick={(key) => setPage(key)}
+          open={sideOpen}
+          onOpenChange={setSideOpen}
+        />
       )}
-      <aside className={`side ${prefs.compactMode ? 'compact' : ''} ${sideOpen ? 'open' : ''}`}>
+      <aside
+        className={`side ${prefs.compactMode ? 'compact wheel-hidden' : ''} ${
+          sideOpen ? 'open' : ''
+        }`}
+      >
         <div className="side-brand">
           <img src="logo.png" alt="Vein" />
           <span>VEIN</span>

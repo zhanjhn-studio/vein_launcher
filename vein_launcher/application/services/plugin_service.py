@@ -31,9 +31,19 @@ EXAMPLES_DIR = Path(__file__).resolve().parents[3] / "plugins_examples"
 class PluginService:
     """插件生命周期与能力注入"""
 
-    def __init__(self, mlc: MlcService, launcher, loader: Optional[PluginLoader] = None):
+    def __init__(
+        self,
+        mlc: MlcService,
+        launcher,
+        loader: Optional[PluginLoader] = None,
+        skins=None,
+        accounts=None,
+    ):
         self._mlc = mlc
         self._launcher = launcher
+        # 皮肤 / 账号服务：供 skin.apply、accounts.list 能力使用（可为空）
+        self._skins = skins
+        self._accounts = accounts
         self._loader = loader or PluginLoader()
         self._registry = CapabilityRegistry(allowed_roots=[self._loader.root])
         self._host = PluginHost(self._registry, node=self._resolve_node())
@@ -267,6 +277,88 @@ class PluginService:
                 await downloader.download(url, target)
             return str(target)
 
+        async def skin_apply(
+            plugin_id: str, account_id: str, path: str, model: str = "classic"
+        ) -> Dict[str, Any]:
+            """把插件目录里的 PNG 应用到指定账号（路径走沙箱）"""
+            if self._skins is None:
+                raise RuntimeError("皮肤服务不可用")
+            target = self._safe_path(plugin_id, path)
+            if not target.is_file():
+                raise FileNotFoundError(str(target))
+            return self._skins.apply_file(str(account_id), str(target), str(model))
+
+        async def skin_accounts(plugin_id: str) -> List[Dict[str, Any]]:
+            """列出账号（只给 id / 用户名 / 类型，不含令牌）"""
+            if self._accounts is None:
+                return []
+            try:
+                rows = self._accounts.list()
+            except Exception:  # noqa: BLE001 - 老接口兜底
+                rows = []
+            return [
+                {
+                    "id": str(r.get("id", "")),
+                    "username": str(r.get("username", "")),
+                    "type": str(r.get("type", "")),
+                    "selected": bool(r.get("selected", False)),
+                }
+                for r in rows
+            ]
+
+        async def clipboard_write(plugin_id: str, text: str) -> bool:
+            """写入系统剪贴板（纯 Win32；注意 64 位下 HGLOBAL 是指针，必须声明 restype）"""
+            import ctypes
+            from ctypes import wintypes
+
+            user32 = ctypes.WinDLL("user32", use_last_error=True)
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+            kernel32.GlobalAlloc.argtypes = [wintypes.UINT, ctypes.c_size_t]
+            kernel32.GlobalAlloc.restype = wintypes.HGLOBAL
+            kernel32.GlobalLock.argtypes = [wintypes.HGLOBAL]
+            kernel32.GlobalLock.restype = wintypes.LPVOID
+            kernel32.GlobalUnlock.argtypes = [wintypes.HGLOBAL]
+            kernel32.GlobalUnlock.restype = wintypes.BOOL
+            kernel32.GlobalFree.argtypes = [wintypes.HGLOBAL]
+            kernel32.GlobalFree.restype = wintypes.HGLOBAL
+            user32.OpenClipboard.argtypes = [wintypes.HWND]
+            user32.OpenClipboard.restype = wintypes.BOOL
+            user32.EmptyClipboard.restype = wintypes.BOOL
+            user32.SetClipboardData.argtypes = [wintypes.UINT, wintypes.HANDLE]
+            user32.SetClipboardData.restype = wintypes.HANDLE
+            user32.CloseClipboard.restype = wintypes.BOOL
+
+            CF_UNICODETEXT = 13
+            GMEM_MOVEABLE = 0x0002
+
+            data = str(text)
+            buf = ctypes.create_unicode_buffer(data, len(data) + 1)
+            size = ctypes.sizeof(buf)
+
+            if not user32.OpenClipboard(None):
+                raise RuntimeError(f"打开剪贴板失败（{ctypes.get_last_error()}）")
+            try:
+                user32.EmptyClipboard()
+                handle = kernel32.GlobalAlloc(GMEM_MOVEABLE, size)
+                if not handle:
+                    raise RuntimeError(f"分配剪贴板内存失败（{ctypes.get_last_error()}）")
+                locked = kernel32.GlobalLock(handle)
+                if not locked:
+                    kernel32.GlobalFree(handle)
+                    raise RuntimeError(f"锁定剪贴板内存失败（{ctypes.get_last_error()}）")
+                try:
+                    ctypes.memmove(locked, ctypes.addressof(buf), size)
+                finally:
+                    kernel32.GlobalUnlock(handle)
+                if not user32.SetClipboardData(CF_UNICODETEXT, handle):
+                    kernel32.GlobalFree(handle)
+                    raise RuntimeError(f"写入剪贴板失败（{ctypes.get_last_error()}）")
+                # 成功后所有权归系统，不能 GlobalFree
+            finally:
+                user32.CloseClipboard()
+            return True
+
         async def game_launch(plugin_id: str, version_id: str, username: str = "Player") -> Dict[str, Any]:
             return await self._mlc.launch(version_id, username)
 
@@ -326,6 +418,9 @@ class PluginService:
         reg.register("ui.render", "ui.lua", ui_render)
         reg.register("network.http.getJson", "network.http", http_json)
         reg.register("download.queueTask", "download.queue", queue_task)
+        reg.register("system.clipboard", "system.clipboard", clipboard_write)
+        reg.register("skin.apply", "skin.write", skin_apply)
+        reg.register("accounts.list", "accounts.read", skin_accounts)
         reg.register("game.launch", "game.launch", game_launch)
         reg.register("mlc.launch", "game.launch", game_launch)
         reg.register("mlc.state", "mlc.state", mlc_state)

@@ -1,0 +1,21 @@
+{
+  "name": "skin-library",
+  "version": "0.2.0",
+  "description": "LittleSkin 公开皮肤库：搜索、下载 PNG，并可直接应用到账号（补足轻量版缺失的皮肤页）",
+  "type": "module",
+  "main": "index.js",
+  "vein": {
+    "displayName": "皮肤下载 · LittleSkin",
+    "activateOnStartup": true,
+    "permissions": [
+      "network.http",
+      "download.queue",
+      "file.read",
+      "file.write",
+      "skin.write",
+      "accounts.read",
+      "ui.lua",
+      "ui.notify"
+    ]
+  }
+}

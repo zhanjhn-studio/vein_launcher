@@ -1,0 +1,18 @@
+{
+  "name": "mlc-panel",
+  "version": "1.0.0",
+  "description": "MLC 面板：总开关状态、实例世界、玩家位置与模组信息（补足轻量版缺失的 MLC 页）",
+  "type": "module",
+  "main": "index.js",
+  "vein": {
+    "displayName": "MLC 面板",
+    "activateOnStartup": true,
+    "permissions": [
+      "mlc.state",
+      "mlc.world",
+      "mlc.player",
+      "versions.read",
+      "ui.lua"
+    ]
+  }
+}
