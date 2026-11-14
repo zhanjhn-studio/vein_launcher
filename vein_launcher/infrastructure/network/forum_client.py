@@ -72,14 +72,14 @@ class ForumClient:
         params: Dict[str, Any] = {"sort": sort, "page": max(1, int(page)), "limit": min(50, max(1, limit))}
         if tag:
             params["tag"] = tag
-        return await self._request("GET", "/api/posts", params=params)
+        return await self._request("POST", "/api/veinlauncher/posts", json=params)
 
     async def tags(self) -> List[Dict[str, Any]]:
-        data = await self._request("GET", "/api/tags")
+        data = await self._request("POST", "/api/veinlauncher/tags", json={})
         return list(data.get("items") or [])
 
     async def detail(self, post_id: int) -> Dict[str, Any]:
-        return await self._request("GET", f"/api/posts/{int(post_id)}")
+        return await self._request("POST", f"/api/veinlauncher/posts/{int(post_id)}", json={})
 
     async def create(
         self, title: str, content: str, tags: List[str], author: str, session: str = ""
@@ -89,19 +89,19 @@ class ForumClient:
             headers["Authorization"] = f"Bearer {session}"
         return await self._request(
             "POST",
-            "/api/posts",
+            "/api/veinlauncher/posts",
             json={"title": title, "content": content, "tags": tags, "author": author},
             headers=headers,
         )
 
     async def delete_post(self, post_id: int, session: str = "") -> Dict[str, Any]:
-        return await self._request("POST", f"/api/posts/{int(post_id)}/delete", json={}, session=session)
+        return await self._request("POST", f"/api/veinlauncher/posts/{int(post_id)}/delete", json={}, session=session)
 
     async def like(self, post_id: int) -> Dict[str, Any]:
-        return await self._request("POST", f"/api/posts/{int(post_id)}/like", json={})
+        return await self._request("POST", f"/api/veinlauncher/posts/{int(post_id)}/like", json={})
 
     async def health(self) -> Dict[str, Any]:
-        return await self._request("GET", "/api/health")
+        return await self._request("POST", "/api/veinlauncher/health", json={})
 
 
 __all__ = ["ForumClient", "ForumError", "USER_KEY"]

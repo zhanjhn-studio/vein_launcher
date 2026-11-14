@@ -4,7 +4,7 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Content-Type, X-Author, X-User');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -117,13 +117,24 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $path = preg_replace('#^/api#', '', $path) ?: '/';
 $segments = array_values(array_filter(explode('/', $path), static fn($s) => $s !== ''));
 
+// API 只接受 POST；按项目隔离：/api/{project}/...
+if ($method !== 'POST') {
+    fail('method not allowed: use POST', 405, 'method_not_allowed');
+}
+$allowedProjects = ['veinlauncher'];
+$project = (string)($segments[0] ?? '');
+if (!in_array($project, $allowedProjects, true)) {
+    fail('unknown project: ' . ($project !== '' ? $project : '(none)'), 404, 'unknown_project');
+}
+array_shift($segments);
+
 $ip = $_SERVER['REMOTE_ADDR'] ?? '';
 $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
 $ipHash = substr(sha1($ip . '|' . $ua), 0, 16);
 $userKey = trim((string)($_SERVER['HTTP_X_USER'] ?? '')) ?: 'ip-' . $ipHash;
 
-// GET /api/health
-if ($method === 'GET' && (($segments[0] ?? '') === 'health' || $segments === [])) {
+// POST /api/{project}/health
+if ($method === 'POST' && (($segments[0] ?? '') === 'health' || $segments === [])) {
     respond([
         'ok' => true,
         'service' => 'vein-posts',
@@ -132,8 +143,8 @@ if ($method === 'GET' && (($segments[0] ?? '') === 'health' || $segments === [])
     ]);
 }
 
-// GET /api/announcements
-if ($method === 'GET' && ($segments[0] ?? '') === 'announcements' && count($segments) === 1) {
+// POST /api/{project}/announcements
+if ($method === 'POST' && ($segments[0] ?? '') === 'announcements' && count($segments) === 1) {
     $file = __DIR__ . '/announcement.json';
     if (!is_file($file)) {
         fail('announcement not configured', 503, 'unavailable');
@@ -143,8 +154,8 @@ if ($method === 'GET' && ($segments[0] ?? '') === 'announcements' && count($segm
     exit;
 }
 
-// GET /api/tags
-if ($method === 'GET' && ($segments[0] ?? '') === 'tags' && count($segments) === 1) {
+// POST /api/{project}/tags
+if ($method === 'POST' && ($segments[0] ?? '') === 'tags' && count($segments) === 1) {
     $rows = $pdo->query(
         'SELECT t.name, COUNT(pt.post_id) AS count
          FROM tags t LEFT JOIN post_tags pt ON pt.tag_id = t.id
@@ -153,12 +164,13 @@ if ($method === 'GET' && ($segments[0] ?? '') === 'tags' && count($segments) ===
     respond(['items' => array_map(static fn($r) => ['name' => $r['name'], 'count' => (int)$r['count']], $rows)]);
 }
 
-// GET /api/posts
-if ($method === 'GET' && ($segments[0] ?? '') === 'posts' && count($segments) === 1) {
-    $limit = min(50, max(1, (int)($_GET['limit'] ?? 20)));
-    $page = max(1, (int)($_GET['page'] ?? 1));
-    $sort = ($_GET['sort'] ?? 'hot') === 'new' ? 'new' : 'hot';
-    $tag = trim((string)($_GET['tag'] ?? ''));
+// POST /api/{project}/posts
+if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && count($segments) === 1) {
+    $data = body();
+    $limit = min(50, max(1, (int)($data['limit'] ?? 20)));
+    $page = max(1, (int)($data['page'] ?? 1));
+    $sort = ($data['sort'] ?? 'hot') === 'new' ? 'new' : 'hot';
+    $tag = trim((string)($data['tag'] ?? ''));
 
     $where = '';
     $params = [];
@@ -204,8 +216,8 @@ if ($method === 'GET' && ($segments[0] ?? '') === 'posts' && count($segments) ==
     ]);
 }
 
-// GET /api/posts/{id}
-if ($method === 'GET' && ($segments[0] ?? '') === 'posts' && isset($segments[1]) && ctype_digit((string)$segments[1]) && count($segments) === 2) {
+// POST /api/{project}/posts/{id}
+if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && isset($segments[1]) && ctype_digit((string)$segments[1]) && count($segments) === 2) {
     $postId = (int)$segments[1];
     $stmt = $pdo->prepare('SELECT id, title, content, author_name, likes, created_at FROM posts WHERE id = ?');
     $stmt->execute([$postId]);

@@ -119,7 +119,7 @@
 
 <main class="wrap">
   <h1>广场</h1>
-  <p class="lead">发帖、提问、分享插件与作品。发帖需在 Vein Launcher 登录账号；接口 /api/posts。</p>
+  <p class="lead">发帖、提问、分享插件与作品。发帖需在 Vein Launcher 登录账号；发帖需在 Vein Launcher 登录。</p>
 
   <div class="toolbar">
     <button class="tab on" data-sort="hot">热门</button>
@@ -148,7 +148,7 @@
 </footer>
 
 <script>
-const API = '/api';
+const API = 'https://api.zhanjhn.cn/api/veinlauncher';
 const state = { sort: 'hot', tag: '', page: 1, tagList: [] };
 
 const $ = (id) => document.getElementById(id);
@@ -181,10 +181,11 @@ function userKey() {
   return key;
 }
 
-async function api(path, options = {}) {
+async function api(path, body = {}) {
   const res = await fetch(API + path, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-User': userKey() },
-    ...options,
+    body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
@@ -216,7 +217,7 @@ async function load() {
   try {
     const q = new URLSearchParams({ sort: state.sort, page: String(state.page), limit: '20' });
     if (state.tag) q.set('tag', state.tag);
-    const data = await api('/posts?' + q.toString());
+    const data = await api('/posts', { sort: state.sort, page: state.page, limit: 20, tag: state.tag });
     if (!data.items.length) {
       $('list').innerHTML = '<div class="empty">还没有帖子，点「发帖」写第一条。</div>';
       return;
@@ -260,7 +261,7 @@ async function openDetail(id) {
     $('like').addEventListener('click', async () => {
       $('like').disabled = true;
       try {
-        const r = await api(`/posts/${id}/like`, { method: 'POST', body: '{}' });
+        const r = await api(`/posts/${id}/like`);
         $('like').textContent = `赞 ${r.likes}`;
       } catch (err) { $('like').textContent = err.message; }
     });
@@ -270,8 +271,7 @@ async function openDetail(id) {
 }
 
 $('newPost').addEventListener('click', () => {
-  $('composer').classList.toggle('open');
-  $('author').value = localStorage.getItem('vl-forum-author') || '';
+  location.href = 'https://account.zhanjhn.cn/?account=veinlauncher';
 });
 $('cancel').addEventListener('click', () => $('composer').classList.remove('open'));
 
@@ -289,11 +289,7 @@ $('submit').addEventListener('click', async () => {
     return;
   }
   try {
-    await api('/posts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Author': author, 'X-User': userKey() },
-      body: JSON.stringify({ title, content, author, tags: tag ? [tag] : [] }),
-    });
+    await api('/posts', { title, content, author, tags: tag ? [tag] : [] });
     localStorage.setItem('vl-forum-author', author);
     $('title').value = '';
     $('content').value = '';

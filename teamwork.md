@@ -795,3 +795,9 @@ window.__veinResult(12, true, {ok: 1})
 
 - **2026-11-14 · feat/preset-admin** — 预设管理员 zhanjhn（`$2y$10$` 哈希写入 users，admin 组），已验证登录/发帖/删除；
   新增帖子删除接口（管理员或作者，`POST /api/posts/{id}/delete`）、ForumClient.delete_post、forum.delete RPC、详情页删除按钮（二次确认）。
+
+- **2026-11-14 · feat/api-post-only** — api.zhanjhn.cn 改为纯 API：
+  根路径 GET 302 → https://vl.zhanjhn.cn/forum/，其余返回 JSON 404；删除 api 下 index.html；
+  所有接口仅接受 POST（GET 返回 405 JSON）；路径按项目隔离 `/api/{project}/...`，未知项目 404 unknown_project，目前项目白名单仅 `veinlauncher`；
+  接口迁移：health/tags/posts/详情/点赞/删除都在 `/api/veinlauncher/*`；ForumClient 与网页广场同步改为 POST；
+  广场页面移到 vl.zhanjhn.cn/forum/（api 不再承载 HTML）。
