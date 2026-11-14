@@ -86,6 +86,12 @@ class AccountClient:
     async def close_room(self, session: str, room_no: str) -> Dict[str, Any]:
         return await self._request("POST", f"/api/rooms/{room_no}/close", session=session, json={})
 
+    async def leave_room(self, session: str, room_no: str) -> Dict[str, Any]:
+        return await self._request("POST", f"/api/rooms/{room_no}/leave", session=session, json={})
+
+    async def room(self, room_no: str) -> Dict[str, Any]:
+        return await self._request("GET", f"/api/rooms/{room_no}")
+
     async def result(self, command_id: int, ok: bool, result: dict, session: str) -> Dict[str, Any]:
         return await self._request("POST", "/api/client/result",
                                    json={"id": command_id, "ok": ok, "result": result},

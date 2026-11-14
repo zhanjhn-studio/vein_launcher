@@ -68,6 +68,23 @@ export function RoomsPage({ notify }: { notify: (text: string) => void }) {
   }, [refreshAccount, loadRooms]);
 
   useEffect(() => {
+    if (!joined) return;
+    const timer = window.setInterval(async () => {
+      try {
+        const info = await rpc<{ status?: string; players?: number }>('rooms.info', [joined.room_no]);
+        if (info.status && info.status !== 'open') {
+          setJoined(null);
+          notify('房间已关闭');
+        }
+      } catch {
+        setJoined(null);
+        notify('房间已关闭或过期');
+      }
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, [joined, notify]);
+
+  useEffect(() => {
     if (!login || login.status !== 'pending') return;
     const timer = window.setInterval(async () => {
       try {
@@ -233,7 +250,14 @@ export function RoomsPage({ notify }: { notify: (text: string) => void }) {
             <div className="rm-mine">
               <div>已加入 <b>{joined.room_no}</b></div>
               <div>服务器地址：<code>{joined.host}</code></div>
-              <button className="btn sm" onClick={() => navigator.clipboard?.writeText(joined.host)}>复制地址</button>
+              <div className="rm-row">
+                <button className="btn sm" onClick={() => navigator.clipboard?.writeText(joined.host)}>复制地址</button>
+                <button className="btn sm" onClick={async () => {
+                  try { await rpc('rooms.leave', [joined.room_no]); } catch { /* ignore */ }
+                  setJoined(null);
+                  notify('已离开房间');
+                }}>离开房间</button>
+              </div>
               <p className="muted">在 Minecraft「多人游戏 → 直接连接」粘贴地址。</p>
             </div>
           )}

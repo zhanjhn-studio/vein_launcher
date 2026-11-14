@@ -181,6 +181,8 @@ class ApiBridge(QObject):
             "rooms.create": self._rooms_create,
             "rooms.join": self._rooms_join,
             "rooms.close": self._rooms_close,
+            "rooms.leave": self._rooms_leave,
+            "rooms.info": self._rooms_info,
             "mlc.worlds": self._mlc_worlds,
             "app.openDataDir": self._open_data_dir,
             "i18n.get": self._i18n_get,
@@ -931,6 +933,19 @@ class ApiBridge(QObject):
         from vein_launcher.infrastructure.network.account_client import AccountClient
 
         return await AccountClient().close_room(session, str(room_no))
+
+    async def _rooms_leave(self, room_no: str) -> dict:
+        session = self._rooms_session()
+        if not session:
+            raise RuntimeError("请先登录 ZHANJHN 账号")
+        from vein_launcher.infrastructure.network.account_client import AccountClient
+
+        return await AccountClient().leave_room(session, str(room_no))
+
+    async def _rooms_info(self, room_no: str) -> dict:
+        from vein_launcher.infrastructure.network.account_client import AccountClient
+
+        return await AccountClient().room(str(room_no))
 
     def _local_ip(self) -> str:
         import socket
