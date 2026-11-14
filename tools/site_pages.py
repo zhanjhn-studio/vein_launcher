@@ -217,6 +217,7 @@ COMMUNITY_ZH = f"""
   <a class="card" href="{ISSUES}" target="_blank" rel="noopener"><h3>Issue 反馈 →</h3><p>报告 BUG、提出需求；附日志与复现步骤。</p></a>
   <a class="card" href="{DISCUSS}" target="_blank" rel="noopener"><h3>Discussions 讨论 →</h3><p>使用交流、插件分享与想法讨论。</p></a>
   <a class="card" href="../contribute.html"><h3>参与贡献 →</h3><p>代码规范、PR 流程与插件提交。</p></a>
+  <a class="card" href="https://api.zhanjhn.cn/" target="_blank" rel="noopener"><h3>广场 / 帖子 →</h3><p>发教程、求助与插件展示；MySQL + 原生 PHP。</p></a>
 </div>
 <h2>提问前</h2>
 <ul><li>先在 <a href="../docs.html">文档</a> 与 <a href="../faq.html">FAQ</a> 搜索。</li>

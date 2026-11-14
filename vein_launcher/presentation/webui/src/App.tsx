@@ -13,6 +13,7 @@ import { LaunchPage } from './launchPage';
 import { DownloadPage } from './downloadPage';
 import { SettingsPage } from './settingsPage';
 import { SkinsPage } from './skinsPage';
+import { ForumPage } from './forumPage';
 import { InstancePage } from './instancePage';
 import { ToolsPage } from './toolsPage';
 import { DownloadMonitor, Toast } from './ui';
@@ -31,6 +32,7 @@ const NAV = [
   { key: 'plugins', label: 'Plugins', icon: 'layui-icon-app', iconImg: 'command_block.png', star: true },
   { key: 'mlc', label: 'MLC', icon: 'layui-icon-console', iconImg: 'chest.png' },
   { key: 'multiplayer', label: 'Multiplayer', icon: 'layui-icon-link', iconImg: 'oak_sign.png' },
+  { key: 'forum', label: 'Forum', icon: 'layui-icon-dialogue', iconImg: 'golden_apple.png' },
   { key: 'settings', label: 'Settings', icon: 'layui-icon-set', iconImg: 'crafting_table.png' },
   { key: 'tools', label: 'Tools', icon: 'layui-icon-util', iconImg: 'anvil.png' },
 ];
@@ -355,6 +357,7 @@ export function App() {
             />
           )}
           {page === 'skins' && <SkinsPage notify={notify} />}
+          {page === 'forum' && <ForumPage notify={notify} />}
           {page === 'download' && (
             <DownloadPage installed={installed} onInstalled={refreshInstalled} notify={notify} />
           )}

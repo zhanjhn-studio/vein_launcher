@@ -163,12 +163,15 @@ def header(lang: str, path: str, order: list[str], docs_page: bool) -> str:
     navb = nav_base_for(lang, path)
     logical = path[3:] if path.startswith("en/") else path
     labels = (
-        [("index.html", "首页"), ("docs.html", "文档"), ("download.html", "下载"), ("community.html", "社区")]
+        [("index.html", "首页"), ("docs.html", "文档"), ("download.html", "下载"), ("community.html", "社区"), ("https://api.zhanjhn.cn/", "广场")]
         if lang == "zh" else
-        [("index.html", "Home"), ("docs.html", "Docs"), ("download.html", "Download"), ("community.html", "Community")]
+        [("index.html", "Home"), ("docs.html", "Docs"), ("download.html", "Download"), ("community.html", "Community"), ("https://api.zhanjhn.cn/", "Forum")]
     )
     navs = []
     for href, label in labels:
+        if href.startswith("http"):
+            navs.append(f'<a href="{href}" target="_blank" rel="noopener">{label}</a>')
+            continue
         active = ' aria-current="page"' if href == logical else ""
         navs.append(f'<a href="{navb}{href}" data-order="{order.index(href)}"{active}>{label}</a>')
     navs.append(f'<a href="{GH}" target="_blank" rel="noopener">GitHub</a>')
@@ -553,10 +556,10 @@ def build_sitemap() -> None:
         urls.append("en/" + p["path"])
     lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for u in urls:
-        lines.append(f"  <url><loc>https://zhanjhn-studio.github.io/vein_launcher/{u}</loc></url>")
+        lines.append(f"  <url><loc>https://vl.zhanjhn.cn/{u}</loc></url>")
     lines.append("</urlset>")
     (ROOT / "sitemap.xml").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    (ROOT / "robots.txt").write_text("User-agent: *\nAllow: /\nSitemap: https://zhanjhn-studio.github.io/vein_launcher/sitemap.xml\n", encoding="utf-8")
+    (ROOT / "robots.txt").write_text("User-agent: *\nAllow: /\nSitemap: https://vl.zhanjhn.cn/sitemap.xml\n", encoding="utf-8")
 
 
 def main() -> None:

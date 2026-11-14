@@ -166,6 +166,11 @@ class ApiBridge(QObject):
             "java.resolve": self._java_resolve,
             "downloads.list": self._downloads_list,
             "downloads.remove": self._downloads_remove,
+            "forum.feed": self._forum_feed,
+            "forum.tags": self._forum_tags,
+            "forum.detail": self._forum_detail,
+            "forum.post": self._forum_post,
+            "forum.like": self._forum_like,
             "mlc.worlds": self._mlc_worlds,
             "app.openDataDir": self._open_data_dir,
             "i18n.get": self._i18n_get,
@@ -727,6 +732,33 @@ class ApiBridge(QObject):
     async def _plugins_install_example(self, name: str) -> dict:
         return self._ctx.plugins.install_example(str(name))
 
+    # ------------------------------------------------------------------ 广场
+    def _forum(self):
+        client = getattr(self, "_forum_client", None)
+        if client is None:
+            from vein_launcher.infrastructure.network.forum_client import ForumClient
+
+            client = ForumClient()
+            self._forum_client = client
+        return client
+
+    async def _forum_feed(self, sort: str = "hot", tag: str = "", page: int = 1) -> dict:
+        return await self._forum().feed(str(sort or "hot"), str(tag or ""), int(page or 1))
+
+    async def _forum_tags(self) -> list:
+        return await self._forum().tags()
+
+    async def _forum_detail(self, post_id: int) -> dict:
+        return await self._forum().detail(int(post_id))
+
+    async def _forum_post(self, title: str, content: str, tags=None, author: str = "") -> dict:
+        name = str(author or "").strip() or "匿名"
+        tag_list = [str(t) for t in (tags or [])][:5]
+        return await self._forum().create(str(title), str(content), tag_list, name)
+
+    async def _forum_like(self, post_id: int) -> dict:
+        return await self._forum().like(int(post_id))
+
     async def _downloads_remove(self, task_id: str) -> dict:
         removed = self._downloads.pop(str(task_id), None)
         return {"removed": bool(removed), "id": str(task_id)}
@@ -742,19 +774,10 @@ class ApiBridge(QObject):
         return {"lang": translator.current_lang, "languages": translator.languages}
 
     async def _i18n_set(self, lang: str) -> dict:
-        from vein_launcher.common.config.settings import settings_manager
         from vein_launcher.common.i18n.translator import translator
 
         ok = translator.set_language(str(lang))
         translator.save_choice()
-        # 同步写回 config.json，避免 language.json 与 ui.language 各说各话
-        try:
-            ui = settings_manager.get().ui
-            if getattr(ui, "language", "") != translator.current_lang:
-                ui.language = translator.current_lang
-                settings_manager.save()
-        except Exception:  # noqa: BLE001
-            pass
         return {"ok": ok, "lang": translator.current_lang}
 
     async def _pick_directory(self, title: str = "Select folder") -> dict:

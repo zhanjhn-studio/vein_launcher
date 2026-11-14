@@ -827,12 +827,8 @@ html[data-transparent="on"] body {
   background: none; border: 0; cursor: pointer; color: var(--text-2); font-size: 12.5px;
 }
 .vl-checkbox > span { order: 2; }
-.vl-checkbox { align-items: flex-start; }
-.vl-checkbox > span { text-align: left; line-height: 1.55; }
 .vl-checkbox > i {
   order: 1; width: 16px; height: 16px; line-height: 16px; text-align: center;
-  /* layui 的 .layui-form-checkbox>i 是 absolute，会浮在文字上方；这里退回正常流 */
-  position: static; left: auto; top: auto; margin: 2px 0 0;
   font-size: 11px; border: 1px solid var(--line-2); border-radius: 4px;
   background: var(--surface-2); color: transparent; flex: none;
 }
@@ -1922,20 +1918,38 @@ img[src$="chest.png"] {
 }
 
 
-/* ---------- 首次引导：语言选择 ---------- */
-.lang-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 22px; max-width: 560px; }
-.lang-card {
-  position: relative; display: flex; flex-direction: column; gap: 6px; text-align: left;
-  padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px;
-  background: var(--surface-2); color: var(--text-2); cursor: pointer;
-  transition: border-color .16s ease, transform .16s ease, background .16s ease;
+/* 广场（帖子） */
+.forum-page .page-head { display: flex; align-items: center; gap: 10px; }
+.forum-toolbar { display: flex; align-items: center; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+.forum-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.forum-chip {
+  border: 1px dashed var(--line); background: transparent; color: var(--text-2);
+  border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer;
 }
-.lang-card:hover { border-color: var(--accent); transform: translateY(-1px); }
-.lang-card b { font-size: 15px; color: var(--text); }
-.lang-card span { font-size: 11.5px; line-height: 1.6; color: var(--text-3); }
-.lang-card.active { border-color: var(--accent); background: var(--accent-faint); box-shadow: 0 0 0 1px var(--accent); }
-.lang-check {
-  position: absolute; top: 12px; right: 12px;
-  width: 18px; height: 18px; line-height: 18px; text-align: center;
-  border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; font-style: normal;
+.forum-chip span { opacity: .55; margin-left: 3px; }
+.forum-chip.on { border-style: solid; border-color: var(--accent); color: var(--accent); }
+.forum-list { display: flex; flex-direction: column; gap: 8px; }
+.forum-item {
+  display: flex; gap: 14px; align-items: flex-start; text-align: left; width: 100%;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px 16px; color: var(--text); cursor: pointer;
 }
+.forum-item:hover { border-color: var(--accent); }
+.forum-likes { min-width: 44px; text-align: center; color: var(--text-3); font-size: 10.5px; }
+.forum-likes b { display: block; font-size: 16px; color: var(--accent); }
+.forum-item-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.forum-item-body b { font-size: 14px; }
+.forum-excerpt { color: var(--text-2); font-size: 12.5px; }
+.forum-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--text-3); font-size: 11px; }
+.forum-tag { font-size: 10.5px; padding: 1px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.forum-detail { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 20px; }
+.forum-detail-tags { display: flex; gap: 6px; margin-bottom: 10px; }
+.forum-content { white-space: pre-wrap; word-break: break-word; font-size: 13.5px; line-height: 1.8; margin: 14px 0; }
+.forum-actions { display: flex; gap: 8px; }
+.forum-compose {
+  border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface);
+  padding: 16px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.forum-compose-row { display: grid; grid-template-columns: 1fr 180px; gap: 10px; }
+.forum-textarea { min-height: 120px; resize: vertical; }
+.forum-compose-actions { display: flex; gap: 8px; }

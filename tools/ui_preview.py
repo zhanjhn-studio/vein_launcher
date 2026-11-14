@@ -99,6 +99,22 @@ MOCK = r"""
         { id: '1.21.1', type: 'release', release_time: '2025-01-01' },
         { id: '1.20.1', type: 'release', release_time: '2023-06-12' }
       ];
+      case 'forum.tags': return [
+        { name: '公告', count: 1 }, { name: '教程', count: 0 }, { name: '求助', count: 0 },
+        { name: '插件', count: 0 }, { name: 'MLC', count: 0 }, { name: '闲聊', count: 1 }, { name: '展示', count: 0 }
+      ];
+      case 'forum.feed': return {
+        items: [
+          { id: 1, title: '欢迎来到 Vein 广场', excerpt: '这里是 Vein Launcher 的帖子广场，可以发教程、求助、插件与作品展示。',
+            author_name: '官方', likes: 3, tags: ['公告', '闲聊'], created_at: '2026-11-14T09:14:44', hot_score: 0.35 },
+          { id: 2, title: 'Fabric 1.20.1 装 Sodium 的注意事项', excerpt: '先装 Fabric 加载器，再把 mod 放进实例的 mods 目录，原版实例不会加载。',
+            author_name: 'Player', likes: 1, tags: ['教程', '插件'], created_at: '2026-11-13T20:02:10', hot_score: 0.2 }
+        ], page: 1, total: 2, has_more: false
+      };
+      case 'forum.detail': return {
+        id: 1, title: '欢迎来到 Vein 广场', content: '这里是 Vein Launcher 的帖子广场。', author_name: '官方',
+        likes: 3, tags: ['公告', '闲聊'], created_at: '2026-11-14T09:14:44'
+      };
       case 'plugins.state': return {
         host: { running: false, pid: null, node: null },
         root: 'C:/VeinLauncher/plugin',

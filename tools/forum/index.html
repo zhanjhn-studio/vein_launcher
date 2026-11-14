@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vein 广场 · 帖子</title>
+<style>
+  :root {
+    --bg: #f7f9fc; --surface: #ffffff; --surface-2: #f2f5fa;
+    --text: #101828; --text-2: #475467; --text-3: #8896ab;
+    --line: #e3e8f0; --accent: #f97316; --accent-2: #f59e0b;
+    --radius: 14px; --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1218; --surface: #151a23; --surface-2: #1a202b;
+      --text: #e9eef7; --text-2: #b6c2d4; --text-3: #7f8b9e;
+      --line: #232b38;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.7 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  .wrap { width: min(1040px, 100% - 32px); margin: 0 auto; }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  }
+  .bar { display: flex; align-items: center; gap: 12px; padding: 14px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+  .brand img { width: 30px; height: 30px; border-radius: 8px; }
+  .brand b { color: var(--accent); }
+  nav { margin-left: auto; display: flex; gap: 8px; }
+  nav a {
+    color: var(--text-2); text-decoration: none; font-size: 13px;
+    padding: 6px 10px; border-radius: 8px;
+  }
+  nav a:hover { background: var(--surface-2); color: var(--text); }
+  main { padding: 26px 0 60px; }
+  h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -.02em; }
+  .lead { color: var(--text-3); margin: 0 0 20px; font-size: 13.5px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+  .tab {
+    border: 1px solid var(--line); background: var(--surface); color: var(--text-2);
+    padding: 7px 13px; border-radius: 999px; cursor: pointer; font-size: 13px;
+  }
+  .tab.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    border: 1px dashed var(--line); background: transparent; color: var(--text-3);
+    padding: 4px 10px; border-radius: 999px; font-size: 12px; cursor: pointer;
+  }
+  .chip.on { border-style: solid; border-color: var(--accent); color: var(--accent); }
+  .btn {
+    border: 1px solid var(--line); background: var(--surface); color: var(--text);
+    padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 13px;
+  }
+  .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; font-weight: 600; }
+  .btn.sm { padding: 5px 10px; font-size: 12px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .post {
+    display: flex; gap: 14px; align-items: flex-start; text-align: left;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px 18px; cursor: pointer; transition: .15s ease;
+  }
+  .post:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .votes { min-width: 46px; text-align: center; color: var(--text-3); font-size: 11px; }
+  .votes b { display: block; font-size: 16px; color: var(--accent); }
+  .body { min-width: 0; flex: 1; }
+  .title { font-weight: 650; font-size: 15px; margin-bottom: 4px; }
+  .excerpt { color: var(--text-2); font-size: 13px; margin-bottom: 8px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 11.5px; color: var(--text-3); }
+  .tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent);
+  }
+  .empty, .loading { padding: 46px; text-align: center; color: var(--text-3); }
+  .detail { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+  .detail h2 { margin: 0 0 8px; font-size: 22px; }
+  .content { white-space: pre-wrap; word-break: break-word; color: var(--text); font-size: 14.5px; line-height: 1.85; margin: 16px 0; }
+  .back { margin-bottom: 14px; }
+  .composer { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; display: none; }
+  .composer.open { display: block; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--text-3); margin-bottom: 5px; }
+  input, textarea, select {
+    width: 100%; background: var(--surface-2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+    font: inherit; font-size: 13.5px; outline: none;
+  }
+  textarea { min-height: 140px; resize: vertical; }
+  input:focus, textarea:focus { border-color: var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .msg { font-size: 12.5px; color: var(--text-3); margin-top: 8px; min-height: 18px; }
+  .msg.err { color: #d64545; }
+  footer { border-top: 1px solid var(--line); padding: 18px 0; color: var(--text-3); font-size: 12px; }
+  footer a { color: var(--text-2); }
+  @media (max-width: 640px) {
+    .row { grid-template-columns: 1fr; }
+    .post { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="https://vl.zhanjhn.cn/"><img src="https://vl.zhanjhn.cn/assets/logo.png" alt="" /><span>Vein<b>广场</b></span></a>
+    <nav>
+      <a href="https://vl.zhanjhn.cn/">官网</a>
+      <a href="https://vl.zhanjhn.cn/docs.html">文档</a>
+      <a href="https://github.com/zhanjhn-studio/vein_launcher" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1>广场</h1>
+  <p class="lead">发帖、提问、分享插件与作品。接口 /api/posts · 纯文本，渲染在前端。</p>
+
+  <div class="toolbar">
+    <button class="tab on" data-sort="hot">热门</button>
+    <button class="tab" data-sort="new">最新</button>
+    <div class="chips" id="chips"></div>
+    <button class="btn primary" id="newPost" style="margin-left:auto">发帖</button>
+  </div>
+
+  <section class="composer" id="composer">
+    <div class="row">
+      <div class="field"><label>昵称</label><input id="author" maxlength="20" placeholder="2-20 个字符" /></div>
+      <div class="field"><label>标签（可多选）</label><select id="tagPick"></select></div>
+    </div>
+    <div class="field"><label>标题</label><input id="title" maxlength="120" placeholder="4-120 个字符" /></div>
+    <div class="field"><label>正文（纯文本 / Markdown 源）</label><textarea id="content" placeholder="说点什么…"></textarea></div>
+    <button class="btn primary" id="submit">发布</button>
+    <button class="btn" id="cancel">取消</button>
+    <div class="msg" id="msg"></div>
+  </section>
+
+  <div class="list" id="list"><div class="loading">加载中…</div></div>
+</main>
+
+<footer class="wrap">
+  Vein 广场 · <a href="https://vl.zhanjhn.cn/privacy.html">隐私</a> · API 契约见开发者文档附录 A
+</footer>
+
+<script>
+const API = '/api';
+const state = { sort: 'hot', tag: '', page: 1, tagList: [] };
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function mdLite(text) {
+  let h = esc(text);
+  h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+  h = h.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  return h;
+}
+
+function relTime(iso) {
+  const t = new Date(iso).getTime();
+  if (!t) return '';
+  const diff = (Date.now() - t) / 1000;
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`;
+  if (diff < 86400 * 30) return `${Math.floor(diff / 86400)} 天前`;
+  return new Date(t).toLocaleDateString();
+}
+
+function userKey() {
+  let key = localStorage.getItem('vl-forum-user');
+  if (!key) {
+    key = 'u-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('vl-forum-user', key);
+  }
+  return key;
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json', 'X-User': userKey() },
+    ...options,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+  return data;
+}
+
+async function loadTags() {
+  try {
+    const data = await api('/tags');
+    state.tagList = data.items || [];
+    $('chips').innerHTML = state.tagList
+      .map((t) => `<button class="chip" data-tag="${esc(t.name)}">${esc(t.name)} <span style="opacity:.6">${t.count}</span></button>`)
+      .join('');
+    $('tagPick').innerHTML = state.tagList.map((t) => `<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
+    $('chips').querySelectorAll('.chip').forEach((el) => {
+      el.addEventListener('click', () => {
+        const tag = el.dataset.tag;
+        state.tag = state.tag === tag ? '' : tag;
+        state.page = 1;
+        $('chips').querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x.dataset.tag === state.tag));
+        load();
+      });
+    });
+  } catch { /* tags 可失败 */ }
+}
+
+async function load() {
+  $('list').innerHTML = '<div class="loading">加载中…</div>';
+  try {
+    const q = new URLSearchParams({ sort: state.sort, page: String(state.page), limit: '20' });
+    if (state.tag) q.set('tag', state.tag);
+    const data = await api('/posts?' + q.toString());
+    if (!data.items.length) {
+      $('list').innerHTML = '<div class="empty">还没有帖子，点「发帖」写第一条。</div>';
+      return;
+    }
+    $('list').innerHTML = data.items.map((p) => `
+      <button class="post" data-id="${p.id}">
+        <div class="votes"><b>${p.likes}</b>赞</div>
+        <div class="body">
+          <div class="title">${esc(p.title)}</div>
+          <div class="excerpt">${esc(p.excerpt)}</div>
+          <div class="meta">
+            ${(p.tags || []).map((t) => `<span class="tag">${esc(t)}</span>`).join('')}
+            <span>${esc(p.author_name)}</span><span>·</span><span>${relTime(p.created_at)}</span>
+          </div>
+        </div>
+      </button>`).join('');
+    $('list').querySelectorAll('.post').forEach((el) => {
+      el.addEventListener('click', () => openDetail(Number(el.dataset.id)));
+    });
+  } catch (err) {
+    $('list').innerHTML = `<div class="empty">加载失败：${esc(err.message)}</div>`;
+  }
+}
+
+async function openDetail(id) {
+  $('list').innerHTML = '<div class="loading">加载中…</div>';
+  try {
+    const p = await api('/posts/' + id);
+    $('list').innerHTML = `
+      <div class="detail">
+        <button class="btn sm back" id="back">← 返回列表</button>
+        <h2>${esc(p.title)}</h2>
+        <div class="meta">
+          ${(p.tags || []).map((t) => `<span class="tag">${esc(t)}</span>`).join('')}
+          <span>${esc(p.author_name)}</span><span>·</span><span>${relTime(p.created_at)}</span>
+        </div>
+        <div class="content">${mdLite(p.content)}</div>
+        <button class="btn primary" id="like">赞 ${p.likes}</button>
+      </div>`;
+    $('back').addEventListener('click', load);
+    $('like').addEventListener('click', async () => {
+      $('like').disabled = true;
+      try {
+        const r = await api(`/posts/${id}/like`, { method: 'POST', body: '{}' });
+        $('like').textContent = `赞 ${r.likes}`;
+      } catch (err) { $('like').textContent = err.message; }
+    });
+  } catch (err) {
+    $('list').innerHTML = `<div class="empty">加载失败：${esc(err.message)}</div>`;
+  }
+}
+
+$('newPost').addEventListener('click', () => {
+  $('composer').classList.toggle('open');
+  $('author').value = localStorage.getItem('vl-forum-author') || '';
+});
+$('cancel').addEventListener('click', () => $('composer').classList.remove('open'));
+
+$('submit').addEventListener('click', async () => {
+  const msg = $('msg');
+  msg.className = 'msg';
+  msg.textContent = '发布中…';
+  const author = $('author').value.trim();
+  const title = $('title').value.trim();
+  const content = $('content').value.trim();
+  const tag = $('tagPick').value;
+  if (!author || !title || !content) {
+    msg.className = 'msg err';
+    msg.textContent = '昵称、标题、正文都要填。';
+    return;
+  }
+  try {
+    await api('/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Author': author, 'X-User': userKey() },
+      body: JSON.stringify({ title, content, author, tags: tag ? [tag] : [] }),
+    });
+    localStorage.setItem('vl-forum-author', author);
+    $('title').value = '';
+    $('content').value = '';
+    $('composer').classList.remove('open');
+    msg.textContent = '';
+    await loadTags();
+    await load();
+  } catch (err) {
+    msg.className = 'msg err';
+    msg.textContent = err.message;
+  }
+});
+
+document.querySelectorAll('.tab').forEach((el) => {
+  el.addEventListener('click', () => {
+    state.sort = el.dataset.sort;
+    state.page = 1;
+    document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('on', x === el));
+    load();
+  });
+});
+
+loadTags();
+load();
+</script>
+</body>
+</html>
