@@ -104,3 +104,7 @@ packaging/*.spec
 
 # account site (server only, not in GitHub)
 .tmp_account/
+
+.gh_token_tmp
+.pushfiles.tar
+

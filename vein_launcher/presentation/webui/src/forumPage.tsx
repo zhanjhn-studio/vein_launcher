@@ -119,6 +119,7 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
         if (res.status === 'verified' && res.user) {
           setAccount({ user: res.user });
           setLogin(null);
+          window.dispatchEvent(new CustomEvent('vein:accountChanged'));
           notify(`已登录：${res.user.username}（${res.user.group.name}）`);
         } else if (['expired', 'consumed', 'error'].includes(res.status)) {
           setLogin((prev) => (prev ? { ...prev, status: res.status } : prev));
@@ -145,6 +146,7 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
     setAccount(null);
     setDetail(null);
     setCompose(false);
+    window.dispatchEvent(new CustomEvent('vein:accountChanged'));
     notify('已退出账号');
   };
 
