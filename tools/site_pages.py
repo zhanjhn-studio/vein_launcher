@@ -1,7 +1,7 @@
 """根页面内容（v7）：关于/下载/社区/路线图/安全/贡献/展示墙/许可/FAQ/文档入口。"""
 
-ZIP = "https://vl.zhanjhn.cn/downloads/VeinLauncher-0.5.1-win64.zip"
-REL = "https://github.com/zhanjhn-studio/vein_launcher/releases/tag/v0.5.1"
+ZIP = "https://vl.zhanjhn.cn/downloads/VeinLauncher-0.6.0-win64.zip"
+REL = "https://github.com/zhanjhn-studio/vein_launcher/releases/tag/v0.6.0"
 GH = "https://github.com/zhanjhn-studio/vein_launcher"
 ISSUES = f"{GH}/issues"
 DISCUSS = f"{GH}/discussions"
@@ -27,14 +27,14 @@ DOWNLOAD_ZH = f"""
   <div><b>Windows 10 / 11 x64</b><span>支持平台</span></div>
   <div><b>232 MB</b><span>压缩包大小</span></div>
   <div><b>2026-11-09</b><span>更新时间</span></div>
-  <div><b>v0.5.1</b><span>当前版本</span></div>
+  <div><b>v0.6.0</b><span>当前版本</span></div>
 </div>
 <h2>SHA-256 校验</h2>
 <pre><code>{SHA}</code></pre>
 <p>下载后可执行 <code>certutil -hashfile VeinLauncher-0.5.1-win64.zip SHA256</code> 比对。</p>
 <h2>历史版本</h2>
 <table><thead><tr><th>版本</th><th>日期</th><th>说明</th><th>下载</th></tr></thead><tbody>
-<tr><td>v0.5.1</td><td>2026-11-09</td><td>界面自定义、浅色 + 橙色主题</td><td><a href="{ZIP}">zip</a></td></tr>
+<tr><td>v0.6.0</td><td>2026-11-09</td><td>界面自定义、浅色 + 橙色主题</td><td><a href="{ZIP}">zip</a></td></tr>
 <tr><td>v0.5.0</td><td>2026-11-08</td><td>MLC、指令速查、插件能力</td><td><a href="{GH}/releases/tag/v0.5.0" target="_blank" rel="noopener">Release</a></td></tr>
 <tr><td>v0.1.0</td><td>2026-10-31</td><td>首个公开版本</td><td><a href="{GH}/releases/tag/v0.1.0" target="_blank" rel="noopener">Release</a></td></tr>
 </tbody></table>
@@ -64,13 +64,13 @@ DOWNLOAD_EN = f"""
   <div><b>Windows 10 / 11 x64</b><span>Platform</span></div>
   <div><b>232 MB</b><span>Archive size</span></div>
   <div><b>2026-11-09</b><span>Updated</span></div>
-  <div><b>v0.5.1</b><span>Version</span></div>
+  <div><b>v0.6.0</b><span>Version</span></div>
 </div>
 <h2>SHA-256</h2>
 <pre><code>{SHA}</code></pre>
 <h2>Previous versions</h2>
 <table><thead><tr><th>Version</th><th>Date</th><th>Notes</th><th>Download</th></tr></thead><tbody>
-<tr><td>v0.5.1</td><td>2026-11-09</td><td>MLC, command palette, plugin capabilities</td><td><a href="{ZIP}">zip</a></td></tr>
+<tr><td>v0.6.0</td><td>2026-11-09</td><td>MLC, command palette, plugin capabilities</td><td><a href="{ZIP}">zip</a></td></tr>
 <tr><td>v0.1.0</td><td>2026-10-31</td><td>First public release</td><td><a href="{GH}/releases/tag/v0.1.0" target="_blank" rel="noopener">Release</a></td></tr>
 </tbody></table>
 <h2>Upgrading</h2>

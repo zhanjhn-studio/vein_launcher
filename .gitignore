@@ -108,3 +108,9 @@ packaging/*.spec
 .gh_token_tmp
 .pushfiles.tar
 
+
+dist_exe*/
+dist_release/
+*.bundle
+.site*.tar
+

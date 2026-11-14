@@ -1,6 +1,6 @@
 """首页内容（v6：动效 + 更多面向用户的板块）。"""
 
-ZIP = "https://vl.zhanjhn.cn/downloads/VeinLauncher-0.5.1-win64.zip"
+ZIP = "https://vl.zhanjhn.cn/downloads/VeinLauncher-0.6.0-win64.zip"
 GH = "https://github.com/zhanjhn-studio/vein_launcher"
 
 HOME_ZH = f"""<main>
@@ -16,7 +16,7 @@ HOME_ZH = f"""<main>
         </h1>
         <p class="lead">面向 Minecraft Java 版的便携启动器：镜像优先下载、真实例管理、LittleSkin 皮肤、沙箱插件宿主，以及 MLC 控制层。</p>
         <div class="cta-row">
-          <a class="btn primary lg shine" href="{ZIP}">下载 v0.5.1</a>
+          <a class="btn primary lg shine" href="{ZIP}">下载 v0.6.0</a>
           <a class="btn lg" href="docs.html" data-order="1">阅读文档</a>
           <a class="btn ghost lg" href="{GH}" target="_blank" rel="noopener">GitHub</a>
         </div>
@@ -119,8 +119,8 @@ HOME_ZH = f"""<main>
   <section class="download"><div class="wrap"><div class="download-card">
     <div><span class="eyebrow">Download</span><h2>下载 Windows 版</h2>
       <p>解压即用，不写注册表；删除目录即卸载。需要 Java 时启动器会自动下载。</p>
-      <div class="cta-row"><a class="btn primary lg shine" href="{ZIP}">下载 v0.5.1（232 MB）</a><a class="btn lg" href="download.html" data-order="2">全部版本</a></div>
-      <div class="download-meta"><span>v0.5.1</span><span>2026-11-09</span><span>Windows 10/11 x64</span><span>SHA-256 BD6ADBC3…BC5E0</span></div>
+      <div class="cta-row"><a class="btn primary lg shine" href="{ZIP}">下载 v0.6.0（232 MB）</a><a class="btn lg" href="download.html" data-order="2">全部版本</a></div>
+      <div class="download-meta"><span>v0.6.0</span><span>2026-11-09</span><span>Windows 10/11 x64</span><span>SHA-256 BD6ADBC3…BC5E0</span></div>
     </div>
     <div class="role-visual"><img src="assets/shot-download.png" alt="" /></div>
   </div></div></section>
@@ -137,7 +137,7 @@ HOME_EN = f"""<main>
         </h1>
         <p class="lead">A portable launcher for Minecraft Java Edition: mirror-first downloads, real instance management, LittleSkin skins, a sandboxed plugin host and the MLC control layer.</p>
         <div class="cta-row">
-          <a class="btn primary lg shine" href="{ZIP}">Download v0.5.1</a>
+          <a class="btn primary lg shine" href="{ZIP}">Download v0.6.0</a>
           <a class="btn lg" href="docs.html" data-order="1">Read the docs</a>
           <a class="btn ghost lg" href="{GH}" target="_blank" rel="noopener">GitHub</a>
         </div>
@@ -226,8 +226,8 @@ HOME_EN = f"""<main>
   <section class="download"><div class="wrap"><div class="download-card">
     <div><span class="eyebrow">Download</span><h2>Download for Windows</h2>
       <p>Unzip and run. No registry writes, delete the folder to uninstall. Java is downloaded automatically if needed.</p>
-      <div class="cta-row"><a class="btn primary lg shine" href="{ZIP}">Download v0.5.1 (232 MB)</a><a class="btn lg" href="download.html" data-order="2">All versions</a></div>
-      <div class="download-meta"><span>v0.5.1</span><span>2026-11-09</span><span>Windows 10/11 x64</span><span>SHA-256 BD6ADBC3…BC5E0</span></div>
+      <div class="cta-row"><a class="btn primary lg shine" href="{ZIP}">Download v0.6.0 (232 MB)</a><a class="btn lg" href="download.html" data-order="2">All versions</a></div>
+      <div class="download-meta"><span>v0.6.0</span><span>2026-11-09</span><span>Windows 10/11 x64</span><span>SHA-256 BD6ADBC3…BC5E0</span></div>
     </div>
     <div class="role-visual"><img src="assets/shot-download.png" alt="" /></div>
   </div></div></section>

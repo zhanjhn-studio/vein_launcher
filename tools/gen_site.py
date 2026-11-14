@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1] / "veinwebsite-don'tupdategithub"
 GH = "https://github.com/zhanjhn-studio/vein_launcher"
 ISSUES = f"{GH}/issues"
 DISCUSS = f"{GH}/discussions"
-ZIP = "https://vl.zhanjhn.cn/downloads/VeinLauncher-0.5.1-win64.zip"
+ZIP = "https://vl.zhanjhn.cn/downloads/VeinLauncher-0.6.0-win64.zip"
 
 VERSION = "0.5.1"
 
@@ -395,7 +395,7 @@ ROOT_CONTENT = {
 RELEASES_ZH = f"""<main class="wrap doc-index"><h1>版本</h1>
 <p class="lead">每个版本都有对应的 GitHub Release 与下载资产。</p>
 <table><thead><tr><th>版本</th><th>说明</th><th>日期</th></tr></thead><tbody>
-<tr><td><a href="{ZIP.split('/releases/')[0]}/releases/tag/v0.5.1" target="_blank" rel="noopener">v0.5.1</a></td><td>界面自定义、默认浅色 + 橙色主题、全新截图</td><td>2026-11-09</td></tr>
+<tr><td><a href="{ZIP.split('/releases/')[0]}/releases/tag/v0.6.0" target="_blank" rel="noopener">v0.6.0</a></td><td>界面自定义、默认浅色 + 橙色主题、全新截图</td><td>2026-11-09</td></tr>
 <tr><td><a href="{ZIP.split('/releases/')[0]}/releases/tag/v0.5.0" target="_blank" rel="noopener">v0.5.0</a></td><td>MLC 原版控制、附魔书指令、插件能力</td><td>2026-11-08</td></tr>
 <tr><td><a href="{ZIP.split('/releases/')[0]}/releases/tag/v0.1.0" target="_blank" rel="noopener">v0.1.0</a></td><td>首个公开版本</td><td>2026-10-31</td></tr>
 </tbody></table>
@@ -407,11 +407,11 @@ RELEASES_EN = RELEASES_ZH.replace("<h1>版本</h1>", "<h1>Releases</h1>").replac
 
 CHANGELOG_ZH = """<main class="wrap doc-index"><h1>更新日志</h1>
 <p class="lead">按版本倒序记录主要变化，升级前建议先看这里。</p>
-<h2>v0.5.1 · 2026-11-09</h2>
+<h2>v0.6.0 · 2026-11-09</h2>
 <h3>新增</h3><ul><li>界面自定义：圆角（小/中/大）、界面缩放（95%/100%/105%）、动效开关</li><li>默认浅色 + 橙色主题，主色仍可自由更换</li><li>启动器内全部截图与图标重制</li></ul>
 <h3>修复</h3><ul><li>旧主题配色残留</li></ul>
 <h3>破坏性改动</h3><ul><li>默认主题从深色改为浅色；可在设置中切回深色</li></ul>
-<h2>v0.5.1 · 2026-11-09</h2>
+<h2>v0.6.0 · 2026-11-09</h2>
 <h3>Added</h3><ul><li>UI customization: corner radius, interface zoom, motion toggle</li><li>Light theme by default with an orange accent; accent remains customizable</li><li>All launcher screenshots and icons refreshed</li></ul>
 <h3>Breaking</h3><ul><li>Default theme changed from dark to light; switch back in Settings</li></ul>
 <h2>v0.5.0 · 2026-11-08</h2>
@@ -423,11 +423,11 @@ CHANGELOG_ZH = """<main class="wrap doc-index"><h1>更新日志</h1>
 
 CHANGELOG_EN = """<main class="wrap doc-index"><h1>Changelog</h1>
 <p class="lead">Main changes, newest first. Read before upgrading.</p>
-<h2>v0.5.1 · 2026-11-09</h2>
+<h2>v0.6.0 · 2026-11-09</h2>
 <h3>新增</h3><ul><li>界面自定义：圆角（小/中/大）、界面缩放（95%/100%/105%）、动效开关</li><li>默认浅色 + 橙色主题，主色仍可自由更换</li><li>启动器内全部截图与图标重制</li></ul>
 <h3>修复</h3><ul><li>旧主题配色残留</li></ul>
 <h3>破坏性改动</h3><ul><li>默认主题从深色改为浅色；可在设置中切回深色</li></ul>
-<h2>v0.5.1 · 2026-11-09</h2>
+<h2>v0.6.0 · 2026-11-09</h2>
 <h3>Added</h3><ul><li>UI customization: corner radius, interface zoom, motion toggle</li><li>Light theme by default with an orange accent; accent remains customizable</li><li>All launcher screenshots and icons refreshed</li></ul>
 <h3>Breaking</h3><ul><li>Default theme changed from dark to light; switch back in Settings</li></ul>
 <h2>v0.5.0 · 2026-11-08</h2>

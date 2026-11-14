@@ -809,3 +809,5 @@ window.__veinResult(12, true, {ok: 1})
 
 - **2026-11-14 · feat/account-theme-zh** — 默认主题改为 Account 深色纹理（深色斜纹 + 方块纹理 + 玻璃卡片），主题选择新增 Account（默认）；
   默认中文，首次安装欢迎引导全部中文化（欢迎/功能/账号/隐私/完成），Splash 中文化。
+
+- **2026-11-14 · release/0.6.0** — 版本号升到 0.6.0；重建 exe（窗口标题 Vein Launcher 0.6.0）；新增直链 downloads/VeinLauncher-0.6.0-win64.zip；新建 GitHub Release v0.6.0 并上传资产；恢复 v0.5.1 的 zip 资产（旧文件不删除）；站点首页/下载页/安装文档切到 0.6.0，下载页保留 0.5.1 归档行。
