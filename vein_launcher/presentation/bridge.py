@@ -888,7 +888,8 @@ class ApiBridge(QObject):
         token = secrets.token_hex(20)
         self._pending_token = token
         await AccountClient().start(token)
-        return {"token": token, "url": "https://account.zhanjhn.cn/", "expiresIn": 600}
+        url = f"https://account.zhanjhn.cn/?token={token}"
+        return {"token": token, "url": url, "expiresIn": 600}
 
     async def _account_poll(self) -> dict:
         token = getattr(self, "_pending_token", "")

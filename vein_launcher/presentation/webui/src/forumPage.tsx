@@ -110,6 +110,8 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
     try {
       const res = await rpc<{ token: string; url: string }>('account.start', []);
       setLogin({ token: res.token, url: res.url, status: 'pending' });
+      // 自动打开统一认证授权页（token 已带在链接里）
+      window.open(res.url, '_blank');
     } catch (err) {
       notify(`登录初始化失败：${(err as Error).message}`);
     }

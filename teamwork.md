@@ -759,3 +759,8 @@ window.__veinResult(12, true, {ok: 1})
   支持 versions.list / version.install / mlc.set / mods.list / game.launch / open.page，结果回传；
   发帖界面去掉昵称（身份取账号）；修复远程循环调度（AsyncRunner.submit）与 account.json BOM 读取问题。
   验证：设备上线、versions.list done、mlc.set done、权限/发帖链路正常。
+
+- **2026-11-14 · feat/unified-consent** — 统一认证授权页重做：
+  account.zhanjhn.cn 改为「ZHANJHN 统一登录」卡片（深色纹理背景 + 立方体加载动画 + 白卡表单）；
+  启动器登录自动打开 `/?token=…`，登录后显示「授权 Vein Launcher」确认页（同意/拒绝），同意即绑定并回启动器轮询；
+  旧手动 token 输入保留为备用；验证：start→bind→poll verified（session 正常）、页面 title 正确。
