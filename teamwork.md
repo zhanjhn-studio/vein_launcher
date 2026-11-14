@@ -769,3 +769,8 @@ window.__veinResult(12, true, {ok: 1})
   新布局（渐变标题、账号胶囊、登录横幅、分段热门/最新、标签 chips、帖子卡、爱心点赞、详情页、发帖面板、登录授权弹层、spinner/空状态）；
   修复「点了没反应」：登录改用 `app.openUrl` RPC（webbrowser）而不是 WebView 的 window.open；
   发帖身份取账号、点赞独立点击（stopPropagation）、详情/返回/刷新均可点。
+
+- **2026-11-14 · feat/global-account** — 全局账号入口：
+  顶部右侧账号胶囊（头像+昵称/登录），导航新增「我的」页（账号信息、权限组、登录/退出、打开账号中心与 /veinlauncher 仪表盘、关联新项目）；
+  登录不再局限广场；ZHANJHN 统一账号文案与 logo 接入 account.zhanjhn.cn；授权页改为「是否将 ZHANJHN 账号关联到 Vein Launcher」；
+  `app.openUrl` 改用 QDesktopServices（系统默认浏览器），修复 WebView 打不开标签页；token 自动附带到论坛/账号/远程请求。

@@ -2071,3 +2071,24 @@ img[src$="chest.png"] {
 .fp-modal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .fp-modal-status { display: flex; align-items: center; gap: 8px; color: var(--text-3); font-size: 12px; }
 .fp-error { color: #d64545; }
+
+/* 顶部账号 & 我的 */
+.head-account { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 4px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface); cursor: pointer;
+  color: var(--text-2); font-size: 12.5px; }
+.head-account:hover { border-color: var(--accent); color: var(--text); }
+.head-account.on { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.head-avatar { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent-grad); color: #fff; font-size: 12px; font-weight: 700; }
+.head-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-card { border: 1px solid var(--line); border-radius: 18px; background: var(--surface); padding: 22px;
+  display: flex; flex-direction: column; gap: 14px; box-shadow: 0 14px 36px rgba(20,30,50,.06); }
+.ac-hero { display: flex; align-items: center; gap: 14px; }
+.ac-hero b { font-size: 17px; }
+.ac-hero p { margin: 4px 0 0; color: var(--text-3); font-size: 12.5px; }
+.ac-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 760px) { .ac-grid { grid-template-columns: 1fr 1fr; } }
+.ac-item { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface-2); }
+.ac-item span { display: block; font-size: 11px; color: var(--text-3); }
+.ac-item b { font-size: 13px; }
+.ac-actions { display: flex; gap: 8px; flex-wrap: wrap; }

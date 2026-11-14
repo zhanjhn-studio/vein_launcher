@@ -14,6 +14,7 @@ import { DownloadPage } from './downloadPage';
 import { SettingsPage } from './settingsPage';
 import { SkinsPage } from './skinsPage';
 import { ForumPage } from './forumPage';
+import { AccountPage } from './accountPage';
 import { InstancePage } from './instancePage';
 import { ToolsPage } from './toolsPage';
 import { DownloadMonitor, Toast } from './ui';
@@ -33,6 +34,7 @@ const NAV = [
   { key: 'mlc', label: 'MLC', icon: 'layui-icon-console', iconImg: 'chest.png' },
   { key: 'multiplayer', label: 'Multiplayer', icon: 'layui-icon-link', iconImg: 'oak_sign.png' },
   { key: 'forum', label: 'Forum', icon: 'layui-icon-dialogue', iconImg: 'golden_apple.png' },
+  { key: 'account', label: 'Me', icon: 'layui-icon-username', iconImg: 'writable_book.png' },
   { key: 'settings', label: 'Settings', icon: 'layui-icon-set', iconImg: 'crafting_table.png' },
   { key: 'tools', label: 'Tools', icon: 'layui-icon-util', iconImg: 'anvil.png' },
 ];
@@ -146,6 +148,7 @@ export function App() {
   const [dismissed, setDismissed] = useState(false);
   const [theme, setTheme] = useState<Theme>('dark');
   const [booted, setBooted] = useState(false);
+  const [me, setMe] = useState<{ username: string; group?: { name: string } } | null>(null);
   const [firstRun, setFirstRun] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [version, setVersion] = useState('0.1.0');
@@ -309,6 +312,16 @@ export function App() {
           <h1>{t(current.label)}</h1>
           <span className="sub">Vein Launcher {version}</span>
           <div className="spacer" />
+          <button className={`head-account ${me ? 'on' : ''}`} onClick={() => setPage('account')} title="我的账号">
+            {me ? (
+              <>
+                <span className="head-avatar">{me.username.slice(0, 1).toUpperCase()}</span>
+                <span className="head-name">{me.username}</span>
+              </>
+            ) : (
+              <span className="head-name">登录</span>
+            )}
+          </button>
           <span className="sub">{installed.length} instances</span>
         </header>
 
@@ -358,6 +371,7 @@ export function App() {
           )}
           {page === 'skins' && <SkinsPage notify={notify} />}
           {page === 'forum' && <ForumPage notify={notify} />}
+          {page === 'account' && <AccountPage notify={notify} />}
           {page === 'download' && (
             <DownloadPage installed={installed} onInstalled={refreshInstalled} notify={notify} />
           )}

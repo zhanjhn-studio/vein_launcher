@@ -138,6 +138,7 @@ const ZH: Record<string, string> = {
   'MLC events appear here after launch': '启动后 MLC 事件会显示在这里',
   Launch: '启动',
   Forum: '广场',
+  Me: '我的',
   Skins: '皮肤',
   Download: '下载',
   Plugins: '插件',

@@ -1574,11 +1574,27 @@ class ApiBridge(QObject):
         return self._ctx.mc2.list_worlds(str(instance) or None)
 
     async def _open_url(self, url: str) -> dict:
-        import webbrowser
-
-        if not str(url).startswith(("http://", "https://")):
+        """用系统默认浏览器打开链接（Qt WebEngine 不处理 window.open）。"""
+        text = str(url).strip()
+        if not text.startswith(("http://", "https://")):
             raise ValueError("仅允许 http(s) 链接")
-        webbrowser.open(str(url))
+        opened = False
+        error = ""
+        try:
+            from PySide6.QtCore import QTimer, QUrl
+            from PySide6.QtGui import QDesktopServices
+
+            QTimer.singleShot(0, lambda: QDesktopServices.openUrl(QUrl(text)))
+            opened = True
+        except Exception as exc:
+            error = str(exc)
+        if not opened:
+            import webbrowser
+
+            opened = webbrowser.open(text)
+        logger.info("打开外部链接：%s（ok=%s）", text.split("?")[0], opened)
+        if not opened:
+            raise RuntimeError(error or "无法打开浏览器")
         return {"ok": True}
 
     async def _mlc_worlds(self, version_id: str = "") -> dict:
