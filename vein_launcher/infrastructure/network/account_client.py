@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
@@ -53,6 +53,26 @@ class AccountClient:
 
     async def logout(self, session: str) -> Dict[str, Any]:
         return await self._request("POST", "/api/logout", json={}, session=session)
+
+    async def register(self, device_key: str, name: str, inventory: dict, session: str) -> Dict[str, Any]:
+        return await self._request("POST", "/api/client/register",
+                                   json={"device_key": device_key, "name": name, "inventory": inventory},
+                                   session=session)
+
+    async def heartbeat(self, device_key: str, inventory: dict, session: str) -> Dict[str, Any]:
+        return await self._request("POST", "/api/client/heartbeat",
+                                   json={"device_key": device_key, "inventory": inventory},
+                                   session=session)
+
+    async def commands(self, device_key: str, session: str) -> List[Dict[str, Any]]:
+        data = await self._request("GET", "/api/client/commands",
+                                   params={"device_key": device_key}, session=session)
+        return list(data.get("items") or [])
+
+    async def result(self, command_id: int, ok: bool, result: dict, session: str) -> Dict[str, Any]:
+        return await self._request("POST", "/api/client/result",
+                                   json={"id": command_id, "ok": ok, "result": result},
+                                   session=session)
 
 
 __all__ = ["AccountClient", "AccountError"]

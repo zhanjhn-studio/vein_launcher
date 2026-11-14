@@ -248,9 +248,111 @@ class ApiBridge(QObject):
             event_bus.subscribe(f"mlc.agent.{agent_event}", self._make_mlc_agent_handler(agent_event))
 
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------ 远程控制
+    def _device_key(self) -> str:
+        import secrets
+
+        data = self._account_load()
+        key = str(data.get("device_key") or "")
+        if not key:
+            key = secrets.token_hex(16)
+            data["device_key"] = key
+            self._account_save(data)
+        return key
+
+    def _inventory(self) -> dict:
+        versions = []
+        try:
+            versions = self._ctx.versions.list_installed()
+        except Exception:
+            pass
+        ids = [v.get("id", "") for v in versions]
+        mods = {}
+        for vid in ids[:10]:
+            try:
+                mod_dir = self._ctx.instance_sub_dir(vid, "mod")
+                mods[vid] = [p.name for p in mod_dir.glob("*.jar")][:30]
+            except Exception:
+                continue
+        accounts = []
+        try:
+            accounts = [a.username for a in self._ctx.accounts.list()]
+        except Exception:
+            pass
+        try:
+            mlc = bool(self._ctx.mlc.enabled)
+        except Exception:
+            mlc = False
+        return {"versions": [{"id": v, "type": next((x.get("type") for x in versions if x.get("id") == v), "release")} for v in ids],
+                "mods": mods, "mlc": mlc, "accounts": accounts}
+
+    async def _remote_loop(self) -> None:
+        import asyncio
+
+        logger.info("remote control loop started")
+        await asyncio.sleep(5)
+        while True:
+            try:
+                await self._remote_tick()
+            except Exception:
+                logger.exception("remote control tick failed")
+            await asyncio.sleep(10)
+
+    async def _remote_tick(self) -> None:
+        data = self._account_load()
+        session = str(data.get("session") or "")
+        logger.info("remote tick: session=%s", bool(session))
+        if not session:
+            return
+        from vein_launcher.infrastructure.network.account_client import AccountClient
+
+        client = AccountClient()
+        key = self._device_key()
+        inv = self._inventory()
+        await client.register(key, __import__("socket").gethostname(), inv, session)
+        commands = await client.commands(key, session)
+        for cmd in commands:
+            try:
+                result = await self._run_remote(cmd.get("action", ""), cmd.get("payload") or {})
+                await client.result(int(cmd["id"]), True, result, session)
+            except Exception as exc:
+                await client.result(int(cmd["id"]), False, {"error": str(exc)}, session)
+
+    async def _run_remote(self, action: str, payload: dict) -> dict:
+        if action in ("versions.list", "mods.list"):
+            return self._inventory()
+        if action == "mlc.set":
+            enabled = bool(payload.get("enabled"))
+            return self._ctx.mlc.set_enabled(enabled)
+        if action == "version.install":
+            version = str(payload.get("version") or "").strip()
+            loader = str(payload.get("loader") or "").strip()
+            if not version:
+                raise ValueError("version required")
+            if loader:
+                result = await self._ctx.loaders.install(loader, version)
+            else:
+                result = await self._ctx.versions.install(version)
+            self._run_js("window.__veinInstalled && window.__veinInstalled()")
+            return {"version_id": result.get("version_id", version)}
+        if action == "game.launch":
+            version = str(payload.get("version") or "")
+            accounts = self._ctx.accounts.list()
+            username = next((a.username for a in accounts if getattr(a, "selected", False)), None)
+            username = username or (accounts[0].username if accounts else "Player")
+            return await self._launch(version, username)
+        if action == "open.page":
+            self.navigate(str(payload.get("page") or "launch"))
+            return {"ok": True}
+        raise ValueError(f"unsupported action: {action}")
+
     def start(self) -> None:
-        """启动后台服务（插件宿主等）"""
+        """启动后台服务（插件宿主、远程控制轮询等）"""
         self._runner.submit(self._ctx.startup())
+        try:
+            self._runner.submit(self._remote_loop())
+        except Exception:
+            logger.exception("failed to schedule remote loop")
 
     def navigate(self, page: str) -> None:
         """让前端切换到指定页面"""

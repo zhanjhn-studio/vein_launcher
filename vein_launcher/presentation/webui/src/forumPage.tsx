@@ -56,7 +56,6 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [pickTag, setPickTag] = useState('');
-  const [author, setAuthor] = useState(() => localStorage.getItem('vl.forum.author') || '');
   const [sending, setSending] = useState(false);
   const [account, setAccount] = useState<{ user?: any } | null>(null);
   const [login, setLogin] = useState<{ token: string; url: string; status: string } | null>(null);
@@ -153,9 +152,7 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
     }
     setSending(true);
     try {
-      const name = author.trim() || '匿名';
-      await rpc('forum.post', [title.trim(), content.trim(), pickTag ? [pickTag] : [], name]);
-      localStorage.setItem('vl.forum.author', name);
+      await rpc('forum.post', [title.trim(), content.trim(), pickTag ? [pickTag] : [], '']);
       setTitle('');
       setContent('');
       setCompose(false);
@@ -239,13 +236,10 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
       {compose && (
         <div className="forum-compose">
           <div className="forum-compose-row">
-            <input
-              className="input"
-              placeholder="昵称（1-20 字）"
-              value={author}
-              maxLength={20}
-              onChange={(e) => setAuthor(e.target.value)}
-            />
+            <div className="muted">
+              以 <b>{account?.user?.username}</b> 身份发布
+              <span className="forum-tag" style={{ marginLeft: 6 }}>{account?.user?.group?.name || 'member'}</span>
+            </div>
             <select value={pickTag} onChange={(e) => setPickTag(e.target.value)}>
               <option value="">不选标签</option>
               {tagOptions.map((t) => (

@@ -752,3 +752,10 @@ window.__veinResult(12, true, {ok: 1})
   权限组 admin/member/banned（banned 只读）。论坛 API 改为必须 Bearer session，服务端 introspect 校验后记录 user_id/author_group，
   按组限流与只读拦截；启动器新增「广场 → 登录」：显示 token、复制、打开账号页、轮询绑定、本地 session（config/account.json 600）；
   发帖/点赞带 session。首个注册用户自动为管理员；账号站代码不入库（.tmp_account 忽略）。
+
+- **2026-11-14 · feat/remote-dashboard** — 账号仪表盘与远程控制：
+  account.zhanjhn.cn/veinlauncher 深色纹理背景 + 立方体加载动画；clients/commands 两表；
+  API：client register/heartbeat/list/command/commands/result；启动器 side 每 10s 注册设备并拉取指令，
+  支持 versions.list / version.install / mlc.set / mods.list / game.launch / open.page，结果回传；
+  发帖界面去掉昵称（身份取账号）；修复远程循环调度（AsyncRunner.submit）与 account.json BOM 读取问题。
+  验证：设备上线、versions.list done、mlc.set done、权限/发帖链路正常。
