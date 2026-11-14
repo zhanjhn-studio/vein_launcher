@@ -3,7 +3,7 @@ import { rpc } from './bridge';
 
 export type Lang = 'en' | 'zh';
 
-let lang: Lang = 'en';
+let lang: Lang = 'zh'; // 默认中文；initI18n 会按配置纠正
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((fn) => fn());
 
@@ -96,12 +96,21 @@ const EN: Record<string, string> = {
 };
 
 export async function initI18n(): Promise<void> {
-  try {
-    const result = await rpc<{ lang: string }>('i18n.get');
-    lang = result.lang === 'zh_CN' ? 'zh' : 'en';
-  } catch {
-    lang = 'en';
+  // 启动瞬间后端可能还没就绪（首次启动还要建目录），rpc 会抛错。
+  // 这里重试几次；仍然失败就按中文渲染 —— 配置默认就是 zh_CN，
+  // 否则界面会先卡在英文，等用户手动切语言才恢复。
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      const result = await rpc<{ lang: string }>('i18n.get');
+      lang = String(result?.lang || '').toLowerCase().startsWith('en') ? 'en' : 'zh';
+      notify();
+      window.dispatchEvent(new Event('vein:lang'));
+      return;
+    } catch {
+      await new Promise((resolve) => window.setTimeout(resolve, 200));
+    }
   }
+  lang = 'zh';
   notify();
   window.dispatchEvent(new Event('vein:lang'));
 }
