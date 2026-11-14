@@ -438,7 +438,32 @@ class PluginService:
     # ------------------------------------------------------------------
     # 生命周期
     # ------------------------------------------------------------------
+    def _example_sources(self):
+        if not EXAMPLES_DIR.is_dir():
+            return []
+        out = []
+        for child in sorted(EXAMPLES_DIR.iterdir()):
+            if not child.is_dir() or child.name.startswith("."):
+                continue
+            if child.name == "official":
+                for sub in sorted(child.iterdir()):
+                    if sub.is_dir() and (sub / "package.json").is_file():
+                        out.append(f"official/{sub.name}")
+            elif (child / "package.json").is_file():
+                out.append(child.name)
+        return out
+
+    async def _seed_official(self) -> None:
+        for rel in self._example_sources():
+            try:
+                self.install_example(rel)
+            except FileExistsError:
+                continue
+            except Exception as exc:
+                logger.warning("安装内置插件失败 %s：%s", rel, exc)
+
     async def start(self) -> None:
+        await self._seed_official()
         plugins = self._loader.scan()
         if not plugins:
             logger.info("没有可用插件")
@@ -501,25 +526,24 @@ class PluginService:
         }
 
     def examples(self) -> List[Dict[str, str]]:
-        """可安装的内置示例插件（扫描 plugins_examples/）"""
+        """可安装的内置示例插件（扫描 plugins_examples/ 与 official/）"""
         items: List[Dict[str, str]] = []
         if not EXAMPLES_DIR.is_dir():
             return items
         installed = {p.manifest.name for p in self._loader.scan()}
-        for child in sorted(EXAMPLES_DIR.iterdir()):
-            if not child.is_dir() or child.name.startswith("."):
-                continue
+        for rel in self._example_sources():
+            child = EXAMPLES_DIR / rel
             try:
                 manifest = PluginLoader.parse_manifest(child)
             except Exception as exc:
-                logger.debug("示例清单解析失败 %s：%s", child.name, exc)
+                logger.debug("示例清单解析失败 %s：%s", rel, exc)
                 continue
             items.append(
                 {
-                    "name": child.name,
+                    "name": rel,
                     "displayName": manifest.display_name,
                     "description": manifest.description,
-                    "installed": manifest.name in installed or child.name in installed,
+                    "installed": manifest.name in installed,
                 }
             )
         return items
@@ -565,14 +589,16 @@ class PluginService:
         source = EXAMPLES_DIR / name
         if not source.is_dir():
             raise FileNotFoundError(f"示例不存在：{name}")
-        target = self._loader.root / sanitize(name)
+        manifest = PluginLoader.parse_manifest(source)
+        real_name = manifest.name
+        target = self._loader.root / sanitize(real_name)
         if target.exists():
-            raise FileExistsError(f"插件已存在：{name}")
+            raise FileExistsError(f"插件已存在：{real_name}")
         shutil.copytree(source, target, ignore=shutil.ignore_patterns("node_modules", "data"))
-        self._enabled[name] = True
+        self._enabled[real_name] = True
         self._save_state()
-        logger.info("已安装示例插件：%s", name)
-        return {"ok": True, "name": name}
+        logger.info("已安装示例插件：%s", real_name)
+        return {"ok": True, "name": real_name}
 
     # ------------------------------------------------------------------
     def _install_event_bridge(self) -> None:
