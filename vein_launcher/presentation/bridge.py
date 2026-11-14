@@ -171,6 +171,10 @@ class ApiBridge(QObject):
             "forum.detail": self._forum_detail,
             "forum.post": self._forum_post,
             "forum.like": self._forum_like,
+            "account.status": self._account_status,
+            "account.start": self._account_start,
+            "account.poll": self._account_poll,
+            "account.logout": self._account_logout,
             "mlc.worlds": self._mlc_worlds,
             "app.openDataDir": self._open_data_dir,
             "i18n.get": self._i18n_get,
@@ -732,6 +736,89 @@ class ApiBridge(QObject):
     async def _plugins_install_example(self, name: str) -> dict:
         return self._ctx.plugins.install_example(str(name))
 
+    # ------------------------------------------------------------------ 账户
+    def _account_path(self):
+        from vein_launcher.common.utils.path_utils import get_config_dir
+
+        return get_config_dir() / "account.json"
+
+    def _account_load(self) -> dict:
+        import json
+
+        try:
+            path = self._account_path()
+            if path.is_file():
+                return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+        return {}
+
+    def _account_save(self, data: dict) -> None:
+        import json
+
+        path = self._account_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        try:
+            path.chmod(0o600)
+        except OSError:
+            pass
+
+    async def _account_status(self) -> dict:
+        data = self._account_load()
+        session = str(data.get("session") or "")
+        if not session:
+            return {"loggedIn": False}
+        from vein_launcher.infrastructure.network.account_client import AccountClient, AccountError
+
+        try:
+            result = await AccountClient().me(session)
+            user = result.get("user") or {}
+            return {"loggedIn": True, "user": user, "session": session}
+        except AccountError:
+            return {"loggedIn": False, "expired": True}
+
+    async def _account_start(self) -> dict:
+        import secrets
+
+        from vein_launcher.infrastructure.network.account_client import AccountClient
+
+        token = secrets.token_hex(20)
+        self._pending_token = token
+        await AccountClient().start(token)
+        return {"token": token, "url": "https://account.zhanjhn.cn/", "expiresIn": 600}
+
+    async def _account_poll(self) -> dict:
+        token = getattr(self, "_pending_token", "")
+        if not token:
+            return {"status": "none"}
+        from vein_launcher.infrastructure.network.account_client import AccountClient, AccountError
+
+        try:
+            result = await AccountClient().poll(token)
+        except AccountError as exc:
+            return {"status": "error", "message": str(exc)}
+        if result.get("status") == "verified":
+            session = result.get("session") or ""
+            user = result.get("user") or {}
+            self._account_save({"session": session, "user": user})
+            self._pending_token = ""
+            return {"status": "verified", "user": user}
+        return {"status": result.get("status", "pending")}
+
+    async def _account_logout(self) -> dict:
+        data = self._account_load()
+        session = str(data.get("session") or "")
+        if session:
+            from vein_launcher.infrastructure.network.account_client import AccountClient
+
+            try:
+                await AccountClient().logout(session)
+            except Exception:
+                pass
+        self._account_save({})
+        return {"ok": True}
+
     # ------------------------------------------------------------------ 广场
     def _forum(self):
         client = getattr(self, "_forum_client", None)
@@ -754,7 +841,8 @@ class ApiBridge(QObject):
     async def _forum_post(self, title: str, content: str, tags=None, author: str = "") -> dict:
         name = str(author or "").strip() or "匿名"
         tag_list = [str(x) for x in (tags or [])][:5]
-        return await self._forum().create(str(title), str(content), tag_list, name)
+        session = str(self._account_load().get("session") or "")
+        return await self._forum().create(str(title), str(content), tag_list, name, session)
 
     async def _forum_like(self, post_id: int) -> dict:
         return await self._forum().like(int(post_id))

@@ -10,13 +10,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     exit;
 }
 
-$configFile = '/www/_private/vl-posts.php';
+$configFile = __DIR__ . '/_private.php';
 if (!is_file($configFile)) {
     http_response_code(500);
     echo json_encode(['error' => ['code' => 'not_configured', 'message' => 'server config missing']], JSON_UNESCAPED_UNICODE);
     exit;
 }
 $cfg = require $configFile;
+$accountUrl = rtrim((string)($cfg['account_url'] ?? 'https://account.zhanjhn.cn'), '/');
 
 try {
     $pdo = new PDO($cfg['dsn'], $cfg['user'], $cfg['pass'], [
@@ -40,6 +41,44 @@ function respond(array $data, int $code = 200): void
 function fail(string $message, int $code = 400, string $error = 'bad_request'): void
 {
     respond(['error' => ['code' => $error, 'message' => $message]], $code);
+}
+
+
+function account_introspect(string $url, string $key, string $session, string $host = ''): ?array
+{
+    if ($session === '' || $key === '') {
+        return null;
+    }
+    $payload = json_encode(['session' => $session]);
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/json\r\nX-Service-Key: $key\r\n"
+                . ($host !== '' ? "Host: $host\r\n" : ''),
+            'content' => $payload,
+            'timeout' => 8,
+            'ignore_errors' => true,
+        ],
+    ]);
+    $raw = @file_get_contents($url . '/api/auth/introspect', false, $context);
+    if ($raw === false) {
+        return null;
+    }
+    $data = json_decode($raw, true);
+    if (!is_array($data) || empty($data['ok'])) {
+        return null;
+    }
+    return $data['user'] ?? null;
+}
+
+function bearer_token(): string
+{
+    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    if (preg_match('/^Bearer\s+(.+)$/i', $header, $m)) {
+        return trim($m[1]);
+    }
+    $data = body();
+    return trim((string)($data['session'] ?? ''));
 }
 
 function body(): array
@@ -181,7 +220,19 @@ if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && count($segments) =
     $title = trim((string)($data['title'] ?? ''));
     $content = trim((string)($data['content'] ?? ''));
     $tags = $data['tags'] ?? [];
-    $author = trim((string)($data['author'] ?? ($_SERVER['HTTP_X_AUTHOR'] ?? '')));
+    // 必须登录：用账号服务校验 session 并取用户/权限组
+    $session = bearer_token();
+    $accountUser = account_introspect($accountUrl, (string)($cfg['service_key'] ?? ''), $session, (string)($cfg['account_host'] ?? ''));
+    if (!$accountUser) {
+        fail('请先登录（启动器 → 广场 → 登录）', 401, 'unauthorized');
+    }
+    $author = trim((string)($accountUser['username'] ?? ''));
+    $groupId = (string)($accountUser['group']['key'] ?? 'member');
+    $groupCanPost = !empty($accountUser['group']['can_post']);
+    $groupMax = (int)($accountUser['group']['max_posts_per_day'] ?? 0);
+    if (($accountUser['status'] ?? 'active') === 'banned' || !$groupCanPost) {
+        fail('当前账号为只读（封禁或权限组不允许发帖）', 403, 'read_only');
+    }
 
     if (mb_strlen($title, 'UTF-8') < 4 || mb_strlen($title, 'UTF-8') > 120) {
         fail('title must be 4-120 characters', 422, 'invalid_title');
@@ -189,10 +240,7 @@ if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && count($segments) =
     if (mb_strlen($content, 'UTF-8') < 2 || mb_strlen($content, 'UTF-8') > 20000) {
         fail('content must be 2-20000 characters', 422, 'invalid_content');
     }
-    if (mb_strlen($author, 'UTF-8') < 1 || mb_strlen($author, 'UTF-8') > 20) {
-        fail('author must be 1-20 characters', 422, 'invalid_author');
-    }
-    $author = preg_replace('/[^\p{L}\p{N}_\- ]/u', '', $author) ?: '匿名';
+
     if (!is_array($tags)) {
         $tags = [];
     }
@@ -203,6 +251,14 @@ if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && count($segments) =
     foreach ($tags as $tag) {
         if (mb_strlen($tag, 'UTF-8') > 32) {
             fail('tag too long', 422, 'invalid_tag');
+        }
+    }
+
+    if ($groupMax > 0) {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM posts WHERE user_id = ? AND created_at >= CURDATE()');
+        $stmt->execute([(int)$accountUser['id']]);
+        if ((int)$stmt->fetchColumn() >= $groupMax) {
+            fail('今日发帖数已达上限', 429, 'daily_limit');
         }
     }
 
@@ -225,8 +281,8 @@ if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && count($segments) =
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare('INSERT INTO posts (title, content, author_id, author_name, ip_hash) VALUES (?, ?, ?, ?, ?)');
-        $stmt->execute([$title, $content, 'guest-' . $ipHash, $author, $ipHash]);
+        $stmt = $pdo->prepare('INSERT INTO posts (title, content, author_id, author_name, author_group, user_id, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$title, $content, 'user-' . (int)$accountUser['id'], $author, $groupId, (int)$accountUser['id'], $ipHash]);
         $postId = (int)$pdo->lastInsertId();
 
         foreach ($tags as $tag) {
@@ -246,6 +302,7 @@ if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && count($segments) =
         'id' => $postId,
         'title' => $title,
         'author_name' => $author,
+        'author_group' => $groupId,
         'tags' => $tags,
         'created_at' => date('c'),
     ], 201);

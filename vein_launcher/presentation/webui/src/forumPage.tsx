@@ -58,6 +58,8 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
   const [pickTag, setPickTag] = useState('');
   const [author, setAuthor] = useState(() => localStorage.getItem('vl.forum.author') || '');
   const [sending, setSending] = useState(false);
+  const [account, setAccount] = useState<{ user?: any } | null>(null);
+  const [login, setLogin] = useState<{ token: string; url: string; status: string } | null>(null);
 
   const loadTags = useCallback(async () => {
     try {
@@ -81,6 +83,46 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
   }, [sort, tag, notify]);
 
   useEffect(() => {
+    rpc<{ loggedIn: boolean; user?: any }>('account.status', [])
+      .then((res) => setAccount(res?.loggedIn ? { user: res.user } : null))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!login || login.status !== 'pending') return;
+    const timer = window.setInterval(async () => {
+      try {
+        const res = await rpc<{ status: string; user?: any; message?: string }>('account.poll', []);
+        if (res.status === 'verified') {
+          setAccount({ user: res.user });
+          setLogin(null);
+          notify(`已登录：${res.user?.username ?? ''}`);
+        } else if (res.status === 'expired' || res.status === 'error' || res.status === 'consumed') {
+          setLogin({ ...login, status: res.status === 'expired' ? 'expired' : 'error' });
+        }
+      } catch {
+        /* 轮询失败忽略，下一轮再试 */
+      }
+    }, 2500);
+    return () => window.clearInterval(timer);
+  }, [login, notify]);
+
+  const startLogin = async () => {
+    try {
+      const res = await rpc<{ token: string; url: string }>('account.start', []);
+      setLogin({ token: res.token, url: res.url, status: 'pending' });
+    } catch (err) {
+      notify(`登录初始化失败：${(err as Error).message}`);
+    }
+  };
+
+  const logout = async () => {
+    await rpc('account.logout', []).catch(() => {});
+    setAccount(null);
+    notify('已退出账号');
+  };
+
+  useEffect(() => {
     loadTags();
   }, [loadTags]);
 
@@ -97,8 +139,16 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
   };
 
   const send = async () => {
-    if (!title.trim() || !content.trim()) {
-      notify('标题和正文都要填');
+    if (!account) {
+      startLogin();
+      return;
+    }
+    if (title.trim().length < 4) {
+      notify('标题至少 4 个字');
+      return;
+    }
+    if (content.trim().length < 2) {
+      notify('正文至少 2 个字');
       return;
     }
     setSending(true);
@@ -163,7 +213,25 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
       <div className="page-head">
         <h1>广场</h1>
         <span className="muted">{items.length} 条 · 来自 api.zhanjhn.cn</span>
-        <button className="btn primary" style={{ marginLeft: 'auto' }} onClick={() => setCompose((v) => !v)}>
+        {account ? (
+          <span className="forum-account">
+            {account.user?.username}
+            <span className="forum-tag">{account.user?.group?.name || 'member'}</span>
+            <button className="btn sm ghost" onClick={logout}>退出</button>
+          </span>
+        ) : (
+          <button className="btn sm" style={{ marginLeft: 'auto' }} onClick={startLogin}>登录</button>
+        )}
+        <button
+          className="btn primary"
+          onClick={() => {
+            if (!account) {
+              startLogin();
+              return;
+            }
+            setCompose((v) => !v);
+          }}
+        >
           发帖
         </button>
       </div>
@@ -223,6 +291,24 @@ export function ForumPage({ notify }: { notify: (text: string) => void }) {
           ))}
         </div>
       </div>
+
+      {login && (
+        <div className="forum-login">
+          <b>登录账号</b>
+          <p>在 account.zhanjhn.cn 登录或注册后，把下面的 token 填入「绑定启动器」。</p>
+          <code className="forum-token">{login.token}</code>
+          <div className="forum-login-actions">
+            <button className="btn sm" onClick={() => navigator.clipboard?.writeText(login.token)}>复制</button>
+            <button className="btn sm" onClick={() => window.open(login.url, '_blank')}>打开登录页</button>
+            <button className="btn sm ghost" onClick={() => setLogin(null)}>取消</button>
+          </div>
+          <span className="muted">
+            {login.status === 'pending' ? '等待绑定…（10 分钟内有效）'
+              : login.status === 'expired' ? 'token 已过期，请重新登录'
+              : '验证失败，请重试'}
+          </span>
+        </div>
+      )}
 
       <div className="forum-list">
         {loading && <div className="empty">加载中…</div>}

@@ -81,12 +81,17 @@ class ForumClient:
     async def detail(self, post_id: int) -> Dict[str, Any]:
         return await self._request("GET", f"/api/posts/{int(post_id)}")
 
-    async def create(self, title: str, content: str, tags: List[str], author: str) -> Dict[str, Any]:
+    async def create(
+        self, title: str, content: str, tags: List[str], author: str, session: str = ""
+    ) -> Dict[str, Any]:
+        headers = {"X-Author": author}
+        if session:
+            headers["Authorization"] = f"Bearer {session}"
         return await self._request(
             "POST",
             "/api/posts",
             json={"title": title, "content": content, "tags": tags, "author": author},
-            headers={"X-Author": author},
+            headers=headers,
         )
 
     async def like(self, post_id: int) -> Dict[str, Any]:

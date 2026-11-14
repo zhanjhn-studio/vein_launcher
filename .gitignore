@@ -101,3 +101,6 @@ packaging/release/
 build_exe/
 build_installer*/
 packaging/*.spec
+
+# account site (server only, not in GitHub)
+.tmp_account/

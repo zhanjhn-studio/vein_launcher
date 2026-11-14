@@ -745,3 +745,10 @@ window.__veinResult(12, true, {ok: 1})
 - **2026-11-14 · forum/posts** — 帖子系统上线 `https://api.zhanjhn.cn/`：
 
 - **2026-11-14 · feat/forum-in-app** — 启动器内置「广场」：
+
+- **2026-11-14 · feat/account** — 账号体系与启动器登录：
+  account.zhanjhn.cn（PHP 8.2 + MySQL zhanjhnaccount）：users/groups_t/devices/sessions/settings/invites；
+  注册/登录/退出/me、设备 token start/bind/poll、服务端 introspect、管理后台（开放注册/邀请码/SMTP 配置/用户分组与封禁）；
+  权限组 admin/member/banned（banned 只读）。论坛 API 改为必须 Bearer session，服务端 introspect 校验后记录 user_id/author_group，
+  按组限流与只读拦截；启动器新增「广场 → 登录」：显示 token、复制、打开账号页、轮询绑定、本地 session（config/account.json 600）；
+  发帖/点赞带 session。首个注册用户自动为管理员；账号站代码不入库（.tmp_account 忽略）。

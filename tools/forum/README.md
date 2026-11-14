@@ -30,6 +30,15 @@
 | POST | `/api/posts/{id}/like` | 点赞，`X-User` 幂等 |
 | GET | `/api/tags` | 标签与帖子数 |
 
+## 账号与权限（2026-11 起）
+
+发帖必须登录：启动器「广场 → 登录」生成设备 token → 在 https://account.zhanjhn.cn 登录并绑定 → 启动器轮询拿到 session。
+
+- 论坛 API 用 `Authorization: Bearer <session>` 调账号服务 `/api/auth/introspect`（服务端到服务端，`X-Service-Key`）
+- 权限组：`admin`（可删帖，后续）、`member`（可发帖/点赞，每日 20 帖）、`banned`（只读）
+- 帖子记录 `user_id` / `author_group`，作者名来自账号，不再信任前端传参
+- 账号站点代码**不入库**（`.tmp_account/` 已在 .gitignore）
+
 ## 约束
 
 - 标题 4–120 字，正文 2–20000 字，标签 ≤5 个、每个 ≤32 字
