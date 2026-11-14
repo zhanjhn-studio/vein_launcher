@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import logging
 import threading
 import time
@@ -361,6 +362,8 @@ class ApiBridge(QObject):
             return await self._game_running()
         if action == "logs.tail":
             name = str(payload.get("file") or "")
+            if name and (Path(name).name != name or not name.endswith(".log")):
+                raise ValueError("invalid log file")
             logs_dir = self._ctx.data_dir / "logs"
             candidates = sorted(logs_dir.glob(name or "*.log"), key=lambda f: f.stat().st_mtime, reverse=True) if logs_dir.is_dir() else []
             if not candidates:
@@ -391,6 +394,8 @@ class ApiBridge(QObject):
             raise ValueError("mod not found")
         if action == "versions.delete":
             version = str(payload.get("version") or "")
+            if not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", version):
+                raise ValueError("invalid version")
             return {"deleted": self._ctx.versions.delete(version)}
         if action == "open.page":
             self.navigate(str(payload.get("page") or "launch"))

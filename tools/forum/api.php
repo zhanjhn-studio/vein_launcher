@@ -1,9 +1,20 @@
 <?php
 declare(strict_types=1);
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
 
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: Content-Type, X-Author, X-User');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: no-referrer');
+header('Cache-Control: no-store');
+$allowedOrigins = ['https://vl.zhanjhn.cn', 'https://account.zhanjhn.cn'];
+$origin = (string)($_SERVER['HTTP_ORIGIN'] ?? '');
+if (in_array($origin, $allowedOrigins, true)) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Vary: Origin');
+}
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-User');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     http_response_code(204);
@@ -79,6 +90,33 @@ function bearer_token(): string
     }
     $data = body();
     return trim((string)($data['session'] ?? ''));
+}
+
+function client_ip_for_limit(): string
+{
+    $cf = (string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? '');
+    if ($cf !== '') {
+        return $cf;
+    }
+    $xff = (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
+    if ($xff !== '') {
+        $parts = explode(',', $xff);
+        return trim($parts[0]);
+    }
+    return (string)($_SERVER['REMOTE_ADDR'] ?? '');
+}
+
+function throttle(PDO $pdo, string $name, int $limit, int $window): void
+{
+    $key = substr($name . '|' . client_ip_for_limit(), 0, 160);
+    $pdo->prepare('DELETE FROM api_rate_limits WHERE reset_at < NOW()')->execute();
+    $pdo->prepare('INSERT INTO api_rate_limits (k, c, reset_at) VALUES (?, 1, DATE_ADD(NOW(), INTERVAL ? SECOND))
+        ON DUPLICATE KEY UPDATE c = c + 1')->execute([$key, $window]);
+    $stmt = $pdo->prepare('SELECT c FROM api_rate_limits WHERE k = ?');
+    $stmt->execute([$key]);
+    if ((int)$stmt->fetchColumn() > $limit) {
+        fail('请求过于频繁，请稍后再试', 429, 'rate_limited');
+    }
 }
 
 function body(): array
@@ -166,6 +204,7 @@ if ($method === 'POST' && ($segments[0] ?? '') === 'tags' && count($segments) ==
 
 // POST /api/{project}/posts
 if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && count($segments) === 1) {
+    throttle($pdo, 'post', 20, 60);
     $data = body();
     $limit = min(50, max(1, (int)($data['limit'] ?? 20)));
     $page = max(1, (int)($data['page'] ?? 1));
@@ -333,6 +372,7 @@ if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && count($segments) =
 
 // POST /api/posts/{id}/like
 if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && isset($segments[1]) && ctype_digit((string)$segments[1]) && ($segments[2] ?? '') === 'like') {
+    throttle($pdo, 'like', 120, 60);
     $postId = (int)$segments[1];
     $stmt = $pdo->prepare('SELECT id FROM posts WHERE id = ?');
     $stmt->execute([$postId]);
@@ -355,6 +395,7 @@ if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && isset($segments[1]
 
 // POST /api/posts/{id}/delete
 if ($method === 'POST' && ($segments[0] ?? '') === 'posts' && isset($segments[1]) && ctype_digit((string)$segments[1]) && ($segments[2] ?? '') === 'delete') {
+    throttle($pdo, 'delete', 30, 60);
     $postId = (int)$segments[1];
     $session = bearer_token();
     $accountUser = account_introspect($accountUrl, (string)($cfg['service_key'] ?? ''), $session, (string)($cfg['account_host'] ?? ''));

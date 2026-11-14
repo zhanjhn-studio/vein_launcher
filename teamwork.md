@@ -801,3 +801,8 @@ window.__veinResult(12, true, {ok: 1})
   所有接口仅接受 POST（GET 返回 405 JSON）；路径按项目隔离 `/api/{project}/...`，未知项目 404 unknown_project，目前项目白名单仅 `veinlauncher`；
   接口迁移：health/tags/posts/详情/点赞/删除都在 `/api/veinlauncher/*`；ForumClient 与网页广场同步改为 POST；
   广场页面移到 vl.zhanjhn.cn/forum/（api 不再承载 HTML）。
+
+- **2026-11-14 · security/hardening** — 安全检测与修复：
+  账号 API 加 IP 限流（登录 10/5min、注册 10/h、设备 start/bind、房间 join、远程指令）；论坛 API 加发帖/点赞/删帖限流；
+  CORS 改为白名单（vl/account），API 增加 nosniff / DENY / no-referrer / Permissions-Policy；PHP 关闭 display_errors；
++ 删除 api 站泄露的 index.html 备份；启动器远程指令校验日志文件名、版本号，阻断路径穿越。
